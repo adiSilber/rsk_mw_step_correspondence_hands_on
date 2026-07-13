@@ -24,8 +24,10 @@ def length (s : Segment) : ℕ := (s.b - s.a).toNat + 1
 
 end Segment
 
-def leq (s1 s2 : Segment) := s1.a < s2.a ∨ (s1.a = s2.a ∧ s1.b ≤ s2.b)
-infix:90 " ≤ " => leq
+/-- Lexicographic order on segments: `s₁ ≤ s₂` iff `a₁ < a₂`, or `a₁ = a₂` and `b₁ ≤ b₂`. -/
+instance : LinearOrder Segment :=
+  LinearOrder.lift' (fun s : Segment => toLex (s.toProd))
+    NonemptyInterval.toProd_injective
 
 /-- Strict precedence: Δ₁ ≪ Δ₂ iff a₁ < a₂ and b₁ < b₂. -/
 def ll (s1 s2 : Segment) := s1.a < s2.a ∧ s1.b < s2.b

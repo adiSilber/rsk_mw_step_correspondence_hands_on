@@ -31,13 +31,10 @@ instance : DecidableEq Segment := inferInstanceAs (DecidableEq (NonemptyInterval
 instance : Repr Segment where
   reprPrec s _ := reprPrec (s.a, s.b) 0
 
--- TODO: Show this equals Segment.leq
-instance : LinearOrder Segment :=
-  LinearOrder.lift' (fun s : Segment => toLex (s.toProd))
-    NonemptyInterval.toProd_injective
-
-instance : DecidableRel (· ≤ ·) := by
-  intro x y; simp [(· ≤ ·)]; infer_instance
+/-- The explicit description of the lexicographic order on segments. -/
+lemma Segment.le_def (s₁ s₂ : Segment) :
+    s₁ ≤ s₂ ↔ s₁.a < s₂.a ∨ (s₁.a = s₂.a ∧ s₁.b ≤ s₂.b) :=
+  Prod.Lex.le_iff
 
 instance : ∀ x y, Decidable (x ≪ y) := by
   intro x y; simp [(· ≪ ·)]; infer_instance
