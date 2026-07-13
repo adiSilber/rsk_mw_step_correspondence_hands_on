@@ -191,6 +191,8 @@ lemma segment_rel_cases (s₁ s₂ : Segment) :
   simp [(· ≪ ·), subsegment] at *; omega
 
 
+/-- A bucket is a nested family: any two of its segments are `⊆`-comparable
+(same depth rules out `≪` in either direction). -/
 lemma bucket_sink (ms : Multisegment) d s₁ s₂
     (hs₁ : s₁ ∈ bucket ms d) (hs₂ : s₂ ∈ bucket ms d) :
     s₁ ⊆ s₂ ∨ s₂ ⊆ s₁ := by
@@ -198,45 +200,6 @@ lemma bucket_sink (ms : Multisegment) d s₁ s₂
   obtain rl|rl|rl|rl := segment_rel_cases s₁ s₂
     <;> try tauto
   all_goals { apply ll_ne_depth ms at rl; omega }
-
-
-
-/-- The bucket, projected to segments, is `a`-ascending. -/
-lemma bucket_sorted (ms : Multisegment) (d : ℕ) :
-    ((bucket ms d).map (·.val)).Pairwise (·.a ≤ ·.a) := by
-  haveI : Std.Total (fun x y : {s // s ∈ ms.segments} => nestOrder x.val y.val) :=
-    ⟨fun x y => by unfold nestOrder; omega⟩
-  haveI : IsTrans {s // s ∈ ms.segments} (fun x y => nestOrder x.val y.val) :=
-    ⟨fun x y z => by unfold nestOrder; omega⟩
-  rw [bucket, List.pairwise_map]
-  exact (List.pairwise_insertionSort _ _).imp (fun {x y} h => by unfold nestOrder at h; omega)
-
-/-- The bucket, projected to segments, is sorted by `nestOrder` (begin asc, ties end desc). -/
-lemma bucket_sorted_nest (ms : Multisegment) (d : ℕ) :
-    ((bucket ms d).map (·.val)).Pairwise nestOrder := by
-  haveI : Std.Total (fun x y : {s // s ∈ ms.segments} => nestOrder x.val y.val) :=
-    ⟨fun x y => by unfold nestOrder; omega⟩
-  haveI : IsTrans {s // s ∈ ms.segments} (fun x y => nestOrder x.val y.val) :=
-    ⟨fun x y z => by unfold nestOrder; omega⟩
-  rw [bucket, List.pairwise_map]
-  exact List.pairwise_insertionSort _ _
-
-/-- The fiber (bucket), as a list, is fully `⊇`-nested: each later element is `⊆` each
-earlier one. (The admissible-enumeration nesting `Δ_{ik1} ⊇ … ⊇ Δ_{ikl}`.) -/
-lemma bucket_map_supset (m : Multisegment) (d : ℕ) :
-    ((bucket m d).map (·.val)).Pairwise (fun s t => subsegment t s) := by
-  apply List.Pairwise.imp_of_mem ?_ (bucket_sorted_nest m d)
-  intro a b ha hb hnest
-  obtain ⟨a', ha'bk, rfl⟩ := List.mem_map.mp ha
-  obtain ⟨b', hb'bk, rfl⟩ := List.mem_map.mp hb
-  have hda : depth_of_segment m a'.val a'.property = d := by simp [bucket] at ha'bk; exact ha'bk
-  have hdb : depth_of_segment m b'.val b'.property = d := by simp [bucket] at hb'bk; exact hb'bk
-  rcases segment_rel_cases a'.val b'.val with h | h | h | h
-  · exact absurd (ll_ne_depth m a'.val b'.val a'.property b'.property h) (by omega)
-  · exact absurd (ll_ne_depth m b'.val a'.val b'.property a'.property h) (by omega)
-  · simp only [nestOrder] at hnest; obtain ⟨h1, h2⟩ := h
-    exact ⟨by omega, by omega⟩
-  · exact h
 
 /-- Consecutive list elements form a `zip`-with-tail pair. -/
 lemma mem_zip_tail_of_split {α} (l₁ : List α) (a b : α) (l₂ : List α) :
