@@ -26,8 +26,7 @@ lemma isLadder_sorted (segments : List Segment) :
   simp [isLadder]
   apply List.Pairwise.imp
   rintro a b ⟨aa, bb⟩
-  unfold leq
-  exact Or.symm (Or.inr aa)
+  exact (Segment.le_def a b).mpr (Or.inl aa)
 
 
 lemma sorted_Sublist_append (R : α → α → Prop) [hasym : Std.Antisymm R]
@@ -111,7 +110,7 @@ lemma Ladder_sublist_extend (ms : Multisegment)
   have hext : isLadder (s₁ :: l.val.segments) :=
     isLadder_extend l.val.segments l.prop s₀ s₁ hs0 hs01
   have h_ll : ∀ b ∈ l.val.segments, s₁ ≪ b :=
-    (List.pairwise_cons.mp hext).1
+    (List.pairwise_cons.mp (by simpa [isLadder] using hext)).1
   -- s₁ ≤ b follows from s₁ ≪ b by lex projection on the first component
   have h_le : ∀ b ∈ l.val.segments, s₁ ≤ b := fun b hb => by
     rcases h_ll b hb with ⟨ha, _⟩
@@ -122,3 +121,54 @@ lemma Ladder_sublist_extend (ms : Multisegment)
   -- Now apply sorted_Sublist_append at the ≤ level
   exact sorted_Sublist_append (· ≤ ·) ms.segments l.val.segments
     ms.is_sorted s₁ h hs1 h_notin h_le
+
+
+/-- The list of lengths of all valid-ladder sublists of `ms` having `s` at the head. -/
+def validLadderLengths (ms : Multisegment) (s : Segment) : List ℕ :=
+  (ms.segments.sublists.filter (fun l => isLadder l ∧ s ∈ l.head?)).map List.length
+
+/-- The one-segment ladder `[s]` is always valid, so the list is non-empty. -/
+lemma validLadderLengths_ne_nil (ms : Multisegment) (s : Segment)
+    (hs : s ∈ ms.segments) : validLadderLengths ms s ≠ [] := by
+  apply List.ne_nil_of_mem (a := [s].length)
+  apply List.mem_map_of_mem
+  simp [hs, isLadder]
+
+/-- The key fact: `depth_of_segment + 1` is exactly the maximum valid ladder length. -/
+lemma depth_succ_eq_max (ms : Multisegment) (s : Segment) (hs : s ∈ ms.segments) :
+    depth_of_segment ms s hs + 1 =
+      (validLadderLengths ms s).max (validLadderLengths_ne_nil ms s hs) := by
+  have h_one_in : (1 : ℕ) ∈ validLadderLengths ms s := by
+    have h_s_in : [s] ∈ ms.segments.sublists.filter (fun l => isLadder l ∧ s ∈ l.head?) := by
+      simp [hs, isLadder]
+    have := List.mem_map_of_mem (f := List.length) h_s_in
+    simpa [validLadderLengths] using this
+  have h_max_ge := List.le_max_of_mem h_one_in
+  have h_unfold : depth_of_segment ms s hs =
+      (validLadderLengths ms s).max (validLadderLengths_ne_nil ms s hs) - 1 := by
+    unfold depth_of_segment validLadderLengths; rfl
+  omega
+
+lemma depth_witness (ms : Multisegment) (s : Segment)
+    (hs : s ∈ ms.segments) :
+    ∃l : Ladder, l.val.segments <+ ms.segments ∧
+      s ∈ l.val.segments.head? ∧
+      depth_of_segment ms s hs + 1 = l.val.segments.length := by
+  rw [depth_succ_eq_max ms s hs]
+  obtain ⟨a, ha_mem, ha_len⟩ :=
+    List.exists_of_mem_map (List.max_mem (validLadderLengths_ne_nil ms s hs))
+  simp at ha_mem
+  obtain ⟨h₁, h₂, h₃⟩ := ha_mem
+  exact ⟨⟨⟨a, isLadder_sorted _ h₂⟩, h₂⟩, h₁, h₃, ha_len.symm⟩
+
+lemma depth_witness' (ms : Multisegment) (s : Segment)
+    (hs : s ∈ ms.segments)
+    (l : Ladder) (hl : l.val.segments <+ ms.segments)
+    (hls : s ∈ l.val.segments.head?) :
+    depth_of_segment ms s hs + 1 ≥ l.val.segments.length := by
+  rw [depth_succ_eq_max ms s hs]
+  apply List.le_max_of_mem
+  apply List.mem_map_of_mem
+  apply List.mem_filter_of_mem
+  · simpa using hl
+  · aesop (add simp l.prop)
