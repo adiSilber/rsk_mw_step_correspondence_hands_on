@@ -82,3 +82,23 @@ def base_ladder : Ladder :=
 #eval (bucket m_mixed 0).map (·.val)
 #eval (bucket m_mixed 1).map (·.val)
 #eval (bucket m_mixed 2).map (·.val)
+
+
+-- (2,3) ⊆ (1,5) — true (contained in [1,5])
+#eval decide ((⟨⟨2, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 5⟩, by omega⟩)
+-- (1,5) ⊆ (2,3) — false
+#eval decide ((⟨⟨1, 5⟩, by omega⟩ : Segment) ⊆ ⟨⟨2, 3⟩, by omega⟩)
+-- (1,3) ⊆ (1,3) — reflexive
+#eval decide ((⟨⟨1, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 3⟩, by omega⟩)
+
+-- bucket m_ladder d (depths are 2, 1, 0 for (1,3), (2,4), (3,5)):
+-- bucket 0 = [(3,5)], bucket 1 = [(2,4)], bucket 2 = [(1,3)]
+#eval (bucket m_ladder 0).map (·.val)
+#eval (bucket m_ladder 1).map (·.val)
+#eval (bucket m_ladder 2).map (·.val)
+
+-- bucket m_mixed d (depths are 1, 1, 0 for (1,3), (1,4), (2,5)):
+-- bucket 0 = [(2,5)], bucket 1 = [(1,4), (1,3)], bucket 2 = []
+#eval (bucket m_mixed 0).map (·.val)
+#eval (bucket m_mixed 1).map (·.val)
+#eval (bucket m_mixed 2).map (·.val)

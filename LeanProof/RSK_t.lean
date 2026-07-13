@@ -29,9 +29,15 @@ def depth_of_segment (m : Multisegment) (s : Segment) (s_in_m : s ∈ m.segments
     aesop) - 1
 
 
+/-- Nesting order on segments: `a` ascending, ties by `b` descending (outermost first).
+This is the `⊆`-order on a nested family. -/
+def nestOrder (s t : Segment) : Prop := s.a < t.a ∨ (s.a = t.a ∧ t.b ≤ s.b)
+
+instance : DecidableRel nestOrder := fun s t => by unfold nestOrder; infer_instance
+
 /-- Segments of `ms` at depth `d`, packaged with their `∈ ms.segments` proofs
 (needed by `depth_of_segment`), sorted in `⊆`-nesting order (`a` ascending, ties by `b`
 descending — outermost first). Use `.map (·.val)` for plain segments. -/
 def bucket (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
   (ms.segments.attach.filter fun ⟨s, hs⟩ => depth_of_segment ms s hs = d).insertionSort
-    (fun x y => x.val ⊆ y.val)
+    (fun x y => nestOrder x.val y.val)

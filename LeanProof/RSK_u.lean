@@ -172,3 +172,241 @@ lemma depth_witness' (ms : Multisegment) (s : Segment)
   apply List.mem_filter_of_mem
   · simpa using hl
   · aesop (add simp l.prop)
+
+lemma ll_ne_depth (ms : Multisegment) (s₁ s₂ : Segment)
+  (hs₁ : s₁ ∈ ms.segments) (hs₂ : s₂ ∈ ms.segments) :
+  s₁ ≪ s₂ → depth_of_segment ms s₂ hs₂ < depth_of_segment ms s₁ hs₁ := by
+intro hll
+obtain ⟨L₂, hL₂_sub, hL₂_head, hL₂_len⟩ := depth_witness ms s₂ hs₂
+have hbound := depth_witness' ms s₁ hs₁
+  (Ladder_extend L₂ s₂ s₁ hL₂_head hll)
+  (Ladder_sublist_extend ms L₂ hL₂_sub s₂ s₁ hL₂_head hll hs₁)
+  rfl
+have hlen : (Ladder_extend L₂ s₂ s₁ hL₂_head hll).val.segments.length =
+            L₂.val.segments.length + 1 := rfl
+omega
+
+lemma segment_rel_cases (s₁ s₂ : Segment) :
+    s₁ ≪ s₂  ∨  s₂ ≪ s₁  ∨  s₁ ⊆ s₂  ∨  s₂ ⊆ s₁ := by
+  simp [(· ≪ ·), subsegment] at *; omega
+
+
+lemma bucket_sink (ms : Multisegment) d s₁ s₂
+    (hs₁ : s₁ ∈ bucket ms d) (hs₂ : s₂ ∈ bucket ms d) :
+    s₁ ⊆ s₂ ∨ s₂ ⊆ s₁ := by
+  simp [bucket] at hs₁ hs₂
+  obtain rl|rl|rl|rl := segment_rel_cases s₁ s₂
+    <;> try tauto
+  all_goals { apply ll_ne_depth ms at rl; omega }
+
+
+
+/-- The bucket, projected to segments, is `a`-ascending. -/
+lemma bucket_sorted (ms : Multisegment) (d : ℕ) :
+    ((bucket ms d).map (·.val)).Pairwise (·.a ≤ ·.a) := by
+  haveI : Std.Total (fun x y : {s // s ∈ ms.segments} => nestOrder x.val y.val) :=
+    ⟨fun x y => by unfold nestOrder; omega⟩
+  haveI : IsTrans {s // s ∈ ms.segments} (fun x y => nestOrder x.val y.val) :=
+    ⟨fun x y z => by unfold nestOrder; omega⟩
+  rw [bucket, List.pairwise_map]
+  exact (List.pairwise_insertionSort _ _).imp (fun {x y} h => by unfold nestOrder at h; omega)
+
+/-- The bucket, projected to segments, is sorted by `nestOrder` (begin asc, ties end desc). -/
+lemma bucket_sorted_nest (ms : Multisegment) (d : ℕ) :
+    ((bucket ms d).map (·.val)).Pairwise nestOrder := by
+  haveI : Std.Total (fun x y : {s // s ∈ ms.segments} => nestOrder x.val y.val) :=
+    ⟨fun x y => by unfold nestOrder; omega⟩
+  haveI : IsTrans {s // s ∈ ms.segments} (fun x y => nestOrder x.val y.val) :=
+    ⟨fun x y z => by unfold nestOrder; omega⟩
+  rw [bucket, List.pairwise_map]
+  exact List.pairwise_insertionSort _ _
+
+/-- The fiber (bucket), as a list, is fully `⊇`-nested: each later element is `⊆` each
+earlier one. (The admissible-enumeration nesting `Δ_{ik1} ⊇ … ⊇ Δ_{ikl}`.) -/
+lemma bucket_map_supset (m : Multisegment) (d : ℕ) :
+    ((bucket m d).map (·.val)).Pairwise (fun s t => subsegment t s) := by
+  apply List.Pairwise.imp_of_mem ?_ (bucket_sorted_nest m d)
+  intro a b ha hb hnest
+  obtain ⟨a', ha'bk, rfl⟩ := List.mem_map.mp ha
+  obtain ⟨b', hb'bk, rfl⟩ := List.mem_map.mp hb
+  have hda : depth_of_segment m a'.val a'.property = d := by simp [bucket] at ha'bk; exact ha'bk
+  have hdb : depth_of_segment m b'.val b'.property = d := by simp [bucket] at hb'bk; exact hb'bk
+  rcases segment_rel_cases a'.val b'.val with h | h | h | h
+  · exact absurd (ll_ne_depth m a'.val b'.val a'.property b'.property h) (by omega)
+  · exact absurd (ll_ne_depth m b'.val a'.val b'.property a'.property h) (by omega)
+  · simp only [nestOrder] at hnest; obtain ⟨h1, h2⟩ := h
+    exact ⟨by omega, by omega⟩
+  · exact h
+
+/-- Consecutive list elements form a `zip`-with-tail pair. -/
+lemma mem_zip_tail_of_split {α} (l₁ : List α) (a b : α) (l₂ : List α) :
+    (a, b) ∈ (l₁ ++ a :: b :: l₂).zip (l₁ ++ a :: b :: l₂).tail := by
+  induction l₁ with
+  | nil => simp [List.zip_cons_cons]
+  | cons c cs ih =>
+    rcases hX : cs ++ a :: b :: l₂ with _ | ⟨x, X⟩
+    · simp at hX
+    · have : (c :: cs ++ a :: b :: l₂) = c :: x :: X := by rw [List.cons_append, hX]
+      rw [this, List.tail_cons, List.zip_cons_cons, List.mem_cons]; right
+      have ih' := ih; rw [hX] at ih'; simpa using ih'
+
+/-- Converse of `mem_zip_tail_of_split`: a `zip`-with-tail pair is a consecutive pair. -/
+lemma zip_tail_split {α} (l : List α) (s t : α) (h : (s, t) ∈ l.zip l.tail) :
+    ∃ l₁ l₂, l = l₁ ++ s :: t :: l₂ := by
+  induction l with
+  | nil => simp at h
+  | cons a l' ih =>
+    cases l' with
+    | nil => simp at h
+    | cons b l'' =>
+      rw [List.tail_cons, List.zip_cons_cons, List.mem_cons] at h
+      rcases h with heq | hmem
+      · rw [Prod.mk.injEq] at heq; obtain ⟨rfl, rfl⟩ := heq
+        exact ⟨[], l'', rfl⟩
+      · obtain ⟨l₁, l₂, hl⟩ := ih hmem
+        exact ⟨a :: l₁, l₂, by rw [hl, List.cons_append]⟩
+
+/-- Two segments agreeing on begin and end are equal. -/
+lemma seg_ext {s t : Segment} (ha : s.a = t.a) (hb : s.b = t.b) : s = t := by
+  apply NonemptyInterval.ext; apply Prod.ext ha hb
+
+/-- Coordinatewise-smaller segments are at least as deep: if `s.a ≤ t.a` and `s.b ≤ t.b`
+then `s` heads every ladder `t` heads, so `depth t ≤ depth s`. -/
+lemma depth_le_of_coord_le (m : Multisegment) (s t : Segment) (hs : s ∈ m.segments)
+    (ht : t ∈ m.segments) (ha : s.a ≤ t.a) (hb : s.b ≤ t.b) :
+    depth_of_segment m t ht ≤ depth_of_segment m s hs := by
+  obtain ⟨L, hsub, hhead, hlen⟩ := depth_witness m t ht
+  obtain ⟨rest, hcons⟩ : ∃ rest, L.val.segments = t :: rest := by
+    cases h : L.val.segments with
+    | nil => rw [h] at hhead; simp at hhead
+    | cons a tl =>
+        rw [h] at hhead
+        simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hhead
+        exact ⟨tl, by rw [hhead]⟩
+  have hlad_t : (t :: rest).Pairwise (· ≪ ·) := by
+    have h := L.prop
+    rw [hcons] at h
+    simpa [isLadder] using h
+  obtain ⟨ht_rest, hrest⟩ := List.pairwise_cons.mp hlad_t
+  have hlad_s : isLadder (s :: rest) := by
+    simp only [isLadder, decide_eq_true_eq]
+    refine List.pairwise_cons.mpr ⟨fun x hx => ?_, hrest⟩
+    obtain ⟨h1, h2⟩ := ht_rest x hx; exact ⟨by omega, by omega⟩
+  have hrest_sub : rest <+ m.segments := (List.tail_sublist (t :: rest)).trans (hcons ▸ hsub)
+  have hsnotin : s ∉ rest := by
+    intro hsr; obtain ⟨h1, _⟩ := ht_rest s hsr; omega
+  have hsleb : ∀ b ∈ rest, s ≤ b := by
+    intro b hb'; obtain ⟨h1, _⟩ := ht_rest b hb'
+    have hlt : s.a < b.a := by omega
+    apply Prod.Lex.left; exact hlt
+  have hsub_s : s :: rest <+ m.segments :=
+    sorted_Sublist_append (· ≤ ·) m.segments rest m.is_sorted s hrest_sub hs hsnotin hsleb
+  have hge := depth_witness' m s hs ⟨⟨s :: rest, isLadder_sorted _ hlad_s⟩, hlad_s⟩ hsub_s (by simp)
+  rw [hcons] at hlen; simp only [List.length_cons] at hge hlen; omega
+
+/-! ## Lemma 2.1 (Gurevich–Lapid)
+
+The six parts of Lemma 2.1 about the depth function `depth_of_segment`. Part (1) iterates
+the single-step predecessor; parts (2)–(5) relate a begin/end comparison plus a depth
+comparison to containment; part (6) is the interpolation lemma. (Depth is Lean-mirrored
+vs. the paper, but the statements are the faithful Lean translations.) -/
+
+/-- Every segment at depth `d+1` has a strict predecessor at depth `d`. -/
+lemma exists_pred_at_depth (m : Multisegment) (d : ℕ) (s : Segment)
+    (hs : s ∈ m.segments) (hd : depth_of_segment m s hs = d + 1) :
+    ∃ (s' : Segment) (hs' : s' ∈ m.segments),
+      depth_of_segment m s' hs' = d ∧ s ≪ s' := by
+  obtain ⟨L, hL_sub, hL_head, hL_len⟩ := depth_witness m s hs
+  rw [hd] at hL_len
+  match h_seg : L.val.segments with
+  | [] => rw [h_seg] at hL_head; simp at hL_head
+  | [_] => rw [h_seg] at hL_len; simp at hL_len
+  | a :: b :: rest =>
+    rw [h_seg] at hL_head; simp [List.head?] at hL_head; subst a
+    have hpw : (s :: b :: rest).Pairwise (· ≪ ·) := by
+      have h := L.property
+      rw [h_seg] at h
+      simpa [isLadder] using h
+    have h_ll : s ≪ b := (List.pairwise_cons.mp hpw).1 b List.mem_cons_self
+    have hb_in : b ∈ m.segments := (h_seg ▸ hL_sub).subset (by simp)
+    have hpw_tail : isLadder (b :: rest) := by
+      simp only [isLadder, decide_eq_true_eq]
+      exact (List.pairwise_cons.mp hpw).2
+    have h_ge : depth_of_segment m b hb_in + 1 ≥ (b :: rest).length :=
+      depth_witness' m b hb_in ⟨⟨b :: rest, isLadder_sorted _ hpw_tail⟩, hpw_tail⟩
+        ((List.tail_sublist (s :: b :: rest)).trans (h_seg ▸ hL_sub)) (by simp)
+    have h_lt : depth_of_segment m b hb_in < d + 1 := hd ▸ ll_ne_depth m s b hs hb_in h_ll
+    rw [h_seg] at hL_len
+    simp only [List.length_cons] at hL_len h_ge
+    exact ⟨b, hb_in, by omega, h_ll⟩
+
+/-- Lemma 2.1(1): every depth `k` below `depth s` is realized by a `≪`-successor of `s`
+(iterating `exists_pred_at_depth`). -/
+lemma exists_lower_ll : ∀ (D : ℕ) (m : Multisegment) (s : Segment) (hs : s ∈ m.segments),
+    depth_of_segment m s hs = D → ∀ k, k < D →
+    ∃ (s' : Segment) (hs' : s' ∈ m.segments), depth_of_segment m s' hs' = k ∧ s ≪ s' := by
+  intro D
+  induction D using Nat.strong_induction_on with
+  | _ D ih =>
+    intro m s hs hsD k hk
+    obtain ⟨D', rfl⟩ : ∃ D', D = D' + 1 := ⟨D - 1, by omega⟩
+    obtain ⟨s', hs', hs'D, hss'⟩ := exists_pred_at_depth m D' s hs hsD
+    rcases Nat.lt_or_ge k D' with hkD' | hkD'
+    · obtain ⟨s'', hs'', hs''k, hs's''⟩ := ih D' (by omega) m s' hs' hs'D k hkD'
+      exact ⟨s'', hs'', hs''k, ll_trans _ _ _ hss' hs's''⟩
+    · have hkeq : k = D' := by omega
+      subst hkeq; exact ⟨s', hs', hs'D, hss'⟩
+
+/-- Lemma 2.1(2): `b(Δᵢ) < b(Δⱼ)` and `d(i) ≤ d(j)` imply `Δⱼ ⊆ Δᵢ`. -/
+lemma depth_subset_of_a_lt (m : Multisegment) (s t : Segment) (hs : s ∈ m.segments)
+    (ht : t ∈ m.segments) (hab : s.a < t.a)
+    (hd : depth_of_segment m s hs ≤ depth_of_segment m t ht) : t ⊆ s := by
+  refine ⟨hab.le, ?_⟩
+  by_contra h; push_neg at h
+  have := ll_ne_depth m s t hs ht ⟨hab, h⟩; omega
+
+/-- Lemma 2.1(3): `b(Δᵢ) ≤ b(Δⱼ)` and `d(i) < d(j)` imply `Δⱼ ⊆ Δᵢ`. -/
+lemma depth_subset_of_a_le (m : Multisegment) (s t : Segment) (hs : s ∈ m.segments)
+    (ht : t ∈ m.segments) (hab : s.a ≤ t.a)
+    (hd : depth_of_segment m s hs < depth_of_segment m t ht) : t ⊆ s := by
+  rcases lt_or_eq_of_le hab with hlt | heq
+  · exact depth_subset_of_a_lt m s t hs ht hlt hd.le
+  · refine ⟨hab, ?_⟩
+    by_contra h; push_neg at h
+    have := depth_le_of_coord_le m s t hs ht (le_of_eq heq) h.le; omega
+
+/-- Lemma 2.1(4): `e(Δᵢ) < e(Δⱼ)` and `d(i) ≤ d(j)` imply `Δᵢ ⊆ Δⱼ`. -/
+lemma depth_subset_of_b_lt (m : Multisegment) (s t : Segment) (hs : s ∈ m.segments)
+    (ht : t ∈ m.segments) (hab : s.b < t.b)
+    (hd : depth_of_segment m s hs ≤ depth_of_segment m t ht) : s ⊆ t := by
+  refine ⟨?_, hab.le⟩
+  by_contra h; push_neg at h
+  have := ll_ne_depth m s t hs ht ⟨h, hab⟩; omega
+
+/-- Lemma 2.1(5): `e(Δᵢ) ≤ e(Δⱼ)` and `d(i) < d(j)` imply `Δᵢ ⊆ Δⱼ`. -/
+lemma depth_subset_of_b_le (m : Multisegment) (s t : Segment) (hs : s ∈ m.segments)
+    (ht : t ∈ m.segments) (hab : s.b ≤ t.b)
+    (hd : depth_of_segment m s hs < depth_of_segment m t ht) : s ⊆ t := by
+  rcases lt_or_eq_of_le hab with hlt | heq
+  · exact depth_subset_of_b_lt m s t hs ht hlt hd.le
+  · refine ⟨?_, hab⟩
+    by_contra h; push_neg at h
+    have := depth_le_of_coord_le m s t hs ht h.le (le_of_eq heq); omega
+
+/-- Lemma 2.1(6): between same-depth nested `s2 ⊆ s1`, any deeper `s` with `s2 ⊆ s ⊆ s1`
+can be matched at depth `depth s1` by some `s3` with `s2 ⊆ s3 ⊆ s1`. -/
+lemma depth_interp (m : Multisegment) (s1 s2 : Segment) (hs1 : s1 ∈ m.segments)
+    (hs2 : s2 ∈ m.segments) (hd12 : depth_of_segment m s1 hs1 = depth_of_segment m s2 hs2)
+    (s : Segment) (hs : s ∈ m.segments) (h2s : s2 ⊆ s) (hss1 : s ⊆ s1)
+    (hds : depth_of_segment m s1 hs1 ≤ depth_of_segment m s hs) :
+    ∃ (s3 : Segment) (hs3 : s3 ∈ m.segments),
+      s2 ⊆ s3 ∧ s3 ⊆ s1 ∧ depth_of_segment m s3 hs3 = depth_of_segment m s1 hs1 := by
+  rcases eq_or_lt_of_le hds with heq | hlt
+  · exact ⟨s, hs, h2s, hss1, heq.symm⟩
+  · obtain ⟨s3, hs3, hs3d, hss3⟩ := exists_lower_ll _ m s hs rfl _ hlt
+    obtain ⟨hsa, hsb⟩ := hss1
+    obtain ⟨h2a, h2b⟩ := h2s
+    obtain ⟨h3a, h3b⟩ := hss3
+    have hs31 : s3 ⊆ s1 := depth_subset_of_a_lt m s1 s3 hs1 hs3 (by omega) (by omega)
+    have h2s3 : s2 ⊆ s3 := depth_subset_of_b_lt m s2 s3 hs2 hs3 (by omega) (by omega)
+    exact ⟨s3, hs3, h2s3, hs31, hs3d⟩
