@@ -14,6 +14,9 @@ set_option linter.hashCommand false
 def isLadder (segments : List Segment) : Bool :=
   segments.Pairwise (· ≪ ·)
 
+/-- A multisegment whose segments form a ladder (pairwise `≪`). -/
+def Ladder := {ms : Multisegment // isLadder ms.segments}
+
 /- Computes the maximum ladder length by manually checking both conditions
     independently, requiring zero external theorems or helpers. -/
 def depth_of_segment (m : Multisegment) (s : Segment) (s_in_m : s ∈ m.segments) : ℕ :=
@@ -30,7 +33,10 @@ def depth_of_segment (m : Multisegment) (s : Segment) (s_in_m : s ∈ m.segments
 
 
 /-- Segments of `ms` at depth `d`, packaged with their `∈ ms.segments` proofs
-(needed by `depth_of_segment`), in the order they appear in `ms`.
-Use `.map (·.val)` for plain segments. -/
+(needed by `depth_of_segment`), sorted outermost-first by the true nesting order —
+`x` comes before `y` iff `y ⊆ x`. The sort is meaningful because a bucket is a nested
+family (any two of its segments are `⊆`-comparable): see `bucket_sink` and
+`bucket_pairwise` in `Ladder_u`. Use `.map (·.val)` for plain segments. -/
 def bucket (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
-  ms.segments.attach.filter fun ⟨s, hs⟩ => depth_of_segment ms s hs = d
+  (ms.segments.attach.filter fun ⟨s, hs⟩ => depth_of_segment ms s hs = d).insertionSort
+    (fun x y => y.val ⊆ x.val)

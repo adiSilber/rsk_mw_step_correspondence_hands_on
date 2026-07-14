@@ -1,6 +1,6 @@
 import LeanProof.Basic_t
 import LeanProof.Basic_u
-import LeanProof.RSK_t
+import LeanProof.Ladder_t
 import Mathlib.Data.List.Sort
 import Mathlib.Data.Finset.Sort
 -- import Mathlib.Data.Set.Finite
@@ -12,8 +12,6 @@ set_option linter.style.whitespace false
 set_option linter.hashCommand false
 
 open scoped List
-
-def Ladder := {ms: Multisegment // isLadder ms.segments}
 
 def subms_ladder (l : Ladder) (ms : Multisegment) := l.val ⊆ ms
 infix:90 " ⊆ " => subms_ladder
@@ -200,6 +198,50 @@ lemma bucket_sink (ms : Multisegment) d s₁ s₂
   obtain rl|rl|rl|rl := segment_rel_cases s₁ s₂
     <;> try tauto
   all_goals { apply ll_ne_depth ms at rl; omega }
+
+/-- Proof-side name for the contents of `bucket` before the sort (the depth-`d` filter). -/
+def bucketRaw (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
+  ms.segments.attach.filter fun ⟨s, hs⟩ => depth_of_segment ms s hs = d
+
+/-- The bucket is genuinely sorted by reverse inclusion: each later element is `⊆`
+each earlier one.
+
+`⊆` is not total on arbitrary segments, so `List.pairwise_insertionSort` cannot apply
+directly. The trick: on the subtype `{x // x ∈ bucketRaw ms d}` the order *is* total
+(`bucket_sink`), so we sort the `attach`ed list there and transport the result back
+along `List.map_insertionSort`. -/
+lemma bucket_pairwise (ms : Multisegment) (d : ℕ) :
+    (bucket ms d).Pairwise
+      (fun x y : {s : Segment // s ∈ ms.segments} => y.val ⊆ x.val) := by
+  haveI : Std.Total (fun x y : {x // x ∈ bucketRaw ms d} => (y.val.val : Segment) ⊆ x.val.val) :=
+    ⟨fun x y => bucket_sink ms d y.val x.val
+      ((List.mem_insertionSort _).mpr y.prop) ((List.mem_insertionSort _).mpr x.prop)⟩
+  haveI : IsTrans _ (fun x y : {x // x ∈ bucketRaw ms d} => (y.val.val : Segment) ⊆ x.val.val) :=
+    ⟨fun x y z hxy hyz => by simp only [subsegment] at *; omega⟩
+  have key : bucket ms d =
+      ((bucketRaw ms d).attach.insertionSort
+        (fun x y => (y.val.val : Segment) ⊆ x.val.val)).map Subtype.val := by
+    rw [show bucket ms d
+        = (bucketRaw ms d).insertionSort
+            (fun x y : {s : Segment // s ∈ ms.segments} => y.val ⊆ x.val) from rfl,
+      List.map_insertionSort _
+        (fun x y : {s : Segment // s ∈ ms.segments} => y.val ⊆ x.val)
+        Subtype.val ((bucketRaw ms d).attach) (fun a _ b _ => Iff.rfl),
+      List.attach_map_subtype_val]
+  rw [key, List.pairwise_map]
+  exact List.pairwise_insertionSort _ _
+
+/-- The bucket, projected to segments, is fully `⊇`-nested: each later element is `⊆`
+each earlier one. (The admissible-enumeration nesting `Δ_{ik1} ⊇ … ⊇ Δ_{ikl}`.) -/
+lemma bucket_nested (ms : Multisegment) (d : ℕ) :
+    ((bucket ms d).map (·.val)).Pairwise (fun s t => subsegment t s) := by
+  rw [List.pairwise_map]
+  exact bucket_pairwise ms d
+
+/-- The bucket, projected to segments, is `a`-ascending. -/
+lemma bucket_sorted (ms : Multisegment) (d : ℕ) :
+    ((bucket ms d).map (·.val)).Pairwise (·.a ≤ ·.a) :=
+  (bucket_nested ms d).imp (fun h => h.1)
 
 /-- Consecutive list elements form a `zip`-with-tail pair. -/
 lemma mem_zip_tail_of_split {α} (l₁ : List α) (a b : α) (l₂ : List α) :
