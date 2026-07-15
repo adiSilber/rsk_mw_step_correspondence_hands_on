@@ -71,13 +71,6 @@ def base_ladder : Ladder :=
     (by decide) (by decide)).val.segments
 
 
--- (2,3) ⊆ (1,5) — true (contained in [1,5])
-#eval decide ((⟨⟨2, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 5⟩, by omega⟩)
--- (1,5) ⊆ (2,3) — false
-#eval decide ((⟨⟨1, 5⟩, by omega⟩ : Segment) ⊆ ⟨⟨2, 3⟩, by omega⟩)
--- (1,3) ⊆ (1,3) — reflexive
-#eval decide ((⟨⟨1, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 3⟩, by omega⟩)
-
 -- bucket m_ladder d (depths are 2, 1, 0 for (1,3), (2,4), (3,5)); sorted outermost-first:
 -- bucket 0 = [(3,5)], bucket 1 = [(2,4)], bucket 2 = [(1,3)]
 #eval (bucket m_ladder 0).map (·.val)

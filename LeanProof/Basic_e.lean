@@ -16,3 +16,10 @@ set_option linter.hashCommand false
 #eval decide ((⟨⟨2, 4⟩, by omega⟩ : Segment) ≪ ⟨⟨1, 3⟩, by omega⟩)
 -- (1,5) ≪ (2,4): a₁<a₂ ok, but b₁=5 > b₂=4 — false
 #eval decide ((⟨⟨1, 5⟩, by omega⟩ : Segment) ≪ ⟨⟨2, 4⟩, by omega⟩)
+
+-- (2,3) ⊆ (1,5) — true (contained in [1,5])
+#eval decide ((⟨⟨2, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 5⟩, by omega⟩)
+-- (1,5) ⊆ (2,3) — false
+#eval decide ((⟨⟨1, 5⟩, by omega⟩ : Segment) ⊆ ⟨⟨2, 3⟩, by omega⟩)
+-- (1,3) ⊆ (1,3) — reflexive
+#eval decide ((⟨⟨1, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 3⟩, by omega⟩)
