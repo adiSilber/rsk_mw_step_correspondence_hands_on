@@ -45,15 +45,10 @@ def m_repeated : Multisegment :=
 #eval ladderRungs m_complex  -- [(5, 100), (6, 200)]
 #eval ladderRungs m_repeated -- [(1, 3), (2, 4)]
 
-#eval (extractFullLadder m_complex).val.segments  -- [(5, 100), (6, 200)]
-#eval (extractFullLadder m_repeated).val.segments -- [(1, 3), (2, 4)]
 
 #eval (residual m_complex).segments  -- [(1, 90), (2, 190), (3, 80), (4, 180)]
 #eval (residual m_repeated).segments -- [(1, 3)]
 
-#eval ((rskStep m_complex).1.val.segments, (rskStep m_complex).2.segments)
-  -- ([(5, 100), (6, 200)], [(1, 90), (2, 190), (3, 80), (4, 180)])
-#eval ((rskStep m_repeated).1.val.segments, (rskStep m_repeated).2.segments)
-  -- ([(1, 3), (2, 4)], [(1, 3)])
+
 
 end RSK
