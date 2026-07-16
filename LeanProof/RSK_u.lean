@@ -242,6 +242,17 @@ lemma lemma_2_2_2_split (m : Multisegment) (d : ℕ) (i t : Segment)
   have hlt := depth_lt_between_split m d i t l₁ l₂ hsplit j hj htj hji hjnei hjnet
   omega
 
-
+/-- A nonempty multisegment has at least one ladder rung: the bucket of any segment's
+own depth is nonempty and lies within `maxDepth`. -/
+lemma ladderRungs_ne_nil (m : Multisegment) (h : m.segments ≠ []) :
+    ladderRungs m ≠ [] := by
+  obtain ⟨s, hs⟩ := List.exists_mem_of_ne_nil m.segments h
+  obtain ⟨r, hr⟩ := bucketRung_some_of_mem m (depth_of_segment m s hs) s
+    (mem_bucket_of_depth m _ s hs rfl)
+  apply List.ne_nil_of_mem (a := r)
+  unfold ladderRungs
+  exact List.mem_filterMap.mpr ⟨depth_of_segment m s hs,
+    by rw [List.mem_reverse, List.mem_range]; exact Nat.lt_succ_of_le (depth_le_maxDepth m s hs),
+    hr⟩
 
 end RSK
