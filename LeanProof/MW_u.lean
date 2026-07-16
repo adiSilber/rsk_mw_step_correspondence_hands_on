@@ -22,7 +22,7 @@ packagings (`extendChain`, `leadingChain`, `mwStep`), and the greedy-optimality
 API consumed by `chainLenPreserved` (Prop 3.3).
 -/
 
-namespace MoeglinWaldspurger
+namespace MW
 
 
 instance : ∀ l, Decidable (isChain l) := by
@@ -361,4 +361,4 @@ lemma leadingChain_length_ge'' (m : Multisegment) (c : List Segment) (sₘ : Seg
     have hhead' : (sₘ :: c').head? = m.segments.head? := by rw [hsₘ]; rfl
     simpa using leadingChain_length_ge' m (sₘ :: c') hnew hmem' hhead'
 
-end MoeglinWaldspurger
+end MW

@@ -8,7 +8,7 @@ set_option linter.flexible false
 set_option linter.style.whitespace false
 set_option linter.hashCommand false
 
-namespace MoeglinWaldspurger
+namespace MW
 
 /-- Example-file convenience: sort a list of segments into a `Multisegment`. -/
 def msOf (l : List Segment) : Multisegment :=
@@ -115,4 +115,4 @@ def init_chain : Chain :=
 
 -- m = ∅: `mw_step` requires a nonemptiness proof, so the empty case cannot be called.
 
-end MoeglinWaldspurger
+end MW
