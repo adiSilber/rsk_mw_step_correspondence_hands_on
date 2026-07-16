@@ -13,6 +13,9 @@ set_option linter.hashCommand false
 
 open scoped List
 
+/-- A multisegment whose segments form a ladder (pairwise `≪`). -/
+def Ladder := {ms : Multisegment // isLadder ms.segments}
+
 def subms_ladder (l : Ladder) (ms : Multisegment) := l.val ⊆ ms
 infix:90 " ⊆ " => subms_ladder
 

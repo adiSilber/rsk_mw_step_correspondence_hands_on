@@ -14,8 +14,6 @@ set_option linter.hashCommand false
 def isLadder (segments : List Segment) : Bool :=
   segments.Pairwise (· ≪ ·)
 
-/-- A multisegment whose segments form a ladder (pairwise `≪`). -/
-def Ladder := {ms : Multisegment // isLadder ms.segments}
 
 /- Computes the maximum ladder length by manually checking both conditions
     independently, requiring zero external theorems or helpers. -/
