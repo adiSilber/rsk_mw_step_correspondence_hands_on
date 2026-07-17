@@ -23,3 +23,23 @@ lemma deltaCirc_eq_of_residual
   apply mw_step_fst_eq m (RSK.residual m) hm hne'
   · exact minPreserved m _ hsₘ _ hs_l hmin _ hs_m'
   · exact chainLenPreserved m _ _ hsₘ hs_l hmin
+
+/-- **L(m) = L(m†)** (paper Prop. `main2`(3) via Lemma `pre1`): under `min m < min L(m)`,
+the RSK ladder survives one MW step unchanged. The depth function of the MW residual
+agrees with `m`'s except on *special* segments, which move up by exactly one level into
+the fiber of the chain predecessor — and neither coordinatewise fiber max is disturbed. -/
+lemma mw_preserves_ladder
+    (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
+    let l := RSK.ladderRungs m
+    let l' := RSK.ladderRungs (MW.mw_step m hm).2
+    l = l' := by
+  intro l l'
+  have hsₘ : m.segments.head? = some (m.segments.head hm) := List.head?_eq_some_head hm
+  have hs_l : (RSK.ladderRungs m).head? =
+      some ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)) :=
+    List.head?_eq_some_head _
+  have hmin : (m.segments.head hm).a
+      < ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
+  have h := (mdag_ladder_eq m _ _ hsₘ hs_l hmin hm).symm
+  rw [← mw_step_snd_eq m hm] at h
+  exact h
