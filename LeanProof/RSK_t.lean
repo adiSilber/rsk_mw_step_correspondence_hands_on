@@ -75,4 +75,8 @@ def residual (m : Multisegment) : Multisegment :=
   let raw := (List.range (maxDepth m + 1)).flatMap (fun d => bucketResidual m d)
   ⟨raw.insertionSort (· ≤ ·), List.pairwise_insertionSort _ _⟩
 
+/-- **One step of the RSK algorithm**: the extracted ladder and the residual. -/
+def rsk_step (m : Multisegment) : List Segment × Multisegment :=
+  (ladderRungs m, residual m)
+
 end RSK
