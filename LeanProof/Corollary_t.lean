@@ -1,14 +1,15 @@
 import LeanProof.Propositions_t
 import LeanProof.Propositions_u
 
-/-- **Δ°(m) = Δ°(m′)** (paper Prop. `lem: main2`(2)): under `min m < min L(m)`, one MW
-step on `m` and on its RSK residual produce the same segment. Assembled from
-`minPreserved` (the head begins agree) and `chainLenPreserved` (the leading-chain
+/-- **Δ°(m) = Δ°(m′)** (paper Prop. `lem: main2`(2)): under `min m < min L(m)`, the MW
+segment of `m` equals the MW segment of its RSK residual `(rsk_step m).2`. Assembled
+from `minPreserved` (the head begins agree) and `chainLenPreserved` (the leading-chain
 lengths agree). -/
 lemma deltaCirc_eq_of_residual
     (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
     let Δ : Segment := (MW.mw_step m hm).1
-    let Δ' : Segment := (MW.mw_step (RSK.residual m) (cond_rsk_residual_nonempty m hm h_min)).1
+    let Δ' : Segment :=
+      (MW.mw_step (RSK.rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).1
     Δ = Δ' := by
   intro Δ Δ'
   have hne' := cond_rsk_residual_nonempty m hm h_min
@@ -30,8 +31,8 @@ agrees with `m`'s except on *special* segments, which move up by exactly one lev
 the fiber of the chain predecessor — and neither coordinatewise fiber max is disturbed. -/
 lemma mw_preserves_ladder
     (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
-    let l := RSK.ladderRungs m
-    let l' := RSK.ladderRungs (MW.mw_step m hm).2
+    let l := (RSK.rsk_step m).1
+    let l' := (RSK.rsk_step (MW.mw_step m hm).2).1
     l = l' := by
   intro l l'
   have hsₘ : m.segments.head? = some (m.segments.head hm) := List.head?_eq_some_head hm
