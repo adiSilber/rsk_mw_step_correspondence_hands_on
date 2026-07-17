@@ -44,3 +44,14 @@ lemma mw_preserves_ladder
   have h := (mdag_ladder_eq m _ _ hsₘ hs_l hmin hm).symm
   rw [← mw_step_snd_eq m hm] at h
   exact h
+
+/-- **(m†)′ = (m′)†** (paper Cor. `main`, third component): under `min m < min L(m)`,
+the two orders of taking the remainders agree —
+`m'`  is MW-step first, then the RSK step;
+`m''` is the RSK step first, then MW-step. -/
+lemma mw_residual_commute
+    (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
+    let m' : Multisegment := (RSK.rsk_step (MW.mw_step m hm).2).2
+    let m'' : Multisegment :=
+      (MW.mw_step (RSK.rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).2
+    m' = m'' := by sorry
