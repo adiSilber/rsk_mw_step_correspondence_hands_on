@@ -2428,15 +2428,13 @@ lemma bucketResidual_pairs (m : Multisegment) (d : ℕ) :
     simp [RSK.bucketResidual, derivedPairs, segPair]
     exact ⟨rfl, rfl⟩
 
-open Classical in
 /-- Indicator: `w` is the top (maximal-end) element of its begin-group in `L`. -/
-private noncomputable def topInd (L : List Segment) (w : ℤ × ℤ) : ℕ :=
+private def topInd (L : List Segment) (w : ℤ × ℤ) : ℕ :=
   if ∃ x ∈ L, x.a = w.1 ∧ x.b = w.2 ∧ ∀ y ∈ L, y.a = w.1 → y.b ≤ x.b then 1 else 0
 
-open Classical in
 /-- Indicator: `w.1` is a begin of `L` and `w.2` is the top end of the next
 begin-group. -/
-private noncomputable def transInd (L : List Segment) (w : ℤ × ℤ) : ℕ :=
+private def transInd (L : List Segment) (w : ℤ × ℤ) : ℕ :=
   if ∃ x ∈ L, x.a = w.1 ∧ ∃ z ∈ L, x.a < z.a ∧ z.b = w.2 ∧
       (∀ y ∈ L, x.a < y.a → z.a ≤ y.a) ∧ (∀ y ∈ L, y.a = z.a → y.b ≤ z.b) then 1 else 0
 
