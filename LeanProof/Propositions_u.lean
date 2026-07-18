@@ -1909,3 +1909,3763 @@ lemma mw_step_snd_eq (m : Multisegment) (hm : m.segments ≠ []) :
     (MW.mw_step m hm).2 = MW.makeResidual m (MW.leadingChain m).val.segments := by
   show MW.makeResidual m (MW.extendChain.go m.segments [m.segments.head hm] (by simp)) = _
   rw [go_full_eq m _ (List.head?_eq_some_head hm) (by simp)]
+
+/-! ## Completing Lemma `pre1`: the two converse clauses -/
+
+/-- **`pre1`(2), converse**: every special survivor moves up by *exactly* one: it sits
+strictly above the starred witness in `m†`, whose depth is at least the witness's. -/
+lemma special_moves_up (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (y : Segment) (hym : y ∈ m.segments)
+    (hy' : y ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments)
+    (σw : Segment) (hσwC : σw ∈ (MW.leadingChain m).val.segments)
+    (hσwm : σw ∈ m.segments) (hya : y.a = σw.a) (hyb : y.b < σw.b)
+    (hdep : depth_of_segment m y hym = depth_of_segment m σw hσwm) :
+    depth_of_segment (MW.makeResidual m (MW.leadingChain m).val.segments) y hy'
+      = depth_of_segment m y hym + 1 := by
+  have hnd := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σw hσwC
+  have hstep : σw.a + 1 ≤ σw.b := by omega
+  have hz' : (⟨⟨σw.a + 1, σw.b⟩, hstep⟩ : Segment)
+      ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments :=
+    starred_mem_mdag m (MW.leadingChain m).val.segments σw hσwC hnd
+  have hll : y ≪ (⟨⟨σw.a + 1, σw.b⟩, hstep⟩ : Segment) := by
+    refine ⟨?_, ?_⟩
+    · show y.a < σw.a + 1
+      omega
+    · show y.b < σw.b
+      omega
+  have h1 := ll_ne_depth (MW.makeResidual m (MW.leadingChain m).val.segments)
+    y _ hy' hz' hll
+  have h2 := depth_mdag_ge_inC m sₘ s_l hsₘ hs_l hmin σw hσwC
+    (⟨⟨σw.a + 1, σw.b⟩, hstep⟩ : Segment) rfl rfl hz' hσwm
+  have h3 := (mdag_depth_bound m sₘ s_l hsₘ hs_l hmin
+    (depth_of_segment (MW.makeResidual m (MW.leadingChain m).val.segments) y hy')).1
+    y hym hy' rfl
+  omega
+
+/-- **`pre1`(2), final clause**: if a special segment exists with witness `σ'`, then the
+chain predecessor of `σ'` sits exactly one level above `σ'`. -/
+lemma special_witness_gap (m : Multisegment) (sₘ s_l : Segment)
+    (_ : m.segments.head? = some sₘ)
+    (_ : (RSK.ladderRungs m).head? = some s_l) (_ : sₘ.a < s_l.a)
+    (y : Segment) (hym : y ∈ m.segments)
+    (σ' : Segment) (hσ'm : σ' ∈ m.segments)
+    (hya : y.a = σ'.a) (hyb : y.b < σ'.b)
+    (hdep : depth_of_segment m y hym = depth_of_segment m σ' hσ'm)
+    (u v : List Segment) (σp : Segment)
+    (hsplit : (MW.leadingChain m).val.segments = u ++ σp :: σ' :: v)
+    (hσpm : σp ∈ m.segments) :
+    depth_of_segment m σp hσpm = depth_of_segment m σ' hσ'm + 1 := by
+  have hlink := leadingChain_consecutive_link m u v σp σ' hsplit
+  have hgt : depth_of_segment m σ' hσ'm < depth_of_segment m σp hσpm :=
+    ll_ne_depth m σp σ' hσpm hσ'm hlink.1
+  by_contra hcon
+  -- y's end is bounded by σp's (greedy minimal end)
+  have hyσp : y.b ≤ σp.b := by
+    by_contra hc
+    push_neg at hc
+    have hlk : MW.chainLink σp y := by
+      refine ⟨⟨?_, hc⟩, ?_⟩
+      · have := hlink.2; omega
+      · have := hlink.2; omega
+    have := leadingChain_min_end m u v σp σ' hsplit y hym hlk
+    omega
+  -- a segment at the intermediate depth
+  obtain ⟨w, hwm, hwd, hσpw⟩ := exists_lower_ll (depth_of_segment m σp hσpm) m σp hσpm rfl
+    (depth_of_segment m σ' hσ'm + 1) (by omega)
+  by_cases hwa : w.a = σ'.a
+  · -- w is a same-begin shorter alternative to σ' — contradicts greedy minimality
+    have hwe : w.b < σ'.b := by
+      by_contra h
+      push_neg at h
+      have := depth_le_of_coord_le m σ' w hσ'm hwm (by omega) h
+      omega
+    have hlk : MW.chainLink σp w := ⟨hσpw, by have := hlink.2; omega⟩
+    have := leadingChain_min_end m u v σp σ' hsplit w hwm hlk
+    omega
+  · -- otherwise y ≪ w, contradicting the depths
+    have hyw : y ≪ w := by
+      refine ⟨?_, ?_⟩
+      · have h1 := hσpw.1
+        have h2 := hlink.2
+        omega
+      · have h2 := hσpw.2
+        omega
+    have := ll_ne_depth m y w hym hwm hyw
+    omega
+
+/-! ## Toward the value identification of `leadingChain (residual m)` -/
+
+/-- Consecutive positions give a split. -/
+lemma split_of_getElem?_consecutive {α : Type*} :
+    ∀ (l : List α) (j : ℕ) (x y : α), l[j]? = some x → l[j + 1]? = some y →
+    ∃ u v, l = u ++ x :: y :: v ∧ u.length = j := by
+  intro l
+  induction l with
+  | nil => intro j x y hx; simp at hx
+  | cons h t ih =>
+    intro j x y hx hy
+    cases j with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hx
+      cases t with
+      | nil => simp at hy
+      | cons h2 t2 =>
+        simp only [List.getElem?_cons_succ, List.getElem?_cons_zero,
+          Option.some.injEq] at hy
+        exact ⟨[], t2, by rw [hx, hy]; rfl, rfl⟩
+    | succ i =>
+      rw [List.getElem?_cons_succ] at hx hy
+      obtain ⟨u, v, heq, hlen⟩ := ih i x y hx hy
+      exact ⟨h :: u, v, by rw [heq]; rfl, by simp [hlen]⟩
+
+/-- A split gives the element at the split position. -/
+lemma getElem?_of_split {α : Type*} (u v : List α) (x : α) (l : List α)
+    (h : l = u ++ x :: v) : l[u.length]? = some x := by
+  subst h
+  rw [List.getElem?_append_right (le_refl u.length)]
+  simp
+
+/-- In an `a`-sorted list, the begin-block boundary pair at a given begin is unique:
+two adjacent pairs whose left elements share a begin strictly below both right begins
+coincide. -/
+lemma boundary_unique (L : List Segment) (hsorted : L.Pairwise (·.a ≤ ·.a))
+    (x y x' y' : Segment) (u v u' v' : List Segment)
+    (hsp : L = u ++ x :: y :: v) (hsp' : L = u' ++ x' :: y' :: v')
+    (hxx' : x.a = x'.a) (hxy : x.a < y.a) (hxy' : x'.a < y'.a) :
+    x = x' ∧ y = y' := by
+  -- both boundaries occur at the last index with begin `x.a`; hence the same position
+  rcases Nat.lt_trichotomy u.length u'.length with hlt | heq | hgt
+  · -- x' sits at index u'.length > u.length, i.e. within y :: v; so x'.a ≥ y.a > x.a = x'.a
+    exfalso
+    have h1 : L[u.length + 1]? = some y := by
+      rw [hsp]; exact getElem?_split_right u v x y
+    have h2 : L[u'.length]? = some x' := by
+      rw [hsp']
+      exact getElem?_of_split u' (y' :: v') x' _ rfl
+    -- y ≤ x' in the pairwise order since u.length + 1 ≤ u'.length
+    rcases Nat.eq_or_lt_of_le (by omega : u.length + 1 ≤ u'.length) with heq1 | hlt1
+    · rw [heq1] at h1
+      rw [h1] at h2
+      obtain rfl := Option.some.inj h2
+      omega
+    · -- strictly later: use sortedness via the split around y
+      have hsorted' := hsorted
+      rw [hsp] at hsorted'
+      have h3 : x' ∈ y :: v := by
+        -- index u'.length lands in the (y :: v) part
+        rw [hsp, List.getElem?_append_right (by omega : u.length ≤ u'.length)] at h2
+        have h4 : u'.length - u.length = (u'.length - u.length - 1) + 1 := by omega
+        rw [h4, List.getElem?_cons_succ] at h2
+        have h5 : u'.length - u.length - 1 = (u'.length - u.length - 2) + 1 := by omega
+        rw [h5, List.getElem?_cons_succ] at h2
+        exact List.mem_cons_of_mem _ (List.mem_of_getElem? h2)
+      have h5 := (List.pairwise_append.mp hsorted').2.1
+      rcases List.mem_cons.mp h3 with rfl | h6
+      · omega
+      · have := (List.pairwise_cons.mp (List.pairwise_cons.mp h5).2).1 x' h6
+        omega
+  · -- same position: elements coincide
+    have h1 : L[u.length]? = some x := by
+      rw [hsp]; exact getElem?_of_split u (y :: v) x _ rfl
+    have h2 : L[u'.length]? = some x' := by
+      rw [hsp']; exact getElem?_of_split u' (y' :: v') x' _ rfl
+    have h3 : L[u.length + 1]? = some y := by
+      rw [hsp]; exact getElem?_split_right u v x y
+    have h4 : L[u'.length + 1]? = some y' := by
+      rw [hsp']; exact getElem?_split_right u' v' x' y'
+    rw [heq] at h1 h3
+    rw [h1] at h2
+    rw [h3] at h4
+    exact ⟨Option.some.inj h2, Option.some.inj h4⟩
+  · -- symmetric to the first case
+    exfalso
+    have h1 : L[u'.length + 1]? = some y' := by
+      rw [hsp']; exact getElem?_split_right u' v' x' y'
+    have h2 : L[u.length]? = some x := by
+      rw [hsp]; exact getElem?_of_split u (y :: v) x _ rfl
+    rcases Nat.eq_or_lt_of_le (by omega : u'.length + 1 ≤ u.length) with heq1 | hlt1
+    · rw [heq1] at h1
+      rw [h1] at h2
+      obtain rfl := Option.some.inj h2
+      omega
+    · have hsorted' := hsorted
+      rw [hsp'] at hsorted'
+      have h3 : x ∈ y' :: v' := by
+        rw [hsp', List.getElem?_append_right (by omega : u'.length ≤ u.length)] at h2
+        have h4 : u.length - u'.length = (u.length - u'.length - 1) + 1 := by omega
+        rw [h4, List.getElem?_cons_succ] at h2
+        have h5 : u.length - u'.length - 1 = (u.length - u'.length - 2) + 1 := by omega
+        rw [h5, List.getElem?_cons_succ] at h2
+        exact List.mem_cons_of_mem _ (List.mem_of_getElem? h2)
+      have h5 := (List.pairwise_append.mp hsorted').2.1
+      rcases List.mem_cons.mp h3 with rfl | h6
+      · omega
+      · have := (List.pairwise_cons.mp (List.pairwise_cons.mp h5).2).1 x h6
+        omega
+
+/-- Fiber elements are `⊆`-comparable (value form). -/
+lemma bucket_val_comparable (M : Multisegment) (d : ℕ) (x y : Segment)
+    (hx : x ∈ (bucket M d).map (·.val)) (hy : y ∈ (bucket M d).map (·.val)) :
+    x ⊆ y ∨ y ⊆ x := by
+  obtain ⟨⟨x', hx'⟩, hxbk, rfl⟩ := List.mem_map.mp hx
+  obtain ⟨⟨y', hy'⟩, hybk, rfl⟩ := List.mem_map.mp hy
+  exact bucket_sink M d _ _ hxbk hybk
+
+/-- **Minimality at the chain head** (paper Prop. `main2`(2), case (a)): every residual
+segment beginning at `min m` ends at or after the head's boundary partner. -/
+lemma residual_min_end_base (m : Multisegment) (sₘ : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (σ0 : Segment) (hσ0 : (MW.leadingChain m).val.segments.head? = some σ0)
+    (hσ0m : σ0 ∈ m.segments) (i t : Segment) (l₁ l₂ : List Segment)
+    (hsplit : (bucket m (depth_of_segment m σ0 hσ0m)).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hia : i.a = σ0.a) (hta : σ0.a < t.a)
+    (z : Segment) (hz : z ∈ (RSK.residual m).segments) (hza : z.a = σ0.a) :
+    t.b ≤ z.b := by
+  classical
+  -- σ0 is the head value of m
+  have hσ0sₘ : σ0 = sₘ := by
+    have h1 := MW.leadingChain_head m sₘ hsₘ
+    rw [hσ0] at h1
+    exact Option.some.inj h1
+  by_contra hcon
+  push_neg at hcon
+  obtain ⟨d_z, i_z, t_z, u_z, v_z, hdz_le, hsplit_z, hzia, hzib⟩ := residual_source m z hz
+  have hiz_bk : i_z ∈ (bucket m d_z).map (·.val) := by rw [hsplit_z]; simp
+  obtain ⟨hiz_m, hiz_d⟩ := RSK.mem_bucket_depth m d_z i_z hiz_bk
+  have htz_bk : t_z ∈ (bucket m d_z).map (·.val) := by rw [hsplit_z]; simp
+  obtain ⟨htz_m, htz_d⟩ := RSK.mem_bucket_depth m d_z t_z htz_bk
+  have htztz := RSK.bucket_split_pair_subset m d_z i_z t_z u_z v_z hsplit_z
+  obtain ⟨htz_a, htz_b⟩ := htztz
+  -- σ0 ≤ i_z (head of m) with equal begins
+  have hσ0iz : σ0.b ≤ i_z.b := by
+    have h1 : sₘ ≤ i_z := MW.head_le_mem m sₘ hsₘ i_z hiz_m
+    have h2 := MW.seg_b_le_of_le_of_a_eq h1 (by rw [hσ0sₘ] at hza; omega)
+    rw [hσ0sₘ]
+    exact h2
+  -- t ⊆ σ0 within the head fiber
+  have ht_bk : t ∈ (bucket m (depth_of_segment m σ0 hσ0m)).map (·.val) := by
+    rw [hsplit]; simp
+  have hσ0_bk : σ0 ∈ (bucket m (depth_of_segment m σ0 hσ0m)).map (·.val) :=
+    RSK.mem_bucket_of_depth m _ σ0 hσ0m rfl
+  have htσ0 : t.b ≤ σ0.b := by
+    rcases bucket_val_comparable m _ t σ0 ht_bk hσ0_bk with h | h
+    · exact h.2
+    · obtain ⟨h1, -⟩ := h
+      omega
+  by_cases hicase : i_z = σ0
+  · -- the source pair starts at the head value: its partner is either a same-begin
+    -- shorter element (impossible for the minimum) or the boundary partner itself
+    have hica := congrArg Segment.a hicase
+    have hicb := congrArg Segment.b hicase
+    simp only [] at hica hicb
+    have hdz : d_z = depth_of_segment m σ0 hσ0m := by
+      rw [← hiz_d]
+      subst hicase
+      rfl
+    by_cases htza : t_z.a = σ0.a
+    · -- t_z is a same-begin element ending strictly below the minimum's end
+      have h1 : sₘ ≤ t_z := MW.head_le_mem m sₘ hsₘ t_z htz_m
+      have h2 := MW.seg_b_le_of_le_of_a_eq h1 (by rw [← hσ0sₘ]; omega)
+      have h3 := congrArg Segment.b hσ0sₘ
+      simp only [] at h3
+      omega
+    · -- boundary pair: coincides with (i, t) by uniqueness
+      have htza' : i_z.a < t_z.a := by omega
+      rw [hdz] at hsplit_z
+      obtain ⟨-, hteq⟩ := boundary_unique _ (bucket_sorted m _) i_z t_z i t
+        u_z v_z l₁ l₂ hsplit_z hsplit (by omega) htza' (by omega)
+      have := congrArg Segment.b hteq
+      simp only [] at this
+      omega
+  · -- generic source: σ0 sits strictly between the pair, contradicting Lemma 2.2(1)
+    have htzσ0 : t_z ⊆ σ0 := by
+      refine ⟨?_, ?_⟩
+      · omega
+      · omega
+    have hσ0iz' : σ0 ⊆ i_z := by
+      refine ⟨?_, ?_⟩
+      · omega
+      · omega
+    have hne_t : σ0 ≠ t_z := by
+      intro heq
+      have := congrArg Segment.b heq
+      simp only [] at this
+      omega
+    have hlt := RSK.depth_lt_between_split m d_z i_z t_z u_z v_z hsplit_z σ0 hσ0m
+      htzσ0 hσ0iz' (Ne.symm hicase) (fun h => hne_t h)
+    -- yet σ0 is coordinatewise below i_z, so its depth dominates the pair's fiber
+    have hdom := depth_le_of_coord_le m σ0 i_z hσ0m hiz_m (by omega) (by omega)
+    omega
+
+/-- **Minimality along the chain** (paper Prop. `main2`(2), case (b) second part): a
+residual segment starting one past `σⱼ` and linkable from the derived segment `Wⱼ`
+(its end exceeds `tⱼ.b`) ends at or after `σⱼ₊₁`'s boundary partner `t'`. The proof
+replaces the source's outer segment `i_z` by a chain-linkable segment `m̃` at the same
+depth, invokes greedy minimality of `σⱼ₊₁`, and squeezes the source fiber between the
+two chain fibers. -/
+lemma residual_min_end_step (m : Multisegment)
+    (u v : List Segment) (σj σj1 : Segment)
+    (hsplitC : (MW.leadingChain m).val.segments = u ++ σj :: σj1 :: v)
+    (hσjm : σj ∈ m.segments) (hσj1m : σj1 ∈ m.segments)
+    (i_j t_j : Segment) (l₁ l₂ : List Segment)
+    (hsplit_j : (bucket m (depth_of_segment m σj hσjm)).map (·.val) = l₁ ++ i_j :: t_j :: l₂)
+    (hia_j : i_j.a = σj.a) (_ : σj.a < t_j.a)
+    (i' t' : Segment) (l₁' l₂' : List Segment)
+    (hsplit' : (bucket m (depth_of_segment m σj1 hσj1m)).map (·.val) = l₁' ++ i' :: t' :: l₂')
+    (_ : i'.a = σj1.a) (hta' : σj1.a < t'.a)
+    (z : Segment) (hz : z ∈ (RSK.residual m).segments)
+    (hza : z.a = σj1.a) (hzb : t_j.b < z.b) :
+    t'.b ≤ z.b := by
+  classical
+  obtain ⟨hll, hsucc⟩ := leadingChain_consecutive_link m u v σj σj1 hsplitC
+  by_contra hcon
+  push_neg at hcon
+  obtain ⟨d_z, i_z, t_z, u_z, v_z, hdz_le, hsplit_z, hzia, hzib⟩ := residual_source m z hz
+  have hiz_bk : i_z ∈ (bucket m d_z).map (·.val) := by rw [hsplit_z]; simp
+  obtain ⟨hiz_m, hiz_d⟩ := RSK.mem_bucket_depth m d_z i_z hiz_bk
+  have htz_bk : t_z ∈ (bucket m d_z).map (·.val) := by rw [hsplit_z]; simp
+  obtain ⟨htz_m, htz_d⟩ := RSK.mem_bucket_depth m d_z t_z htz_bk
+  obtain ⟨htzi_a, htzi_b⟩ := RSK.bucket_split_pair_subset m d_z i_z t_z u_z v_z hsplit_z
+  -- the source fiber sits strictly below σⱼ's fiber
+  have hstep1 : d_z < depth_of_segment m σj hσjm := by
+    have h := RSK.lemma_2_2_2_split m _ i_j t_j l₁ l₂ hsplit_j i_z hiz_m
+      (by omega) (by omega)
+    omega
+  -- replace i_z by a chain-linkable segment m̃ at the same depth
+  obtain ⟨mt, hmt_m, hmt_d, hmt_link⟩ :
+      ∃ (mt : Segment) (hmt_m : mt ∈ m.segments),
+        depth_of_segment m mt hmt_m = d_z ∧ MW.chainLink σj mt := by
+    by_cases hcase : σj ≪ i_z
+    · exact ⟨i_z, hiz_m, hiz_d, hcase, by omega⟩
+    · have hib : i_z.b ≤ σj.b := by
+        simp only [(· ≪ ·), ll, not_and, not_lt] at hcase
+        exact hcase (by omega)
+      obtain ⟨mt, hmt_m, hmt_d, hmt_ll⟩ :=
+        exists_lower_ll _ m σj hσjm rfl d_z hstep1
+      have hmt_a : mt.a = σj.a + 1 := by
+        by_contra hne
+        have h1 : i_z ≪ mt := by
+          obtain ⟨h2, h3⟩ := hmt_ll
+          exact ⟨by omega, by omega⟩
+        have h2 := ll_ne_depth m i_z mt hiz_m hmt_m h1
+        omega
+      exact ⟨mt, hmt_m, hmt_d, hmt_ll, hmt_a⟩
+  -- greedy minimality of σⱼ₊₁ against m̃, then squeeze the fibers
+  have hgreedy : σj1.b ≤ mt.b :=
+    leadingChain_min_end m u v σj σj1 hsplitC mt hmt_m hmt_link
+  have hcoord := depth_le_of_coord_le m σj1 mt hσj1m hmt_m
+    (by obtain ⟨-, h⟩ := hmt_link; omega) hgreedy
+  have ht'_bk : t' ∈ (bucket m (depth_of_segment m σj1 hσj1m)).map (·.val) := by
+    rw [hsplit']; simp
+  obtain ⟨ht'_m, ht'_d⟩ := RSK.mem_bucket_depth m _ t' ht'_bk
+  have hfinal := RSK.lemma_2_2_2_split m d_z i_z t_z u_z v_z hsplit_z t' ht'_m
+    (by omega) (by omega)
+  omega
+
+/-- **C′ value identification** (paper Prop. `main2`(2), full form): the `j`-th segment
+of the leading chain of the RSK residual `m′` is exactly the derived segment
+`Wⱼ = ⟨σⱼ.a, tⱼ.b⟩` of the `j`-th chain segment's fiber boundary `(iⱼ, tⱼ)`. Proven by
+induction on `j`: the base case is head-minimality (`residual_min_end_base`), the step
+combines greedy minimality against `Wⱼ₊₁` with `residual_min_end_step`. -/
+lemma leadingChain_residual_entries (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a) :
+    ∀ (j : ℕ) (σ : Segment), (MW.leadingChain m).val.segments[j]? = some σ →
+    ∃ (hσm : σ ∈ m.segments) (i t : Segment) (l₁ l₂ : List Segment),
+      (bucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂ ∧
+      i.a = σ.a ∧ σ.a < t.a ∧
+      ∃ w, (MW.leadingChain (RSK.residual m)).val.segments[j]? = some w ∧
+        w.a = σ.a ∧ w.b = t.b := by
+  intro j
+  induction j with
+  | zero =>
+    intro σ hσ
+    -- σ is the head value sₘ
+    have hσhead : (MW.leadingChain m).val.segments.head? = some σ := by
+      rw [List.head?_eq_getElem?]; exact hσ
+    have hσsₘ : σ = sₘ := by
+      have h1 := MW.leadingChain_head m sₘ hsₘ
+      rw [hσhead] at h1
+      exact Option.some.inj h1
+    have hσa : σ.a = sₘ.a := by rw [hσsₘ]
+    have hσC : σ ∈ (MW.leadingChain m).val.segments := List.mem_of_getElem? hσ
+    have hσm := MW.leadingChain_subset m σ hσC
+    obtain ⟨l₁, i, t, l₂, hsplit, hia, hta⟩ :=
+      chain_seg_boundary m sₘ s_l hsₘ hs_l hmin σ hσC hσm
+    refine ⟨hσm, i, t, l₁, l₂, hsplit, hia, hta, ?_⟩
+    -- the derived segment of the head boundary lies in the residual
+    obtain ⟨w0, hw0_bkres, hw0a, hw0b⟩ :=
+      derived_mem_bucketResidual m _ i t l₁ l₂ hsplit
+    have hw0_mem : w0 ∈ (RSK.residual m).segments :=
+      mem_residual_of_bucket m (RSK.depth_le_maxDepth m σ hσm) hw0_bkres
+    have hne' : (RSK.residual m).segments ≠ [] := List.ne_nil_of_mem hw0_mem
+    obtain ⟨s_m', tl, hcons⟩ := List.exists_cons_of_ne_nil hne'
+    have hs_m' : (RSK.residual m).segments.head? = some s_m' := by rw [hcons]; rfl
+    have hs_m'_mem : s_m' ∈ (RSK.residual m).segments := by
+      rw [hcons]; exact List.mem_cons_self
+    have hheadC' := MW.leadingChain_head (RSK.residual m) s_m' hs_m'
+    refine ⟨s_m', by rw [← List.head?_eq_getElem?]; exact hheadC', ?_, ?_⟩
+    · have := minPreserved m sₘ hsₘ s_l hs_l hmin s_m' hs_m'
+      omega
+    · -- ≤: the head is lex-minimal and shares its begin with the derived segment
+      have hle : s_m'.b ≤ t.b := by
+        have h1 : s_m' ≤ w0 := MW.head_le_mem (RSK.residual m) s_m' hs_m' w0 hw0_mem
+        have h2 : s_m'.a = sₘ.a := minPreserved m sₘ hsₘ s_l hs_l hmin s_m' hs_m'
+        have h3 := MW.seg_b_le_of_le_of_a_eq h1 (by omega)
+        omega
+      -- ≥: head-fiber minimality
+      have hge : t.b ≤ s_m'.b :=
+        residual_min_end_base m sₘ hsₘ σ hσhead hσm i t l₁ l₂ hsplit hia hta
+          s_m' hs_m'_mem
+          (by have := minPreserved m sₘ hsₘ s_l hs_l hmin s_m' hs_m'; omega)
+      omega
+  | succ j ih =>
+    intro σ1 hσ1
+    -- the previous chain entry and its data from the induction hypothesis
+    obtain ⟨hjlt, -⟩ := List.getElem?_eq_some_iff.mp hσ1
+    have hσj : (MW.leadingChain m).val.segments[j]? =
+        some ((MW.leadingChain m).val.segments[j]'(by omega)) :=
+      List.getElem?_eq_getElem (by omega)
+    obtain ⟨hσjm, i_j, t_j, l₁j, l₂j, hsplit_j, hia_j, hta_j, wj, hwj, hwja, hwjb⟩ :=
+      ih _ hσj
+    set σj := (MW.leadingChain m).val.segments[j]'(by omega) with hσjdef
+    -- consecutive chain split and link
+    obtain ⟨u, v, hsplitC, -⟩ :=
+      split_of_getElem?_consecutive _ j σj σ1 hσj hσ1
+    obtain ⟨hll, hsucc⟩ := leadingChain_consecutive_link m u v σj σ1 hsplitC
+    have hσ1C : σ1 ∈ (MW.leadingChain m).val.segments := List.mem_of_getElem? hσ1
+    have hσ1m := MW.leadingChain_subset m σ1 hσ1C
+    obtain ⟨l₁', i', t', l₂', hsplit', hia', hta'⟩ :=
+      chain_seg_boundary m sₘ s_l hsₘ hs_l hmin σ1 hσ1C hσ1m
+    refine ⟨hσ1m, i', t', l₁', l₂', hsplit', hia', hta', ?_⟩
+    -- the residual chain has an entry at j+1 (lengths agree)
+    have hlen := chainLenPreserved m sₘ s_l hsₘ hs_l hmin
+    have hj1lt' : j + 1 < (MW.leadingChain (RSK.residual m)).val.segments.length := by
+      omega
+    have hw' : (MW.leadingChain (RSK.residual m)).val.segments[j + 1]? =
+        some ((MW.leadingChain (RSK.residual m)).val.segments[j + 1]'hj1lt') :=
+      List.getElem?_eq_getElem hj1lt'
+    set w' := (MW.leadingChain (RSK.residual m)).val.segments[j + 1]'hj1lt' with hw'def
+    obtain ⟨u', v', hsplitC', -⟩ :=
+      split_of_getElem?_consecutive _ j wj w' hwj hw'
+    obtain ⟨hll', hsucc'⟩ :=
+      leadingChain_consecutive_link (RSK.residual m) u' v' wj w' hsplitC'
+    have hw'a : w'.a = σ1.a := by omega
+    refine ⟨w', hw', hw'a, ?_⟩
+    -- end-monotonicity of the boundary partners: tⱼ.b < t'.b
+    have hi_j_bk : i_j ∈ (bucket m (depth_of_segment m σj hσjm)).map (·.val) := by
+      rw [hsplit_j]; simp
+    obtain ⟨hi_j_m, hd_j⟩ := RSK.mem_bucket_depth m _ i_j hi_j_bk
+    have hi'_bk : i' ∈ (bucket m (depth_of_segment m σ1 hσ1m)).map (·.val) := by
+      rw [hsplit']; simp
+    obtain ⟨hi'_m, hd'⟩ := RSK.mem_bucket_depth m _ i' hi'_bk
+    have hddσ := ll_ne_depth m σj σ1 hσjm hσ1m hll
+    rw [← hd_j] at hsplit_j
+    rw [← hd'] at hsplit'
+    have hmono : t_j.b < t'.b :=
+      succ_end_mono m i_j i' t_j t' hi_j_m hi'_m l₁j l₂j hsplit_j l₁' l₂' hsplit'
+        (by omega) (by omega)
+    -- restore the σ-indexed splits for downstream uses
+    rw [hd_j] at hsplit_j
+    rw [hd'] at hsplit'
+    -- the derived segment W_{j+1} of σ1's boundary lies in the residual
+    obtain ⟨w1, hw1_bkres, hw1a, hw1b⟩ :=
+      derived_mem_bucketResidual m _ i' t' l₁' l₂' hsplit'
+    have hw1_mem : w1 ∈ (RSK.residual m).segments :=
+      mem_residual_of_bucket m (RSK.depth_le_maxDepth m σ1 hσ1m) hw1_bkres
+    -- W_{j+1} is a valid continuation of wⱼ
+    have hlink1 : MW.chainLink wj w1 := by
+      refine ⟨⟨by omega, by omega⟩, by omega⟩
+    -- ≤: greedy minimality of w' against W_{j+1}
+    have hle : w'.b ≤ t'.b := by
+      have h := leadingChain_min_end (RSK.residual m) u' v' wj w' hsplitC'
+        w1 hw1_mem hlink1
+      omega
+    -- ≥: fiber minimality of the continuation
+    have hw'C : w' ∈ (MW.leadingChain (RSK.residual m)).val.segments := by
+      rw [hsplitC']; simp
+    have hw'_mem := MW.leadingChain_subset (RSK.residual m) w' hw'C
+    have hge : t'.b ≤ w'.b :=
+      residual_min_end_step m u v σj σ1 hsplitC hσjm hσ1m i_j t_j l₁j l₂j
+        hsplit_j hia_j hta_j i' t' l₁' l₂' hsplit' hia' hta'
+        w' hw'_mem (by omega) (by obtain ⟨-, h⟩ := hll'; omega)
+    omega
+
+/-! ## Derived-pair calculus at the coordinate level
+
+The residual construction is analyzed through coordinate pairs `(a, b) : ℤ × ℤ`,
+sidestepping well-formedness proofs. A fiber list (sorted with ascending begins and
+descending ends) determines its derived pairs; their multiset is characterized by
+three quantities: raw counts, begin-group tops, and begin-group transitions. -/
+
+/-- Coordinate image of a segment. -/
+private def segPair (s : Segment) : ℤ × ℤ := (s.a, s.b)
+
+lemma segPair_inj : Function.Injective segPair := by
+  intro s t h
+  simp only [segPair, Prod.mk.injEq] at h
+  exact seg_ext h.1 h.2
+
+/-- The derived pairs of a fiber list, at the coordinate level. -/
+private def derivedPairs (l : List Segment) : List (ℤ × ℤ) :=
+  (l.zip l.tail).map (fun p => (p.1.a, p.2.b))
+
+lemma derivedPairs_nil : derivedPairs [] = [] := rfl
+
+lemma derivedPairs_single (x : Segment) : derivedPairs [x] = [] := rfl
+
+lemma derivedPairs_cons_cons (x y : Segment) (l : List Segment) :
+    derivedPairs (x :: y :: l) = (x.a, y.b) :: derivedPairs (y :: l) := rfl
+
+/-- The bucket residual's coordinate pairs are the derived pairs of the bucket. -/
+lemma bucketResidual_pairs (m : Multisegment) (d : ℕ) :
+    (RSK.bucketResidual m d).map segPair = derivedPairs ((bucket m d).map (·.val)) := by
+  apply List.ext_getElem
+  · simp [RSK.bucketResidual, derivedPairs]
+  · intro i h1 h2
+    simp [RSK.bucketResidual, derivedPairs, segPair]
+    exact ⟨rfl, rfl⟩
+
+open Classical in
+/-- Indicator: `w` is the top (maximal-end) element of its begin-group in `L`. -/
+private noncomputable def topInd (L : List Segment) (w : ℤ × ℤ) : ℕ :=
+  if ∃ x ∈ L, x.a = w.1 ∧ x.b = w.2 ∧ ∀ y ∈ L, y.a = w.1 → y.b ≤ x.b then 1 else 0
+
+open Classical in
+/-- Indicator: `w.1` is a begin of `L` and `w.2` is the top end of the next
+begin-group. -/
+private noncomputable def transInd (L : List Segment) (w : ℤ × ℤ) : ℕ :=
+  if ∃ x ∈ L, x.a = w.1 ∧ ∃ z ∈ L, x.a < z.a ∧ z.b = w.2 ∧
+      (∀ y ∈ L, x.a < y.a → z.a ≤ y.a) ∧ (∀ y ∈ L, y.a = z.a → y.b ≤ z.b) then 1 else 0
+
+
+lemma topInd_nil (w : ℤ × ℤ) : topInd [] w = 0 := by
+  simp [topInd]
+
+lemma transInd_nil (w : ℤ × ℤ) : transInd [] w = 0 := by
+  simp [transInd]
+
+lemma topInd_eq_zero (L : List Segment) (w : ℤ × ℤ)
+    (h : ∀ x ∈ L, x.a ≠ w.1) : topInd L w = 0 := by
+  unfold topInd
+  rw [if_neg]
+  rintro ⟨x, hx, ha, -⟩
+  exact h x hx ha
+
+lemma transInd_eq_zero (L : List Segment) (w : ℤ × ℤ)
+    (h : ∀ x ∈ L, x.a ≠ w.1) : transInd L w = 0 := by
+  unfold transInd
+  rw [if_neg]
+  rintro ⟨x, hx, ha, -⟩
+  exact h x hx ha
+
+lemma count_map_segPair_eq_zero (L : List Segment) (w : ℤ × ℤ)
+    (h : ∀ x ∈ L, x.a ≠ w.1) : (L.map segPair).count w = 0 := by
+  rw [List.count_eq_zero]
+  rintro hmem
+  obtain ⟨x, hx, hfx⟩ := List.mem_map.mp hmem
+  apply h x hx
+  rw [← hfx]
+  rfl
+
+/-- Head-group top: with a dominating head, the group top of the head's begin is the
+head itself. -/
+lemma topInd_cons_eq (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
+    (hdom : ∀ z ∈ rest, x.a ≤ z.a ∧ z.b ≤ x.b) (hw1 : w.1 = x.a) :
+    topInd (x :: rest) w = if w.2 = x.b then 1 else 0 := by
+  unfold topInd
+  by_cases hw2 : w.2 = x.b
+  · rw [if_pos, if_pos hw2]
+    refine ⟨x, List.mem_cons_self, hw1.symm, hw2.symm, ?_⟩
+    intro y hy hya
+    rcases List.mem_cons.mp hy with rfl | hyr
+    · exact le_refl _
+    · exact (hdom y hyr).2
+  · rw [if_neg, if_neg hw2]
+    rintro ⟨x', hx', ha', hb', hmax'⟩
+    have hxle : x.b ≤ x'.b := hmax' x List.mem_cons_self hw1.symm
+    have hxge : x'.b ≤ x.b := by
+      rcases List.mem_cons.mp hx' with rfl | hr
+      · exact le_refl _
+      · exact (hdom x' hr).2
+    omega
+
+/-- Off-head-begin top: unaffected by consing a different-begin head. -/
+lemma topInd_cons_ne (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
+    (hw1 : w.1 ≠ x.a) : topInd (x :: rest) w = topInd rest w := by
+  unfold topInd
+  by_cases hR : ∃ x' ∈ rest, x'.a = w.1 ∧ x'.b = w.2 ∧ ∀ y ∈ rest, y.a = w.1 → y.b ≤ x'.b
+  · rw [if_pos, if_pos hR]
+    obtain ⟨x', hx', ha', hb', hmax'⟩ := hR
+    refine ⟨x', List.mem_cons_of_mem _ hx', ha', hb', ?_⟩
+    intro y hy hya
+    rcases List.mem_cons.mp hy with rfl | hyr
+    · exact absurd hya.symm hw1
+    · exact hmax' y hyr hya
+  · rw [if_neg, if_neg hR]
+    rintro ⟨x', hx', ha', hb', hmax'⟩
+    rcases List.mem_cons.mp hx' with rfl | hr
+    · exact hw1 ha'.symm
+    · exact hR ⟨x', hr, ha', hb', fun y hy hya => hmax' y (List.mem_cons_of_mem _ hy) hya⟩
+
+/-- Off-head-begin transitions: unaffected by consing a minimal-begin head. -/
+lemma transInd_cons_ne (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
+    (hdom : ∀ z ∈ rest, x.a ≤ z.a ∧ z.b ≤ x.b) (hw1 : w.1 ≠ x.a) :
+    transInd (x :: rest) w = transInd rest w := by
+  unfold transInd
+  by_cases hR : ∃ x' ∈ rest, x'.a = w.1 ∧ ∃ z ∈ rest, x'.a < z.a ∧ z.b = w.2 ∧
+      (∀ y ∈ rest, x'.a < y.a → z.a ≤ y.a) ∧ (∀ y ∈ rest, y.a = z.a → y.b ≤ z.b)
+  · rw [if_pos, if_pos hR]
+    obtain ⟨x', hx', ha', z, hz, hlt, hzb, hmin, hmax⟩ := hR
+    refine ⟨x', List.mem_cons_of_mem _ hx', ha', z, List.mem_cons_of_mem _ hz,
+      hlt, hzb, ?_, ?_⟩
+    · intro y hy hya
+      rcases List.mem_cons.mp hy with rfl | hyr
+      · have := (hdom x' hx').1; omega
+      · exact hmin y hyr hya
+    · intro y hy hya
+      rcases List.mem_cons.mp hy with rfl | hyr
+      · exfalso; have := (hdom x' hx').1; omega
+      · exact hmax y hyr hya
+  · rw [if_neg, if_neg hR]
+    rintro ⟨x', hx', ha', z, hz, hlt, hzb, hmin, hmax⟩
+    rcases List.mem_cons.mp hx' with rfl | hr
+    · exact hw1 ha'.symm
+    · have hzr : z ∈ rest := by
+        rcases List.mem_cons.mp hz with rfl | h
+        · exfalso; have := (hdom x' hr).1; omega
+        · exact h
+      exact hR ⟨x', hr, ha', z, hzr, hlt, hzb,
+        fun y hy hya => hmin y (List.mem_cons_of_mem _ hy) hya,
+        fun y hy hya => hmax y (List.mem_cons_of_mem _ hy) hya⟩
+
+/-- Same-begin join: consing a head into its own begin-group leaves transitions
+unchanged. -/
+lemma transInd_cons_join (x y : Segment) (rest' : List Segment) (w : ℤ × ℤ)
+    (hdom : ∀ z ∈ y :: rest', x.a ≤ z.a ∧ z.b ≤ x.b) (hxy : x.a = y.a)
+    (hw1 : w.1 = x.a) :
+    transInd (x :: y :: rest') w = transInd (y :: rest') w := by
+  unfold transInd
+  by_cases hR : ∃ x' ∈ y :: rest', x'.a = w.1 ∧ ∃ z ∈ y :: rest', x'.a < z.a ∧ z.b = w.2 ∧
+      (∀ y' ∈ y :: rest', x'.a < y'.a → z.a ≤ y'.a) ∧ (∀ y' ∈ y :: rest', y'.a = z.a → y'.b ≤ z.b)
+  · rw [if_pos, if_pos hR]
+    obtain ⟨x', hx', ha', z, hz, hlt, hzb, hmin, hmax⟩ := hR
+    refine ⟨x', List.mem_cons_of_mem _ hx', ha', z, List.mem_cons_of_mem _ hz,
+      hlt, hzb, ?_, ?_⟩
+    · intro y' hy' hya
+      rcases List.mem_cons.mp hy' with rfl | hyr
+      · omega
+      · exact hmin y' hyr hya
+    · intro y' hy' hya
+      rcases List.mem_cons.mp hy' with rfl | hyr
+      · exfalso; omega
+      · exact hmax y' hyr hya
+  · rw [if_neg, if_neg hR]
+    rintro ⟨x', hx', ha', z, hz, hlt, hzb, hmin, hmax⟩
+    have hzr : z ∈ y :: rest' := by
+      rcases List.mem_cons.mp hz with rfl | h
+      · exfalso; omega
+      · exact h
+    rcases List.mem_cons.mp hx' with rfl | hr
+    · -- replace the head source by `y` (same begin)
+      exact hR ⟨y, List.mem_cons_self, by omega, z, hzr, by omega, hzb,
+        fun y' hy' hya => hmin y' (List.mem_cons_of_mem _ hy') (by omega),
+        fun y' hy' hya => hmax y' (List.mem_cons_of_mem _ hy') hya⟩
+    · exact hR ⟨x', hr, ha', z, hzr, hlt, hzb,
+        fun y' hy' hya => hmin y' (List.mem_cons_of_mem _ hy') hya,
+        fun y' hy' hya => hmax y' (List.mem_cons_of_mem _ hy') hya⟩
+
+/-- New-group head: the head's transition targets the old head, which tops its group. -/
+lemma transInd_cons_new (x y : Segment) (rest' : List Segment) (w : ℤ × ℤ)
+    (hdom : ∀ z ∈ y :: rest', x.a ≤ z.a ∧ z.b ≤ x.b) (hxy : x.a < y.a)
+    (hdom' : ∀ z ∈ rest', y.a ≤ z.a ∧ z.b ≤ y.b) (hw1 : w.1 = x.a) :
+    transInd (x :: y :: rest') w = if w.2 = y.b then 1 else 0 := by
+  unfold transInd
+  by_cases hw2 : w.2 = y.b
+  · rw [if_pos, if_pos hw2]
+    refine ⟨x, List.mem_cons_self, hw1.symm, y,
+      List.mem_cons_of_mem _ List.mem_cons_self, hxy, hw2.symm, ?_, ?_⟩
+    · intro y' hy' hya
+      rcases List.mem_cons.mp hy' with rfl | hyr
+      · omega
+      · rcases List.mem_cons.mp hyr with rfl | hyr'
+        · exact le_refl _
+        · exact (hdom' y' hyr').1
+    · intro y' hy' hya
+      rcases List.mem_cons.mp hy' with rfl | hyr
+      · omega
+      · rcases List.mem_cons.mp hyr with rfl | hyr'
+        · exact le_refl _
+        · exact (hdom' y' hyr').2
+  · rw [if_neg, if_neg hw2]
+    rintro ⟨x', hx', ha', z, hz, hlt, hzb, hmin, hmax⟩
+    -- the source has the head's begin; the target must be `y`'s value-top
+    have hx'a : x'.a = x.a := by omega
+    have hzy : z ∈ y :: rest' := by
+      rcases List.mem_cons.mp hz with rfl | h
+      · exfalso; omega
+      · exact h
+    have hza : z.a = y.a := by
+      have h1 : z.a ≤ y.a := hmin y (List.mem_cons_of_mem _ List.mem_cons_self) (by omega)
+      rcases List.mem_cons.mp hzy with rfl | hzr
+      · rfl
+      · have := (hdom' z hzr).1; omega
+    have hzb' : z.b = y.b := by
+      have h1 : y.b ≤ z.b := hmax y (List.mem_cons_of_mem _ List.mem_cons_self) hza.symm
+      rcases List.mem_cons.mp hzy with rfl | hzr
+      · rfl
+      · have := (hdom' z hzr).2; omega
+    omega
+
+/-- `List.count` on coordinate pairs, cons form with a propositional `if`. -/
+lemma count_pairs_cons (p : ℤ × ℤ) (l : List (ℤ × ℤ)) (w : ℤ × ℤ) :
+    (p :: l).count w = l.count w + if w = p then 1 else 0 := by
+  rw [List.count_cons]
+  congr 1
+  by_cases h : p = w
+  · rw [if_pos (beq_iff_eq.mpr h), if_pos h.symm]
+  · rw [if_neg (fun hb => h (beq_iff_eq.mp hb)), if_neg (fun h' => h h'.symm)]
+
+lemma transInd_single (x : Segment) (w : ℤ × ℤ) : transInd [x] w = 0 := by
+  unfold transInd
+  rw [if_neg]
+  rintro ⟨x', hx', -, z, hz, hlt, -⟩
+  rw [List.mem_singleton] at hx' hz
+  subst hx'
+  subst hz
+  exact lt_irrefl _ hlt
+
+lemma topInd_single (x : Segment) (w : ℤ × ℤ) :
+    topInd [x] w = if w = segPair x then 1 else 0 := by
+  unfold topInd
+  by_cases h : w = segPair x
+  · have hP : ∃ x' ∈ [x], x'.a = w.1 ∧ x'.b = w.2 ∧ ∀ y ∈ [x], y.a = w.1 → y.b ≤ x'.b :=
+      ⟨x, List.mem_singleton_self x, by rw [h]; rfl, by rw [h]; rfl,
+        fun y hy _ => by rw [List.mem_singleton] at hy; rw [hy]⟩
+    rw [if_pos hP, if_pos h]
+  · rw [if_neg ?_, if_neg h]
+    rintro ⟨x', hx', ha, hb, -⟩
+    rw [List.mem_singleton] at hx'
+    subst hx'
+    apply h
+    have hw : w = (w.1, w.2) := rfl
+    rw [hw, ← ha, ← hb]
+    rfl
+
+/-- **Derived-pair count characterization**: for a nested-sorted fiber list, the
+multiset of derived pairs is the fiber multiset minus each begin-group's top plus each
+begin-group transition target. -/
+lemma derivedPairs_count (w : ℤ × ℤ) : ∀ (L : List Segment),
+    L.Pairwise (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) →
+    (derivedPairs L).count w + topInd L w =
+      (L.map segPair).count w + transInd L w := by
+  intro L
+  induction L with
+  | nil => intro _; simp [derivedPairs_nil, topInd_nil, transInd_nil]
+  | cons x rest ih =>
+    intro hs
+    obtain ⟨hdom, hs'⟩ := List.pairwise_cons.mp hs
+    cases rest with
+    | nil =>
+      rw [derivedPairs_single, topInd_single, transInd_single,
+        show List.map segPair [x] = [segPair x] from rfl, count_pairs_cons, List.count_nil]
+      split_ifs <;> omega
+    | cons y rest' =>
+      have ihy := ih hs'
+      obtain ⟨hdom', hs''⟩ := List.pairwise_cons.mp hs'
+      rw [derivedPairs_cons_cons, count_pairs_cons,
+        show List.map segPair (x :: y :: rest') = segPair x :: List.map segPair (y :: rest')
+          from rfl, count_pairs_cons]
+      have hxya : x.a ≤ y.a := (hdom y List.mem_cons_self).1
+      by_cases hw1 : w.1 = x.a
+      · have e1 : (w = (x.a, y.b)) ↔ (w.2 = y.b) := by
+          constructor
+          · intro h; rw [h]
+          · intro h
+            have hw : w = (w.1, w.2) := rfl
+            rw [hw, hw1, h]
+        have e2 : (w = segPair x) ↔ (w.2 = x.b) := by
+          constructor
+          · intro h; rw [h]; rfl
+          · intro h
+            have hw : w = (w.1, w.2) := rfl
+            rw [hw, hw1, h]; rfl
+        rcases eq_or_lt_of_le hxya with hxy | hxy
+        · -- join: x joins y's begin-group
+          rw [topInd_cons_eq x (y :: rest') w hdom hw1,
+            transInd_cons_join x y rest' w hdom hxy hw1]
+          rw [topInd_cons_eq y rest' w hdom' (by omega)] at ihy
+          simp only [e1, e2]
+          split_ifs at ihy ⊢ <;> omega
+        · -- new group headed by x
+          rw [topInd_cons_eq x (y :: rest') w hdom hw1,
+            transInd_cons_new x y rest' w hdom hxy hdom' hw1]
+          have hz : ∀ x' ∈ y :: rest', x'.a ≠ w.1 := by
+            intro x' hx'
+            rcases List.mem_cons.mp hx' with rfl | hr
+            · omega
+            · have := (hdom' x' hr).1; omega
+          rw [topInd_eq_zero _ w hz, transInd_eq_zero _ w hz,
+            count_map_segPair_eq_zero _ w hz] at ihy
+          rw [count_map_segPair_eq_zero _ w hz]
+          simp only [e1, e2]
+          split_ifs <;> omega
+      · -- w's begin differs from the head: everything passes through
+        rw [topInd_cons_ne x (y :: rest') w hw1, transInd_cons_ne x (y :: rest') w hdom hw1]
+        rw [if_neg (by intro h; apply hw1; rw [h]),
+          if_neg (by intro h; apply hw1; rw [h]; rfl)]
+        omega
+
+/-! ## Fiber and residual counts -/
+
+/-- Count of a value in a bucket: its full multiplicity if it lives at that depth. -/
+lemma count_bucket_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
+    (hx : x ∈ M.segments) (hd : depth_of_segment M x hx = d) :
+    ((bucket M d).map (·.val)).count x = M.segments.count x := by
+  have hperm : ((bucket M d).map (·.val)).Perm
+      ((M.segments.attach.filter fun z =>
+        depth_of_segment M z.val z.property = d).map (·.val)) := by
+    apply List.Perm.map
+    unfold bucket
+    exact List.perm_insertionSort _ _
+  rw [hperm.count_eq]
+  rw [show x = (⟨x, hx⟩ : {s : Segment // s ∈ M.segments}).val from rfl,
+    List.count_map_of_injective _ _ Subtype.coe_injective]
+  rw [List.count_filter (by simp [hd])]
+  exact List.count_attach
+
+/-- Count of a value in a bucket at the wrong depth (or absent from `M`): zero. -/
+lemma count_bucket_of_ne (M : Multisegment) (d : ℕ) (x : Segment)
+    (h : ¬ ∃ hx : x ∈ M.segments, depth_of_segment M x hx = d) :
+    ((bucket M d).map (·.val)).count x = 0 := by
+  rw [List.count_eq_zero]
+  intro hmem
+  exact h (RSK.mem_bucket_depth M d x hmem)
+
+/-- `makeResidual` counts split into the erase-fold part and the starred part. -/
+lemma count_makeResidual (m : Multisegment) (Cl : List Segment) (x : Segment) :
+    (MW.makeResidual m Cl).segments.count x =
+      (Cl.foldl List.erase m.segments).count x +
+        (Cl.filterMap MW.segmentResidual).count x := by
+  simp only [MW.makeResidual]
+  rw [(List.perm_insertionSort (· ≤ ·) _).count_eq, List.count_append]
+
+/-- Erase-fold counts: for pairwise-distinct erased values each present in the base
+list, exactly one copy of each is removed. -/
+lemma count_foldl_erase : ∀ (Cl l : List Segment),
+    Cl.Pairwise (· ≠ ·) → (∀ c ∈ Cl, c ∈ l) → ∀ (x : Segment),
+    (Cl.foldl List.erase l).count x + (if x ∈ Cl then 1 else 0) = l.count x := by
+  intro Cl
+  induction Cl with
+  | nil => intro l _ _ x; simp
+  | cons c cs ih =>
+    intro l hnd hsub x
+    obtain ⟨hne, hnd'⟩ := List.pairwise_cons.mp hnd
+    rw [List.foldl_cons]
+    have hsub' : ∀ c' ∈ cs, c' ∈ l.erase c := by
+      intro c' hc'
+      exact (List.mem_erase_of_ne (fun h => hne c' hc' h.symm)).mpr
+        (hsub c' (List.mem_cons_of_mem _ hc'))
+    have hix := ih (l.erase c) hnd' hsub' x
+    by_cases hxc : x = c
+    · subst hxc
+      rw [if_pos List.mem_cons_self]
+      have hxcs : x ∉ cs := fun h => hne x h rfl
+      rw [if_neg hxcs] at hix
+      have hcount := List.count_erase_self (a := x) (l := l)
+      have hpos : 0 < l.count x := List.count_pos_iff.mpr (hsub x List.mem_cons_self)
+      omega
+    · have hxl : (l.erase c).count x = l.count x := by
+        rw [List.count_erase_of_ne hxc]
+      by_cases hxcs : x ∈ cs
+      · rw [if_pos (List.mem_cons_of_mem _ hxcs)]
+        rw [if_pos hxcs] at hix
+        omega
+      · rw [if_neg (by simp [hxc, hxcs])]
+        rw [if_neg hxcs] at hix
+        omega
+
+
+/-- `List.count` on segments, cons form with a propositional `if`. -/
+lemma count_seg_cons (p : Segment) (l : List Segment) (x : Segment) :
+    (p :: l).count x = l.count x + if x = p then 1 else 0 := by
+  rw [List.count_cons]
+  congr 1
+  by_cases h : p = x
+  · rw [if_pos (beq_iff_eq.mpr h), if_pos h.symm]
+  · rw [if_neg (fun hb => h (beq_iff_eq.mp hb)), if_neg (fun h' => h h'.symm)]
+
+/-- Counts in the starred list: for chain lists with strictly increasing begins, each
+value occurs at most once, matching the unique source. -/
+lemma count_filterMap_residual : ∀ (Cl : List Segment),
+    Cl.Pairwise (fun s t => s.a < t.a) → ∀ (x : Segment),
+    (Cl.filterMap MW.segmentResidual).count x =
+      if ∃ σ ∈ Cl, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b then 1 else 0 := by
+  intro Cl
+  induction Cl with
+  | nil => intro _ x; simp
+  | cons c cs ih =>
+    intro hp x
+    obtain ⟨hlt, hp'⟩ := List.pairwise_cons.mp hp
+    have hix := ih hp' x
+    by_cases hcs : c.a < c.b
+    · rw [List.filterMap_cons_some (segmentResidual_eq c hcs), count_seg_cons]
+      by_cases hxc : x = (⟨⟨c.a + 1, c.b⟩, by omega⟩ : Segment)
+      · have hxa : x.a = c.a + 1 := by
+          have h := congrArg Segment.a hxc
+          simpa using h
+        have hxb : x.b = c.b := by
+          have h := congrArg Segment.b hxc
+          simpa using h
+        rw [if_pos hxc, if_pos ⟨c, List.mem_cons_self, hcs, hxa, hxb⟩]
+        have hnone : ¬ ∃ σ ∈ cs, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b := by
+          rintro ⟨σ, hσ, -, ha, -⟩
+          have := hlt σ hσ
+          omega
+        rw [if_neg hnone] at hix
+        omega
+      · rw [if_neg hxc]
+        have hiff : (∃ σ ∈ c :: cs, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b) ↔
+            (∃ σ ∈ cs, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b) := by
+          constructor
+          · rintro ⟨σ, hσ, hσs, ha, hb⟩
+            rcases List.mem_cons.mp hσ with rfl | hr
+            · exfalso
+              exact hxc (seg_ext (by simpa using ha) (by simpa using hb))
+            · exact ⟨σ, hr, hσs, ha, hb⟩
+          · rintro ⟨σ, hσ, hσs, ha, hb⟩
+            exact ⟨σ, List.mem_cons_of_mem _ hσ, hσs, ha, hb⟩
+        rw [hix]
+        by_cases hQ : ∃ σ ∈ cs, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b
+        · rw [if_pos hQ, if_pos (hiff.mpr hQ)]
+        · rw [if_neg hQ, if_neg (fun h => hQ (hiff.mp h))]
+    · rw [List.filterMap_cons_none (by simp [MW.segmentResidual, hcs])]
+      rw [hix]
+      have hiff : (∃ σ ∈ c :: cs, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b) ↔
+          (∃ σ ∈ cs, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b) := by
+        constructor
+        · rintro ⟨σ, hσ, hσs, ha, hb⟩
+          rcases List.mem_cons.mp hσ with rfl | hr
+          · exact absurd hσs hcs
+          · exact ⟨σ, hr, hσs, ha, hb⟩
+        · rintro ⟨σ, hσ, hσs, ha, hb⟩
+          exact ⟨σ, List.mem_cons_of_mem _ hσ, hσs, ha, hb⟩
+      by_cases hQ : ∃ σ ∈ cs, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b
+      · rw [if_pos hQ, if_pos (hiff.mpr hQ)]
+      · rw [if_neg hQ, if_neg (fun h => hQ (hiff.mp h))]
+
+/-! ## Depth classification of `m†`-elements -/
+
+/-- **Non-special survivors keep their depth.** -/
+lemma mdag_depth_survivor (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (x : Segment) (hxm : x ∈ m.segments)
+    (hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments)
+    (hns : ¬ ∃ σ ∈ (MW.leadingChain m).val.segments, ∃ hσm : σ ∈ m.segments,
+      x.a = σ.a ∧ x.b < σ.b ∧ depth_of_segment m x hxm = depth_of_segment m σ hσm) :
+    depth_of_segment (MW.makeResidual m (MW.leadingChain m).val.segments) x hx'
+      = depth_of_segment m x hxm := by
+  have hub := (mdag_depth_bound m sₘ s_l hsₘ hs_l hmin _).1 x hxm hx' rfl
+  have hle : depth_of_segment (MW.makeResidual m (MW.leadingChain m).val.segments) x hx'
+      ≤ depth_of_segment m x hxm := by
+    rcases Nat.lt_or_ge (depth_of_segment (MW.makeResidual m
+      (MW.leadingChain m).val.segments) x hx') (depth_of_segment m x hxm + 1) with h | h
+    · omega
+    · exfalso
+      exact hns (hub.2 (by omega))
+  by_cases hxC : x ∈ (MW.leadingChain m).val.segments
+  · -- chain value: bound below through its starred copy
+    have hnd := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin x hxC
+    have hstep : x.a + 1 ≤ x.b := by omega
+    have hz' := starred_mem_mdag m (MW.leadingChain m).val.segments x hxC hnd
+    have h2 := depth_mdag_ge_inC m sₘ s_l hsₘ hs_l hmin x hxC
+      (⟨⟨x.a + 1, x.b⟩, hstep⟩ : Segment) rfl rfl hz' hxm
+    have h3 := depth_le_of_coord_le (MW.makeResidual m (MW.leadingChain m).val.segments)
+      x (⟨⟨x.a + 1, x.b⟩, hstep⟩ : Segment) hx' hz'
+      (by show x.a ≤ x.a + 1; omega) (by show x.b ≤ x.b; omega)
+    omega
+  · have := depth_mdag_ge_notC m sₘ s_l hsₘ hs_l hmin x hxm hxC hx'
+    omega
+
+/-- **Starred values sit exactly at their source's depth.** -/
+lemma mdag_depth_starred (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (σ : Segment) (hσC : σ ∈ (MW.leadingChain m).val.segments) (hσm : σ ∈ m.segments)
+    (hstep : σ.a + 1 ≤ σ.b)
+    (hy' : (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment)
+      ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments) :
+    depth_of_segment (MW.makeResidual m (MW.leadingChain m).val.segments)
+      (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) hy' = depth_of_segment m σ hσm :=
+  le_antisymm
+    ((mdag_depth_bound m sₘ s_l hsₘ hs_l hmin _).2 σ hσC hσm
+      (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) rfl rfl hy' rfl)
+    (depth_mdag_ge_inC m sₘ s_l hsₘ hs_l hmin σ hσC
+      (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) rfl rfl hy' hσm)
+
+/-- No segment is special with the chain head as witness. -/
+lemma no_special_head (m : Multisegment) (sₘ : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (y : Segment) (hym : y ∈ m.segments) (hya : y.a = sₘ.a) (hyb : y.b < sₘ.b) :
+    False := by
+  have h1 : sₘ ≤ y := MW.head_le_mem m sₘ hsₘ y hym
+  have h2 := MW.seg_b_le_of_le_of_a_eq h1 (by omega)
+  omega
+
+/-- Specials are bounded by their witness's chain predecessor. -/
+lemma special_end_le_pred (m : Multisegment) (u v : List Segment) (σp σ' : Segment)
+    (hsplit : (MW.leadingChain m).val.segments = u ++ σp :: σ' :: v)
+    (y : Segment) (hym : y ∈ m.segments) (hya : y.a = σ'.a) (hyb : y.b < σ'.b) :
+    y.b ≤ σp.b := by
+  by_contra hcon
+  push_neg at hcon
+  obtain ⟨-, hsucc⟩ := leadingChain_consecutive_link m u v σp σ' hsplit
+  have hlink : MW.chainLink σp y := ⟨⟨by omega, hcon⟩, by omega⟩
+  have := leadingChain_min_end m u v σp σ' hsplit y hym hlink
+  omega
+
+/-- Same-fiber elements one begin to the right end no later. -/
+lemma fiber_succ_end_le (m : Multisegment) (σ : Segment) (hσm : σ ∈ m.segments)
+    (y : Segment) (hym : y ∈ m.segments) (hya : y.a = σ.a + 1)
+    (hdep : depth_of_segment m y hym = depth_of_segment m σ hσm) : y.b ≤ σ.b := by
+  by_contra hcon
+  push_neg at hcon
+  have hll : σ ≪ y := ⟨by omega, hcon⟩
+  have := ll_ne_depth m σ y hσm hym hll
+  omega
+
+/-- Beyond the boundary: every fiber element with begin past `i` sits at or after `t`,
+in both coordinates. -/
+lemma boundary_next_facts (m : Multisegment) (d : ℕ) (i t : Segment)
+    (l₁ l₂ : List Segment)
+    (hsplit : (bucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
+    (y : Segment) (hy : y ∈ (bucket m d).map (·.val)) (hya : i.a < y.a) :
+    t.a ≤ y.a ∧ y.b ≤ t.b := by
+  have hsorted := bucket_sorted m d
+  have hnested := bucket_nested m d
+  rw [hsplit] at hsorted hnested hy
+  rcases List.mem_append.mp hy with h1 | h2
+  · -- y before i: begins ascend, so y.a ≤ i.a — contradiction
+    exfalso
+    have := (List.pairwise_append.mp hsorted).2.2 y h1 i (by simp)
+    omega
+  · rcases List.mem_cons.mp h2 with rfl | h3
+    · omega
+    · rcases List.mem_cons.mp h3 with rfl | h4
+      · exact ⟨le_refl _, le_refl _⟩
+      · have hp := (List.pairwise_append.mp hnested).2.1
+        have hty := (List.pairwise_cons.mp (List.pairwise_cons.mp hp).2).1 y h4
+        have hps := (List.pairwise_append.mp hsorted).2.1
+        have hty2 := (List.pairwise_cons.mp (List.pairwise_cons.mp hps).2).1 y h4
+        exact ⟨hty2, hty.2⟩
+
+/-! ## Chain structure helpers -/
+
+/-- The leading chain is pairwise `≪`. -/
+lemma leadingChain_pairwise_ll (m : Multisegment) :
+    (MW.leadingChain m).val.segments.Pairwise (· ≪ ·) := by
+  have h : (MW.leadingChain m).val.segments.IsChain (· ≪ ·) :=
+    (MW.leadingChain m).property.imp (fun _ _ hab => hab.1)
+  haveI : Trans (· ≪ · : Segment → Segment → Prop) (· ≪ ·) (· ≪ ·) :=
+    ⟨fun h1 h2 => ll_trans _ _ _ h1 h2⟩
+  exact h.pairwise
+
+/-- The leading chain's begins strictly increase. -/
+lemma leadingChain_begins_lt (m : Multisegment) :
+    (MW.leadingChain m).val.segments.Pairwise (fun s t => s.a < t.a) :=
+  (leadingChain_pairwise_ll m).imp (fun h => h.1)
+
+/-- In a begins-increasing list, members are determined by their begin. -/
+lemma begin_unique_of_pairwise_lt : ∀ (l : List Segment),
+    l.Pairwise (fun s t => s.a < t.a) →
+    ∀ x ∈ l, ∀ y ∈ l, x.a = y.a → x = y := by
+  intro l
+  induction l with
+  | nil => intro _ x hx; simp at hx
+  | cons c cs ih =>
+    intro hp x hx y hy heq
+    obtain ⟨hlt, hp'⟩ := List.pairwise_cons.mp hp
+    rcases List.mem_cons.mp hx with rfl | hxr
+    · rcases List.mem_cons.mp hy with rfl | hyr
+      · rfl
+      · exact absurd heq (by have := hlt y hyr; omega)
+    · rcases List.mem_cons.mp hy with rfl | hyr
+      · exact absurd heq (by have := hlt x hxr; omega)
+      · exact ih hp' x hxr y hyr heq
+
+/-- Two distinct members of a pairwise list are related one way or the other. -/
+lemma pairwise_mem_rel {R : Segment → Segment → Prop} : ∀ (l : List Segment),
+    l.Pairwise R → ∀ x ∈ l, ∀ y ∈ l, x ≠ y → R x y ∨ R y x := by
+  intro l
+  induction l with
+  | nil => intro _ x hx; simp at hx
+  | cons c cs ih =>
+    intro hp x hx y hy hne
+    obtain ⟨hrel, hp'⟩ := List.pairwise_cons.mp hp
+    rcases List.mem_cons.mp hx with rfl | hxr
+    · rcases List.mem_cons.mp hy with rfl | hyr
+      · exact absurd rfl hne
+      · exact Or.inl (hrel y hyr)
+    · rcases List.mem_cons.mp hy with rfl | hyr
+      · exact Or.inr (hrel x hxr)
+      · exact ih hp' x hxr y hyr hne
+
+/-- Distinct-begin chain members have distinct depths. -/
+lemma chain_mem_depth_ne (m : Multisegment) (c σ : Segment)
+    (hc : c ∈ (MW.leadingChain m).val.segments) (hσ : σ ∈ (MW.leadingChain m).val.segments)
+    (hne : c.a ≠ σ.a) (hcm : c ∈ m.segments) (hσm : σ ∈ m.segments) :
+    depth_of_segment m c hcm ≠ depth_of_segment m σ hσm := by
+  have hvne : c ≠ σ := fun h => hne (by rw [h])
+  rcases pairwise_mem_rel _ (leadingChain_pairwise_ll m) c hc σ hσ hvne with h | h
+  · have := ll_ne_depth m c σ hcm hσm h; omega
+  · have := ll_ne_depth m σ c hσm hcm h; omega
+
+/-- A chain member strictly shallower than `σ` is at most as deep as its successor. -/
+lemma chain_depth_between (m : Multisegment) (u v : List Segment) (σ σ' : Segment)
+    (hsplit : (MW.leadingChain m).val.segments = u ++ σ :: σ' :: v)
+    (c : Segment) (hc : c ∈ (MW.leadingChain m).val.segments)
+    (hcm : c ∈ m.segments) (hσm : σ ∈ m.segments) (hσ'm : σ' ∈ m.segments)
+    (hlt : depth_of_segment m c hcm < depth_of_segment m σ hσm) :
+    depth_of_segment m c hcm ≤ depth_of_segment m σ' hσ'm := by
+  have hCll := leadingChain_pairwise_ll m
+  rw [hsplit] at hCll hc
+  rcases List.mem_append.mp hc with h1 | h2
+  · -- c precedes σ, so c ≪ σ and depth σ < depth c: contradiction
+    exfalso
+    have hll := (List.pairwise_append.mp hCll).2.2 c h1 σ (by simp)
+    have := ll_ne_depth m c σ hcm hσm hll
+    omega
+  · rcases List.mem_cons.mp h2 with rfl | h3
+    · omega
+    · rcases List.mem_cons.mp h3 with rfl | h4
+      · exact le_refl _
+      · have hp := (List.pairwise_append.mp hCll).2.1
+        have hll := (List.pairwise_cons.mp (List.pairwise_cons.mp hp).2).1 c h4
+        have := ll_ne_depth m σ' c hσ'm hcm hll
+        omega
+
+/-- Full count formula for `m†`: one copy of each chain value is removed, one starred
+copy of each non-singleton chain value is added. -/
+lemma count_mdag_full (m : Multisegment) (x : Segment) :
+    (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x
+      + (if x ∈ (MW.leadingChain m).val.segments then 1 else 0)
+      = m.segments.count x
+      + (if ∃ σ ∈ (MW.leadingChain m).val.segments,
+            σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b then 1 else 0) := by
+  rw [count_makeResidual, count_filterMap_residual _ (leadingChain_begins_lt m) x]
+  have hne : (MW.leadingChain m).val.segments.Pairwise (· ≠ ·) :=
+    (leadingChain_begins_lt m).imp (fun h heq => by rw [heq] at h; omega)
+  have hsub : ∀ c ∈ (MW.leadingChain m).val.segments, c ∈ m.segments :=
+    fun c hc => MW.leadingChain_subset m c hc
+  have := count_foldl_erase _ m.segments hne hsub x
+  omega
+
+/-- Bucket count when every copy of the value sits at depth `d`. -/
+lemma bucket_count_eq_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
+    (h : ∀ hxm : x ∈ M.segments, depth_of_segment M x hxm = d) :
+    ((bucket M d).map (·.val)).count x = M.segments.count x := by
+  by_cases hmem : x ∈ M.segments
+  · exact count_bucket_of_depth M d x hmem (h hmem)
+  · rw [count_bucket_of_ne M d x (by rintro ⟨hxm, -⟩; exact hmem hxm),
+      List.count_eq_zero.mpr hmem]
+
+/-- Bucket count when the value never sits at depth `d`. -/
+lemma bucket_count_eq_zero_of_depth_ne (M : Multisegment) (d : ℕ) (x : Segment)
+    (h : ∀ hxm : x ∈ M.segments, depth_of_segment M x hxm ≠ d) :
+    ((bucket M d).map (·.val)).count x = 0 :=
+  count_bucket_of_ne M d x (by rintro ⟨hxm, hd⟩; exact h hxm hd)
+
+/-- In a begins-increasing list, splits at a common element coincide. -/
+lemma split_unique_of_pairwise_lt : ∀ (l : List Segment),
+    l.Pairwise (fun s t => s.a < t.a) →
+    ∀ (u v u' v' : List Segment) (σ : Segment),
+    l = u ++ σ :: v → l = u' ++ σ :: v' → u = u' ∧ v = v' := by
+  intro l
+  induction l with
+  | nil =>
+    intro _ u v u' v' σ h1 _
+    exact absurd h1.symm (by simp)
+  | cons c cs ih =>
+    intro hp u v u' v' σ h1 h2
+    obtain ⟨hlt, hp'⟩ := List.pairwise_cons.mp hp
+    cases u with
+    | nil =>
+      cases u' with
+      | nil =>
+        simp only [List.nil_append, List.cons.injEq] at h1 h2
+        exact ⟨rfl, by rw [← h1.2, h2.2]⟩
+      | cons c' u'' =>
+        exfalso
+        simp only [List.nil_append, List.cons.injEq] at h1
+        simp only [List.cons_append, List.cons.injEq] at h2
+        obtain ⟨rfl, -⟩ := h1
+        obtain ⟨rfl, h2'⟩ := h2
+        have hσ : c ∈ cs := by rw [h2']; simp
+        have := hlt c hσ
+        omega
+    | cons c₀ u₀ =>
+      cases u' with
+      | nil =>
+        exfalso
+        simp only [List.nil_append, List.cons.injEq] at h2
+        simp only [List.cons_append, List.cons.injEq] at h1
+        obtain ⟨rfl, -⟩ := h2
+        obtain ⟨rfl, h1'⟩ := h1
+        have hσ : c ∈ cs := by rw [h1']; simp
+        have := hlt c hσ
+        omega
+      | cons c₁ u₁ =>
+        simp only [List.cons_append, List.cons.injEq] at h1 h2
+        obtain ⟨rfl, h1'⟩ := h1
+        obtain ⟨rfl, h2'⟩ := h2
+        obtain ⟨hu, hv⟩ := ih hp' u₀ v u₁ v' σ h1' h2'
+        exact ⟨by rw [hu], hv⟩
+
+/-- Coordinate form of `mdag_depth_starred`. -/
+lemma mdag_depth_starred' (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (c : Segment) (hcC : c ∈ (MW.leadingChain m).val.segments) (hcm : c ∈ m.segments)
+    (hcnd : c.a < c.b)
+    (x : Segment) (hxa : x.a = c.a + 1) (hxb : x.b = c.b)
+    (hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments) :
+    depth_of_segment (MW.makeResidual m (MW.leadingChain m).val.segments) x hx'
+      = depth_of_segment m c hcm := by
+  have hstep : c.a + 1 ≤ c.b := by omega
+  have hxeq : x = (⟨⟨c.a + 1, c.b⟩, hstep⟩ : Segment) := by
+    refine seg_ext ?_ ?_
+    · rw [hxa]; rfl
+    · rw [hxb]; rfl
+  subst hxeq
+  exact mdag_depth_starred m sₘ s_l hsₘ hs_l hmin c hcC hcm hstep hx'
+
+/-- Depth respects value equality across membership proofs. -/
+lemma depth_congr (m : Multisegment) (s t : Segment) (h : s = t)
+    (hs : s ∈ m.segments) (ht : t ∈ m.segments) :
+    depth_of_segment m s hs = depth_of_segment m t ht := by
+  subst h
+  rfl
+
+/-- **Fiber-count transport at a chain fiber** (paper eqs. `sc2`/`sc3`, count form): at
+`σ`'s fiber, `m†` loses one `σ`-copy and the specials of `σ`, and gains the starred copy
+`⁻σ` together with the incoming specials of the successor `σ'`. -/
+lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (u v : List Segment) (σ σ' : Segment)
+    (hsplit : (MW.leadingChain m).val.segments = u ++ σ :: σ' :: v)
+    (hσm : σ ∈ m.segments) (hσ'm : σ' ∈ m.segments)
+    (x : Segment) :
+    ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val)).count x
+      + (if x = σ then 1 else 0)
+      + (if x.a = σ.a ∧ x.b < σ.b
+         then ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x else 0)
+    = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+      + (if x.a = σ.a + 1 ∧ x.b = σ.b then 1 else 0)
+      + (if x.a = σ'.a ∧ x.b < σ'.b
+         then ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x else 0) := by
+  classical
+  have hσC : σ ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
+  have hσ'C : σ' ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
+  obtain ⟨hll, hsucc⟩ := leadingChain_consecutive_link m u v σ σ' hsplit
+  obtain ⟨hlla, hllb⟩ := hll
+  have hd'lt : depth_of_segment m σ' hσ'm < depth_of_segment m σ hσm :=
+    ll_ne_depth m σ σ' hσm hσ'm ⟨hlla, hllb⟩
+  have hnd : σ.a < σ.b := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σ hσC
+  have hcount := count_mdag_full m x
+  have hBlt := leadingChain_begins_lt m
+  have hCsub : ∀ c ∈ (MW.leadingChain m).val.segments, c ∈ m.segments :=
+    fun c hc => MW.leadingChain_subset m c hc
+  by_cases hx1 : x.a = σ.a
+  · -- begin group of σ
+    by_cases hx2 : x.b = σ.b
+    · -- L1: x is the chain value σ itself
+      have hxσ : x = σ := seg_ext hx1 hx2
+      subst hxσ
+      have hst : ¬ ∃ c ∈ (MW.leadingChain m).val.segments,
+          c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b := by
+        rintro ⟨c, hcC, -, hca, hcb⟩
+        have hcne : c ≠ x := fun h => by rw [h] at hca; omega
+        rcases pairwise_mem_rel _ (leadingChain_pairwise_ll m) c hcC x hσC hcne
+          with h | h
+        · obtain ⟨-, h2⟩ := h; omega
+        · obtain ⟨h1, -⟩ := h; omega
+      rw [if_pos hσC, if_neg hst] at hcount
+      have hBm : ((bucket m (depth_of_segment m x hσm)).map (·.val)).count x
+          = m.segments.count x :=
+        bucket_count_eq_of_depth m _ x (fun _ => rfl)
+      have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          (depth_of_segment m x hσm)).map (·.val)).count x
+          = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
+        apply bucket_count_eq_of_depth
+        intro hx'
+        rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hσm hx' ?_]
+        rintro ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+        have := begin_unique_of_pairwise_lt _ hBlt σw hσwC x hσC (by omega)
+        rw [this] at hwb
+        omega
+      rw [hB, hBm, if_pos rfl, if_neg (by rintro ⟨-, h⟩; omega),
+        if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨h, -⟩; omega)]
+      omega
+    · have hxnotC : x ∉ (MW.leadingChain m).val.segments := by
+        intro hx
+        have := begin_unique_of_pairwise_lt _ hBlt x hx σ hσC hx1
+        have hb := congrArg Segment.b this
+        simp only [] at hb
+        omega
+      by_cases hx3 : x.b < σ.b
+      · -- specials of σ, or same-begin junk off the fiber
+        by_cases hx4 : ∃ hxm : x ∈ m.segments,
+            depth_of_segment m x hxm = depth_of_segment m σ hσm
+        · -- L2: a genuine special of σ
+          obtain ⟨hxm, hxd⟩ := hx4
+          have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments :=
+            survivor_mem_mdag m _ x hxm hxnotC
+          have hdep := special_moves_up m sₘ s_l hsₘ hs_l hmin x hxm hx'
+            σ hσC hσm hx1 hx3 (by rw [hxd])
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hx'2
+            have hpi : depth_of_segment (MW.makeResidual m
+                (MW.leadingChain m).val.segments) x hx'2
+                = depth_of_segment (MW.makeResidual m
+                (MW.leadingChain m).val.segments) x hx' := rfl
+            omega
+          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+              = m.segments.count x :=
+            bucket_count_eq_of_depth m _ x (fun hxm2 => by
+              have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+              omega)
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.b h; simp only [] at this; omega),
+            if_pos ⟨hx1, hx3⟩, if_neg (by rintro ⟨h, -⟩; omega),
+            if_neg (by rintro ⟨h, -⟩; omega)]
+          omega
+        · -- L3: same-begin shorter value off the fiber
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hx'
+            rcases mem_mdag_cases m _ x hx' with hxm | ⟨c, hcC, hcnd, hxa, hxb⟩
+            · rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' ?_]
+              · exact fun h => hx4 ⟨hxm, h⟩
+              · rintro ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩
+                have heqw := begin_unique_of_pairwise_lt _ hBlt σw hσwC σ hσC (by omega)
+                subst heqw
+                exact hx4 ⟨hxm, hwd⟩
+            · rw [mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC (hCsub c hcC)
+                hcnd x hxa hxb hx']
+              exact chain_mem_depth_ne m c σ hcC hσC (by omega) (hCsub c hcC) hσm
+          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+            bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hx4 ⟨hxm, h⟩)
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.b h; simp only [] at this; omega),
+            if_pos ⟨hx1, hx3⟩, if_neg (by rintro ⟨h, -⟩; omega),
+            if_neg (by rintro ⟨h, -⟩; omega)]
+      · -- L4: same begin, larger end
+        have hx4 : σ.b < x.b := by omega
+        have hst : ¬ ∃ c ∈ (MW.leadingChain m).val.segments,
+            c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b := by
+          rintro ⟨c, hcC, -, hca, hcb⟩
+          have hcne : c ≠ σ := fun h => by rw [h] at hca; omega
+          rcases pairwise_mem_rel _ (leadingChain_pairwise_ll m) c hcC σ hσC hcne
+            with h | h
+          · obtain ⟨-, h2⟩ := h; omega
+          · obtain ⟨h1, -⟩ := h; omega
+        rw [if_neg hxnotC, if_neg hst] at hcount
+        have hcert : ∀ (hxm : x ∈ m.segments),
+            ¬ ∃ σw ∈ (MW.leadingChain m).val.segments, ∃ hσwm : σw ∈ m.segments,
+              x.a = σw.a ∧ x.b < σw.b ∧
+              depth_of_segment m x hxm = depth_of_segment m σw hσwm := by
+          rintro hxm ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+          have := begin_unique_of_pairwise_lt _ hBlt σw hσwC σ hσC (by omega)
+          have hb := congrArg Segment.b this
+          simp only [] at hb
+          omega
+        by_cases hf : ∃ hxm : x ∈ m.segments,
+            depth_of_segment m x hxm = depth_of_segment m σ hσm
+        · obtain ⟨hxm, hxd⟩ := hf
+          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+              = m.segments.count x :=
+            bucket_count_eq_of_depth m _ x (fun hxm2 => by
+              have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+              omega)
+          have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments :=
+            survivor_mem_mdag m _ x hxm hxnotC
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x
+              = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
+            apply bucket_count_eq_of_depth
+            intro hx'2
+            rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx'2 (hcert hxm)]
+            exact hxd
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.b h; simp only [] at this; omega),
+            if_neg (by rintro ⟨-, h⟩; omega), if_neg (by rintro ⟨h, -⟩; omega),
+            if_neg (by rintro ⟨h, -⟩; omega)]
+          omega
+        · have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+            bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hf ⟨hxm, h⟩)
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hx'
+            rcases mem_mdag_cases m _ x hx' with hxm | ⟨c, hcC, hcnd, hxa, hxb⟩
+            · rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' (hcert hxm)]
+              exact fun h => hf ⟨hxm, h⟩
+            · exact absurd ⟨c, hcC, hcnd, hxa, hxb⟩ hst
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.b h; simp only [] at this; omega),
+            if_neg (by rintro ⟨-, h⟩; omega), if_neg (by rintro ⟨h, -⟩; omega),
+            if_neg (by rintro ⟨h, -⟩; omega)]
+  · by_cases hx5 : x.a = σ.a + 1
+    · -- begin group of σ'
+      have hxσ'a : x.a = σ'.a := by omega
+      by_cases hx6 : x.b = σ.b
+      · -- L5a: the starred value ⁻σ
+        have hxnotC : x ∉ (MW.leadingChain m).val.segments := by
+          intro hx
+          have := begin_unique_of_pairwise_lt _ hBlt x hx σ' hσ'C hxσ'a
+          have hb := congrArg Segment.b this
+          simp only [] at hb
+          omega
+        rw [if_neg hxnotC, if_pos ⟨σ, hσC, hnd, by omega, by omega⟩] at hcount
+        have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments := by
+          rw [← List.count_pos_iff]
+          omega
+        have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+            (depth_of_segment m σ hσm)).map (·.val)).count x
+            = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
+          apply bucket_count_eq_of_depth
+          intro hx'2
+          exact mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin σ hσC hσm hnd x
+            (by omega) (by omega) hx'2
+        have hsum : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+            + ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x
+            = m.segments.count x := by
+          by_cases hxm : x ∈ m.segments
+          · have hge := depth_mdag_ge_notC m sₘ s_l hsₘ hs_l hmin x hxm hxnotC hx'
+            have hub := (mdag_depth_bound m sₘ s_l hsₘ hs_l hmin _).1 x hxm hx' rfl
+            have hdd := mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin σ hσC hσm hnd x
+              (by omega) (by omega) hx'
+            rcases Nat.lt_or_ge (depth_of_segment m x hxm)
+              (depth_of_segment m σ hσm) with hlt | hge2
+            · -- one level down: forced special with witness σ'
+              obtain ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩ := hub.2 (by omega)
+              have hww := begin_unique_of_pairwise_lt _ hBlt σw hσwC σ' hσ'C (by omega)
+              have hwd' : depth_of_segment m x hxm = depth_of_segment m σ' hσ'm :=
+                hwd.trans (depth_congr m σw σ' hww hσwm hσ'm)
+              have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+                  = 0 :=
+                bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+                  have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                  omega)
+              have hB2 : ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x
+                  = m.segments.count x :=
+                bucket_count_eq_of_depth m _ x (fun hxm2 => by
+                  have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                  omega)
+              omega
+            · have hxd : depth_of_segment m x hxm = depth_of_segment m σ hσm := by omega
+              have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+                  = m.segments.count x :=
+                bucket_count_eq_of_depth m _ x (fun hxm2 => by
+                  have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                  omega)
+              have hB2 : ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x
+                  = 0 :=
+                bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+                  have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                  omega)
+              omega
+          · rw [bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 _ => hxm hxm2),
+              bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 _ => hxm hxm2),
+              List.count_eq_zero.mpr hxm]
+        rw [hB, if_neg (fun h => by
+            have := congrArg Segment.a h; simp only [] at this; omega),
+          if_neg (by rintro ⟨h, -⟩; omega), if_pos ⟨hx5, hx6⟩,
+          if_pos ⟨hxσ'a, by omega⟩]
+        omega
+      · by_cases hx7 : x.b = σ'.b
+        · -- L5b: x is the chain value σ'
+          have hxσ' : x = σ' := seg_ext hxσ'a hx7
+          subst hxσ'
+          have hst : ¬ ∃ c ∈ (MW.leadingChain m).val.segments,
+              c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b := by
+            rintro ⟨c, hcC, -, hca, hcb⟩
+            have hcne : c ≠ x := fun h => by rw [h] at hca; omega
+            rcases pairwise_mem_rel _ (leadingChain_pairwise_ll m) c hcC x hσ'C hcne
+              with h | h
+            · obtain ⟨-, h2⟩ := h; omega
+            · obtain ⟨h1, -⟩ := h; omega
+          rw [if_pos hσ'C, if_neg hst] at hcount
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hx'
+            rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hσ'm hx' ?_]
+            · omega
+            · rintro ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+              have := begin_unique_of_pairwise_lt _ hBlt σw hσwC x hσ'C (by omega)
+              rw [this] at hwb
+              omega
+          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+            bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+              have : depth_of_segment m x hxm2 = depth_of_segment m x hσ'm := rfl
+              omega)
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.a h; simp only [] at this; omega),
+            if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨-, h⟩; omega),
+            if_neg (by rintro ⟨-, h⟩; omega)]
+        · -- L5c / L5d: other values in σ'’s begin group
+          have hxnotC : x ∉ (MW.leadingChain m).val.segments := by
+            intro hx
+            have := begin_unique_of_pairwise_lt _ hBlt x hx σ' hσ'C hxσ'a
+            have hb := congrArg Segment.b this
+            simp only [] at hb
+            omega
+          have hst : ¬ ∃ c ∈ (MW.leadingChain m).val.segments,
+              c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b := by
+            rintro ⟨c, hcC, -, hca, hcb⟩
+            have := begin_unique_of_pairwise_lt _ hBlt c hcC σ hσC (by omega)
+            rw [this] at hcb
+            omega
+          rw [if_neg hxnotC, if_neg hst] at hcount
+          by_cases hx8 : x.b < σ'.b
+          · -- L5c
+            by_cases hxm : x ∈ m.segments
+            · by_cases he : depth_of_segment m x hxm = depth_of_segment m σ' hσ'm
+              · -- special with witness σ': moves into σ's fiber
+                have hx' : x ∈ (MW.makeResidual m
+                    (MW.leadingChain m).val.segments).segments :=
+                  survivor_mem_mdag m _ x hxm hxnotC
+                have hdep := special_moves_up m sₘ s_l hsₘ hs_l hmin x hxm hx'
+                  σ' hσ'C hσ'm hxσ'a hx8 (by rw [he])
+                have hgap := special_witness_gap m sₘ s_l hsₘ hs_l hmin x hxm
+                  σ' hσ'm hxσ'a hx8 (by rw [he]) u v σ hsplit hσm
+                have hB : ((bucket (MW.makeResidual m
+                    (MW.leadingChain m).val.segments)
+                    (depth_of_segment m σ hσm)).map (·.val)).count x
+                    = (MW.makeResidual m
+                      (MW.leadingChain m).val.segments).segments.count x := by
+                  apply bucket_count_eq_of_depth
+                  intro hx'2
+                  have hpi : depth_of_segment (MW.makeResidual m
+                      (MW.leadingChain m).val.segments) x hx'2
+                      = depth_of_segment (MW.makeResidual m
+                      (MW.leadingChain m).val.segments) x hx' := rfl
+                  omega
+                have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+                    = 0 :=
+                  bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+                    have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                    omega)
+                have hB2 : ((bucket m
+                    (depth_of_segment m σ' hσ'm)).map (·.val)).count x
+                    = m.segments.count x :=
+                  bucket_count_eq_of_depth m _ x (fun hxm2 => by
+                    have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                    omega)
+                rw [hB, hB1, if_neg (fun h => by
+                    have := congrArg Segment.a h; simp only [] at this; omega),
+                  if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨-, h⟩; omega),
+                  if_pos ⟨hxσ'a, hx8⟩, hB2]
+                omega
+              · -- non-special: depth preserved
+                have hcert : ¬ ∃ σw ∈ (MW.leadingChain m).val.segments,
+                    ∃ hσwm : σw ∈ m.segments, x.a = σw.a ∧ x.b < σw.b ∧
+                    depth_of_segment m x hxm = depth_of_segment m σw hσwm := by
+                  rintro ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩
+                  have heqw := begin_unique_of_pairwise_lt _ hBlt σw hσwC σ' hσ'C (by omega)
+                  subst heqw
+                  exact he hwd
+                have hx' : x ∈ (MW.makeResidual m
+                    (MW.leadingChain m).val.segments).segments :=
+                  survivor_mem_mdag m _ x hxm hxnotC
+                have hdep := mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' hcert
+                have hB2 : ((bucket m
+                    (depth_of_segment m σ' hσ'm)).map (·.val)).count x = 0 :=
+                  bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+                    have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                    omega)
+                by_cases hed : depth_of_segment m x hxm = depth_of_segment m σ hσm
+                · have hB : ((bucket (MW.makeResidual m
+                      (MW.leadingChain m).val.segments)
+                      (depth_of_segment m σ hσm)).map (·.val)).count x
+                      = (MW.makeResidual m
+                        (MW.leadingChain m).val.segments).segments.count x := by
+                    apply bucket_count_eq_of_depth
+                    intro hx'2
+                    have hpi : depth_of_segment (MW.makeResidual m
+                        (MW.leadingChain m).val.segments) x hx'2
+                        = depth_of_segment (MW.makeResidual m
+                        (MW.leadingChain m).val.segments) x hx' := rfl
+                    omega
+                  have hB1 : ((bucket m
+                      (depth_of_segment m σ hσm)).map (·.val)).count x
+                      = m.segments.count x :=
+                    bucket_count_eq_of_depth m _ x (fun hxm2 => by
+                      have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                      omega)
+                  rw [hB, hB1, if_neg (fun h => by
+                      have := congrArg Segment.a h; simp only [] at this; omega),
+                    if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨-, h⟩; omega),
+                    if_pos ⟨hxσ'a, hx8⟩, hB2]
+                  omega
+                · have hB : ((bucket (MW.makeResidual m
+                      (MW.leadingChain m).val.segments)
+                      (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+                    apply bucket_count_eq_zero_of_depth_ne
+                    intro hx'2
+                    have hpi : depth_of_segment (MW.makeResidual m
+                        (MW.leadingChain m).val.segments) x hx'2
+                        = depth_of_segment (MW.makeResidual m
+                        (MW.leadingChain m).val.segments) x hx' := rfl
+                    omega
+                  have hB1 : ((bucket m
+                      (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+                    bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+                      have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                      omega)
+                  rw [hB, hB1, if_neg (fun h => by
+                      have := congrArg Segment.a h; simp only [] at this; omega),
+                    if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨-, h⟩; omega),
+                    if_pos ⟨hxσ'a, hx8⟩, hB2]
+            · -- x is not in m at all
+              have hzero : m.segments.count x = 0 := List.count_eq_zero.mpr hxm
+              have hB : ((bucket (MW.makeResidual m
+                  (MW.leadingChain m).val.segments)
+                  (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+                apply bucket_count_eq_zero_of_depth_ne
+                intro hx'
+                have := List.count_pos_iff.mpr hx'
+                omega
+              rw [hB, bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 _ => hxm hxm2),
+                bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 _ => hxm hxm2),
+                if_neg (fun h => by
+                  have := congrArg Segment.a h; simp only [] at this; omega),
+                if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨-, h⟩; omega)]
+              simp
+          · -- L5d: end beyond σ'
+            have hx9 : σ'.b < x.b := by omega
+            have hcert : ∀ (hxm : x ∈ m.segments),
+                ¬ ∃ σw ∈ (MW.leadingChain m).val.segments, ∃ hσwm : σw ∈ m.segments,
+                  x.a = σw.a ∧ x.b < σw.b ∧
+                  depth_of_segment m x hxm = depth_of_segment m σw hσwm := by
+              rintro hxm ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+              have := begin_unique_of_pairwise_lt _ hBlt σw hσwC σ' hσ'C (by omega)
+              have hb := congrArg Segment.b this
+              simp only [] at hb
+              omega
+            by_cases hf : ∃ hxm : x ∈ m.segments,
+                depth_of_segment m x hxm = depth_of_segment m σ hσm
+            · obtain ⟨hxm, hxd⟩ := hf
+              have hx' : x ∈ (MW.makeResidual m
+                  (MW.leadingChain m).val.segments).segments :=
+                survivor_mem_mdag m _ x hxm hxnotC
+              have hB : ((bucket (MW.makeResidual m
+                  (MW.leadingChain m).val.segments)
+                  (depth_of_segment m σ hσm)).map (·.val)).count x
+                  = (MW.makeResidual m
+                    (MW.leadingChain m).val.segments).segments.count x := by
+                apply bucket_count_eq_of_depth
+                intro hx'2
+                rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx'2 (hcert hxm)]
+                exact hxd
+              have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+                  = m.segments.count x :=
+                bucket_count_eq_of_depth m _ x (fun hxm2 => by
+                  have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                  omega)
+              rw [hB, hB1, if_neg (fun h => by
+                  have := congrArg Segment.a h; simp only [] at this; omega),
+                if_neg (by rintro ⟨-, h⟩; omega), if_neg (by rintro ⟨-, h⟩; omega),
+                if_neg (by rintro ⟨-, h⟩; omega)]
+              omega
+            · have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+                  = 0 :=
+                bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hf ⟨hxm, h⟩)
+              have hB : ((bucket (MW.makeResidual m
+                  (MW.leadingChain m).val.segments)
+                  (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+                apply bucket_count_eq_zero_of_depth_ne
+                intro hx'
+                rcases mem_mdag_cases m _ x hx' with hxm | ⟨c, hcC, hcnd, hxa, hxb⟩
+                · rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' (hcert hxm)]
+                  exact fun h => hf ⟨hxm, h⟩
+                · exact absurd ⟨c, hcC, hcnd, hxa, hxb⟩ hst
+              rw [hB, hB1, if_neg (fun h => by
+                  have := congrArg Segment.a h; simp only [] at this; omega),
+                if_neg (by rintro ⟨-, h⟩; omega), if_neg (by rintro ⟨-, h⟩; omega),
+                if_neg (by rintro ⟨-, h⟩; omega)]
+    · -- L6: begins outside both groups
+      rw [if_neg (fun h => by
+          have := congrArg Segment.a h; simp only [] at this; omega),
+        if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨h, -⟩; omega),
+        if_neg (by rintro ⟨h, -⟩; omega)]
+      have hgoal : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          (depth_of_segment m σ hσm)).map (·.val)).count x
+          = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
+        by_cases hxC : x ∈ (MW.leadingChain m).val.segments
+        · -- another chain value: wrong fiber on both sides
+          have hxm := hCsub x hxC
+          have hend : depth_of_segment m x hxm ≠ depth_of_segment m σ hσm :=
+            chain_mem_depth_ne m x σ hxC hσC hx1 hxm hσm
+          rw [bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+            have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+            omega)]
+          apply bucket_count_eq_zero_of_depth_ne
+          intro hx'
+          rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' ?_]
+          · exact hend
+          · rintro ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+            have := begin_unique_of_pairwise_lt _ hBlt σw hσwC x hxC (by omega)
+            rw [this] at hwb
+            omega
+        · by_cases hstt : ∃ c ∈ (MW.leadingChain m).val.segments,
+              c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b
+          · -- another starred value: wrong fiber on both sides
+            obtain ⟨c, hcC, hcnd, hxa, hxb⟩ := hstt
+            have hcm := hCsub c hcC
+            have hdc : depth_of_segment m c hcm ≠ depth_of_segment m σ hσm :=
+              chain_mem_depth_ne m c σ hcC hσC (by omega) hcm hσm
+            have hx' : x ∈ (MW.makeResidual m
+                (MW.leadingChain m).val.segments).segments := by
+              rw [← List.count_pos_iff]
+              rw [if_neg hxC, if_pos ⟨c, hcC, hcnd, hxa, hxb⟩] at hcount
+              omega
+            have hdd := mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC hcm hcnd
+              x hxa hxb hx'
+            have hB : ((bucket (MW.makeResidual m
+                (MW.leadingChain m).val.segments)
+                (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+              apply bucket_count_eq_zero_of_depth_ne
+              intro hx'2
+              have hpi : depth_of_segment (MW.makeResidual m
+                  (MW.leadingChain m).val.segments) x hx'2
+                  = depth_of_segment (MW.makeResidual m
+                  (MW.leadingChain m).val.segments) x hx' := rfl
+              omega
+            rw [hB]
+            symm
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hxm hxd
+            -- a surviving copy pinned at depth d would force a chain begin at x.a
+            have hge := depth_mdag_ge_notC m sₘ s_l hsₘ hs_l hmin x hxm hxC hx'
+            have hub := (mdag_depth_bound m sₘ s_l hsₘ hs_l hmin _).1 x hxm hx' rfl
+            obtain ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩ := hub.2 (by omega)
+            have hwne : σw.a ≠ σ.a := by omega
+            have := chain_mem_depth_ne m σw σ hσwC hσC hwne hσwm hσm
+            omega
+          · -- plain value
+            rw [if_neg hxC, if_neg hstt] at hcount
+            by_cases hxm : x ∈ m.segments
+            · by_cases hsp : ∃ σw ∈ (MW.leadingChain m).val.segments,
+                  ∃ hσwm : σw ∈ m.segments, x.a = σw.a ∧ x.b < σw.b ∧
+                  depth_of_segment m x hxm = depth_of_segment m σw hσwm
+              · -- special with a foreign witness: wrong fiber on both sides
+                obtain ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩ := hsp
+                have hwne : σw.a ≠ σ.a := by omega
+                have hdw : depth_of_segment m σw hσwm ≠ depth_of_segment m σ hσm :=
+                  chain_mem_depth_ne m σw σ hσwC hσC hwne hσwm hσm
+                have hB1 : ((bucket m
+                    (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+                  bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+                    have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                    omega)
+                rw [hB1]
+                apply bucket_count_eq_zero_of_depth_ne
+                intro hx'
+                have hdep := special_moves_up m sₘ s_l hsₘ hs_l hmin x hxm hx'
+                  σw hσwC hσwm hwa hwb hwd
+                intro hcon
+                -- the landing fiber would identify σw's predecessor with σ
+                have hheadne : (MW.leadingChain m).val.segments.head? ≠ some σw := by
+                  rw [MW.leadingChain_head m sₘ hsₘ]
+                  intro h
+                  have heq := Option.some.inj h
+                  have ha := congrArg Segment.a heq
+                  have hb := congrArg Segment.b heq
+                  simp only [] at ha hb
+                  exact no_special_head m sₘ hsₘ x hxm (by omega) (by omega)
+                obtain ⟨u₂, σp, v₂, hsplit₂⟩ :=
+                  exists_pred_split (MW.leadingChain m).val.segments σw hσwC hheadne
+                have hσpC : σp ∈ (MW.leadingChain m).val.segments := by
+                  rw [hsplit₂]; simp
+                have hσpm := hCsub σp hσpC
+                have hgap := special_witness_gap m sₘ s_l hsₘ hs_l hmin x hxm
+                  σw hσwm hwa hwb hwd u₂ v₂ σp hsplit₂ hσpm
+                have hpσ : σp = σ := by
+                  by_contra hne
+                  have hpa : σp.a ≠ σ.a := by
+                    intro ha
+                    exact hne (begin_unique_of_pairwise_lt _ hBlt σp hσpC σ hσC ha)
+                  have := chain_mem_depth_ne m σp σ hσpC hσC hpa hσpm hσm
+                  omega
+                subst hpσ
+                obtain ⟨-, hv⟩ := split_unique_of_pairwise_lt _ hBlt
+                  u₂ (σw :: v₂) u (σ' :: v) σp hsplit₂ hsplit
+                have hσwσ' : σw = σ' := by
+                  have := List.head_eq_of_cons_eq hv
+                  exact this
+                rw [hσwσ'] at hwa
+                omega
+              · -- plain non-special: depth preserved, counts transport
+                have hx' : x ∈ (MW.makeResidual m
+                    (MW.leadingChain m).val.segments).segments :=
+                  survivor_mem_mdag m _ x hxm hxC
+                have hdep := mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' hsp
+                by_cases hf : depth_of_segment m x hxm = depth_of_segment m σ hσm
+                · rw [bucket_count_eq_of_depth m _ x (fun hxm2 => by
+                    have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                    omega)]
+                  rw [bucket_count_eq_of_depth _ _ x (fun hx'2 => by
+                    have hpi : depth_of_segment (MW.makeResidual m
+                        (MW.leadingChain m).val.segments) x hx'2
+                        = depth_of_segment (MW.makeResidual m
+                        (MW.leadingChain m).val.segments) x hx' := rfl
+                    omega)]
+                  omega
+                · rw [bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+                    have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                    omega)]
+                  apply bucket_count_eq_zero_of_depth_ne
+                  intro hx'2
+                  have hpi : depth_of_segment (MW.makeResidual m
+                      (MW.leadingChain m).val.segments) x hx'2
+                      = depth_of_segment (MW.makeResidual m
+                      (MW.leadingChain m).val.segments) x hx' := rfl
+                  omega
+            · have hB : ((bucket (MW.makeResidual m
+                  (MW.leadingChain m).val.segments)
+                  (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+                apply bucket_count_eq_zero_of_depth_ne
+                intro hx'
+                have := List.count_pos_iff.mpr hx'
+                have hzero : m.segments.count x = 0 := List.count_eq_zero.mpr hxm
+                omega
+              rw [hB, bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 _ => hxm hxm2)]
+      omega
+
+/-- **Fiber-count transport at the last chain fiber**: as `fiber_count_chain_step`, but
+the last chain element has no successor — nothing migrates in. -/
+lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (u : List Segment) (σ : Segment)
+    (hsplit : (MW.leadingChain m).val.segments = u ++ [σ])
+    (hσm : σ ∈ m.segments) (x : Segment) :
+    ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val)).count x
+      + (if x = σ then 1 else 0)
+      + (if x.a = σ.a ∧ x.b < σ.b
+         then ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x else 0)
+    = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+      + (if x.a = σ.a + 1 ∧ x.b = σ.b then 1 else 0) := by
+  classical
+  have hσC : σ ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
+  have hnd : σ.a < σ.b := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σ hσC
+  have hcount := count_mdag_full m x
+  have hBlt := leadingChain_begins_lt m
+  have hCsub : ∀ c ∈ (MW.leadingChain m).val.segments, c ∈ m.segments :=
+    fun c hc => MW.leadingChain_subset m c hc
+  -- the last chain element dominates in begin and has minimal depth
+  have hlast : ∀ c ∈ (MW.leadingChain m).val.segments, c = σ ∨ (c ≪ σ) := by
+    intro c hc
+    have hCll := leadingChain_pairwise_ll m
+    rw [hsplit] at hCll hc
+    rcases List.mem_append.mp hc with h1 | h2
+    · exact Or.inr ((List.pairwise_append.mp hCll).2.2 c h1 σ (by simp))
+    · rw [List.mem_singleton] at h2
+      exact Or.inl h2
+  have hmaxa : ∀ c ∈ (MW.leadingChain m).val.segments, c.a ≤ σ.a := by
+    intro c hc
+    rcases hlast c hc with rfl | h
+    · exact le_refl _
+    · exact le_of_lt h.1
+  by_cases hx1 : x.a = σ.a
+  · by_cases hx2 : x.b = σ.b
+    · -- x is the chain value σ itself
+      have hxσ : x = σ := seg_ext hx1 hx2
+      subst hxσ
+      have hst : ¬ ∃ c ∈ (MW.leadingChain m).val.segments,
+          c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b := by
+        rintro ⟨c, hcC, -, hca, hcb⟩
+        rcases hlast c hcC with rfl | h
+        · omega
+        · obtain ⟨-, h2⟩ := h; omega
+      rw [if_pos hσC, if_neg hst] at hcount
+      have hBm : ((bucket m (depth_of_segment m x hσm)).map (·.val)).count x
+          = m.segments.count x :=
+        bucket_count_eq_of_depth m _ x (fun _ => rfl)
+      have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          (depth_of_segment m x hσm)).map (·.val)).count x
+          = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
+        apply bucket_count_eq_of_depth
+        intro hx'
+        rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hσm hx' ?_]
+        rintro ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+        have := begin_unique_of_pairwise_lt _ hBlt σw hσwC x hσC (by omega)
+        rw [this] at hwb
+        omega
+      rw [hB, hBm, if_pos rfl, if_neg (by rintro ⟨-, h⟩; omega),
+        if_neg (by rintro ⟨h, -⟩; omega)]
+      omega
+    · have hxnotC : x ∉ (MW.leadingChain m).val.segments := by
+        intro hx
+        have := begin_unique_of_pairwise_lt _ hBlt x hx σ hσC hx1
+        have hb := congrArg Segment.b this
+        simp only [] at hb
+        omega
+      by_cases hx3 : x.b < σ.b
+      · by_cases hx4 : ∃ hxm : x ∈ m.segments,
+            depth_of_segment m x hxm = depth_of_segment m σ hσm
+        · -- special of σ: leaves the fiber
+          obtain ⟨hxm, hxd⟩ := hx4
+          have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments :=
+            survivor_mem_mdag m _ x hxm hxnotC
+          have hdep := special_moves_up m sₘ s_l hsₘ hs_l hmin x hxm hx'
+            σ hσC hσm hx1 hx3 (by rw [hxd])
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hx'2
+            have hpi : depth_of_segment (MW.makeResidual m
+                (MW.leadingChain m).val.segments) x hx'2
+                = depth_of_segment (MW.makeResidual m
+                (MW.leadingChain m).val.segments) x hx' := rfl
+            omega
+          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+              = m.segments.count x :=
+            bucket_count_eq_of_depth m _ x (fun hxm2 => by
+              have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+              omega)
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.b h; simp only [] at this; omega),
+            if_pos ⟨hx1, hx3⟩, if_neg (by rintro ⟨h, -⟩; omega)]
+          omega
+        · have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hx'
+            rcases mem_mdag_cases m _ x hx' with hxm | ⟨c, hcC, hcnd, hxa, hxb⟩
+            · rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' ?_]
+              · exact fun h => hx4 ⟨hxm, h⟩
+              · rintro ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩
+                have heqw := begin_unique_of_pairwise_lt _ hBlt σw hσwC σ hσC (by omega)
+                subst heqw
+                exact hx4 ⟨hxm, hwd⟩
+            · rw [mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC (hCsub c hcC)
+                hcnd x hxa hxb hx']
+              exact chain_mem_depth_ne m c σ hcC hσC (by omega) (hCsub c hcC) hσm
+          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+            bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hx4 ⟨hxm, h⟩)
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.b h; simp only [] at this; omega),
+            if_pos ⟨hx1, hx3⟩, if_neg (by rintro ⟨h, -⟩; omega)]
+      · -- same begin, larger end
+        have hx4 : σ.b < x.b := by omega
+        have hst : ¬ ∃ c ∈ (MW.leadingChain m).val.segments,
+            c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b := by
+          rintro ⟨c, hcC, -, hca, hcb⟩
+          rcases hlast c hcC with rfl | h
+          · omega
+          · obtain ⟨-, h2⟩ := h; omega
+        rw [if_neg hxnotC, if_neg hst] at hcount
+        have hcert : ∀ (hxm : x ∈ m.segments),
+            ¬ ∃ σw ∈ (MW.leadingChain m).val.segments, ∃ hσwm : σw ∈ m.segments,
+              x.a = σw.a ∧ x.b < σw.b ∧
+              depth_of_segment m x hxm = depth_of_segment m σw hσwm := by
+          rintro hxm ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+          have := begin_unique_of_pairwise_lt _ hBlt σw hσwC σ hσC (by omega)
+          have hb := congrArg Segment.b this
+          simp only [] at hb
+          omega
+        by_cases hf : ∃ hxm : x ∈ m.segments,
+            depth_of_segment m x hxm = depth_of_segment m σ hσm
+        · obtain ⟨hxm, hxd⟩ := hf
+          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+              = m.segments.count x :=
+            bucket_count_eq_of_depth m _ x (fun hxm2 => by
+              have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+              omega)
+          have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments :=
+            survivor_mem_mdag m _ x hxm hxnotC
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x
+              = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
+            apply bucket_count_eq_of_depth
+            intro hx'2
+            rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx'2 (hcert hxm)]
+            exact hxd
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.b h; simp only [] at this; omega),
+            if_neg (by rintro ⟨-, h⟩; omega), if_neg (by rintro ⟨h, -⟩; omega)]
+          omega
+        · have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+            bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hf ⟨hxm, h⟩)
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hx'
+            rcases mem_mdag_cases m _ x hx' with hxm | ⟨c, hcC, hcnd, hxa, hxb⟩
+            · rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' (hcert hxm)]
+              exact fun h => hf ⟨hxm, h⟩
+            · exact absurd ⟨c, hcC, hcnd, hxa, hxb⟩ hst
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.b h; simp only [] at this; omega),
+            if_neg (by rintro ⟨-, h⟩; omega), if_neg (by rintro ⟨h, -⟩; omega)]
+  · by_cases hx5 : x.a = σ.a + 1
+    · -- begin one past the last chain element
+      have hxnotC : x ∉ (MW.leadingChain m).val.segments := by
+        intro hx
+        have := hmaxa x hx
+        omega
+      by_cases hx6 : x.b = σ.b
+      · -- the starred value ⁻σ
+        rw [if_neg hxnotC, if_pos ⟨σ, hσC, hnd, by omega, by omega⟩] at hcount
+        have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments := by
+          rw [← List.count_pos_iff]
+          omega
+        have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+            (depth_of_segment m σ hσm)).map (·.val)).count x
+            = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
+          apply bucket_count_eq_of_depth
+          intro hx'2
+          exact mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin σ hσC hσm hnd x
+            (by omega) (by omega) hx'2
+        have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+            = m.segments.count x := by
+          apply bucket_count_eq_of_depth
+          intro hxm
+          have hge := depth_mdag_ge_notC m sₘ s_l hsₘ hs_l hmin x hxm hxnotC hx'
+          have hub := (mdag_depth_bound m sₘ s_l hsₘ hs_l hmin _).1 x hxm hx' rfl
+          have hdd := mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin σ hσC hσm hnd x
+            (by omega) (by omega) hx'
+          rcases Nat.lt_or_ge (depth_of_segment m x hxm)
+            (depth_of_segment m σ hσm) with hlt | hge2
+          · exfalso
+            obtain ⟨σw, hσwC, -, hwa, -, -⟩ := hub.2 (by omega)
+            have := hmaxa σw hσwC
+            omega
+          · omega
+        rw [hB, hBm, if_neg (fun h => by
+            have := congrArg Segment.a h; simp only [] at this; omega),
+          if_neg (by rintro ⟨h, -⟩; omega), if_pos ⟨hx5, hx6⟩]
+        omega
+      · -- other values one past σ: nothing changes
+        have hst : ¬ ∃ c ∈ (MW.leadingChain m).val.segments,
+            c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b := by
+          rintro ⟨c, hcC, -, hca, hcb⟩
+          have := begin_unique_of_pairwise_lt _ hBlt c hcC σ hσC (by omega)
+          rw [this] at hcb
+          omega
+        rw [if_neg hxnotC, if_neg hst] at hcount
+        have hcert : ∀ (hxm : x ∈ m.segments),
+            ¬ ∃ σw ∈ (MW.leadingChain m).val.segments, ∃ hσwm : σw ∈ m.segments,
+              x.a = σw.a ∧ x.b < σw.b ∧
+              depth_of_segment m x hxm = depth_of_segment m σw hσwm := by
+          rintro hxm ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+          have := hmaxa σw hσwC
+          omega
+        by_cases hf : ∃ hxm : x ∈ m.segments,
+            depth_of_segment m x hxm = depth_of_segment m σ hσm
+        · obtain ⟨hxm, hxd⟩ := hf
+          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+              = m.segments.count x :=
+            bucket_count_eq_of_depth m _ x (fun hxm2 => by
+              have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+              omega)
+          have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments :=
+            survivor_mem_mdag m _ x hxm hxnotC
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x
+              = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
+            apply bucket_count_eq_of_depth
+            intro hx'2
+            rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx'2 (hcert hxm)]
+            exact hxd
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.a h; simp only [] at this; omega),
+            if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨-, h⟩; omega)]
+          omega
+        · have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+            bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hf ⟨hxm, h⟩)
+          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hx'
+            rcases mem_mdag_cases m _ x hx' with hxm | ⟨c, hcC, hcnd, hxa, hxb⟩
+            · rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' (hcert hxm)]
+              exact fun h => hf ⟨hxm, h⟩
+            · exact absurd ⟨c, hcC, hcnd, hxa, hxb⟩ hst
+          rw [hB, hBm, if_neg (fun h => by
+              have := congrArg Segment.a h; simp only [] at this; omega),
+            if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨-, h⟩; omega)]
+    · -- begins outside both groups
+      rw [if_neg (fun h => by
+          have := congrArg Segment.a h; simp only [] at this; omega),
+        if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨h, -⟩; omega)]
+      have hgoal : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          (depth_of_segment m σ hσm)).map (·.val)).count x
+          = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
+        by_cases hxC : x ∈ (MW.leadingChain m).val.segments
+        · have hxm := hCsub x hxC
+          have hend : depth_of_segment m x hxm ≠ depth_of_segment m σ hσm :=
+            chain_mem_depth_ne m x σ hxC hσC hx1 hxm hσm
+          rw [bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+            have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+            omega)]
+          apply bucket_count_eq_zero_of_depth_ne
+          intro hx'
+          rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' ?_]
+          · exact hend
+          · rintro ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+            have := begin_unique_of_pairwise_lt _ hBlt σw hσwC x hxC (by omega)
+            rw [this] at hwb
+            omega
+        · by_cases hstt : ∃ c ∈ (MW.leadingChain m).val.segments,
+              c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b
+          · obtain ⟨c, hcC, hcnd, hxa, hxb⟩ := hstt
+            have hcm := hCsub c hcC
+            have hdc : depth_of_segment m c hcm ≠ depth_of_segment m σ hσm :=
+              chain_mem_depth_ne m c σ hcC hσC (by omega) hcm hσm
+            have hx' : x ∈ (MW.makeResidual m
+                (MW.leadingChain m).val.segments).segments := by
+              rw [← List.count_pos_iff]
+              rw [if_neg hxC, if_pos ⟨c, hcC, hcnd, hxa, hxb⟩] at hcount
+              omega
+            have hdd := mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC hcm hcnd
+              x hxa hxb hx'
+            have hB : ((bucket (MW.makeResidual m
+                (MW.leadingChain m).val.segments)
+                (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+              apply bucket_count_eq_zero_of_depth_ne
+              intro hx'2
+              have hpi : depth_of_segment (MW.makeResidual m
+                  (MW.leadingChain m).val.segments) x hx'2
+                  = depth_of_segment (MW.makeResidual m
+                  (MW.leadingChain m).val.segments) x hx' := rfl
+              omega
+            rw [hB]
+            symm
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hxm hxd
+            have hge := depth_mdag_ge_notC m sₘ s_l hsₘ hs_l hmin x hxm hxC hx'
+            have hub := (mdag_depth_bound m sₘ s_l hsₘ hs_l hmin _).1 x hxm hx' rfl
+            obtain ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩ := hub.2 (by omega)
+            have hwne : σw.a ≠ σ.a := by omega
+            have := chain_mem_depth_ne m σw σ hσwC hσC hwne hσwm hσm
+            omega
+          · rw [if_neg hxC, if_neg hstt] at hcount
+            by_cases hxm : x ∈ m.segments
+            · by_cases hsp : ∃ σw ∈ (MW.leadingChain m).val.segments,
+                  ∃ hσwm : σw ∈ m.segments, x.a = σw.a ∧ x.b < σw.b ∧
+                  depth_of_segment m x hxm = depth_of_segment m σw hσwm
+              · obtain ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩ := hsp
+                have hwne : σw.a ≠ σ.a := by omega
+                have hdw : depth_of_segment m σw hσwm ≠ depth_of_segment m σ hσm :=
+                  chain_mem_depth_ne m σw σ hσwC hσC hwne hσwm hσm
+                have hB1 : ((bucket m
+                    (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+                  bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+                    have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                    omega)
+                rw [hB1]
+                apply bucket_count_eq_zero_of_depth_ne
+                intro hx'
+                have hdep := special_moves_up m sₘ s_l hsₘ hs_l hmin x hxm hx'
+                  σw hσwC hσwm hwa hwb hwd
+                intro hcon
+                have hheadne : (MW.leadingChain m).val.segments.head? ≠ some σw := by
+                  rw [MW.leadingChain_head m sₘ hsₘ]
+                  intro h
+                  have heq := Option.some.inj h
+                  have ha := congrArg Segment.a heq
+                  have hb := congrArg Segment.b heq
+                  simp only [] at ha hb
+                  exact no_special_head m sₘ hsₘ x hxm (by omega) (by omega)
+                obtain ⟨u₂, σp, v₂, hsplit₂⟩ :=
+                  exists_pred_split (MW.leadingChain m).val.segments σw hσwC hheadne
+                have hσpC : σp ∈ (MW.leadingChain m).val.segments := by
+                  rw [hsplit₂]; simp
+                have hσpm := hCsub σp hσpC
+                have hgap := special_witness_gap m sₘ s_l hsₘ hs_l hmin x hxm
+                  σw hσwm hwa hwb hwd u₂ v₂ σp hsplit₂ hσpm
+                have hpσ : σp = σ := by
+                  by_contra hne
+                  have hpa : σp.a ≠ σ.a := by
+                    intro ha
+                    exact hne (begin_unique_of_pairwise_lt _ hBlt σp hσpC σ hσC ha)
+                  have := chain_mem_depth_ne m σp σ hσpC hσC hpa hσpm hσm
+                  omega
+                subst hpσ
+                obtain ⟨-, hv⟩ := split_unique_of_pairwise_lt _ hBlt
+                  u₂ (σw :: v₂) u [] σp hsplit₂ hsplit
+                simp at hv
+              · have hx' : x ∈ (MW.makeResidual m
+                    (MW.leadingChain m).val.segments).segments :=
+                  survivor_mem_mdag m _ x hxm hxC
+                have hdep := mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' hsp
+                by_cases hf : depth_of_segment m x hxm = depth_of_segment m σ hσm
+                · rw [bucket_count_eq_of_depth m _ x (fun hxm2 => by
+                    have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                    omega)]
+                  rw [bucket_count_eq_of_depth _ _ x (fun hx'2 => by
+                    have hpi : depth_of_segment (MW.makeResidual m
+                        (MW.leadingChain m).val.segments) x hx'2
+                        = depth_of_segment (MW.makeResidual m
+                        (MW.leadingChain m).val.segments) x hx' := rfl
+                    omega)]
+                  omega
+                · rw [bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+                    have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+                    omega)]
+                  apply bucket_count_eq_zero_of_depth_ne
+                  intro hx'2
+                  have hpi : depth_of_segment (MW.makeResidual m
+                      (MW.leadingChain m).val.segments) x hx'2
+                      = depth_of_segment (MW.makeResidual m
+                      (MW.leadingChain m).val.segments) x hx' := rfl
+                  omega
+            · have hB : ((bucket (MW.makeResidual m
+                  (MW.leadingChain m).val.segments)
+                  (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
+                apply bucket_count_eq_zero_of_depth_ne
+                intro hx'
+                have := List.count_pos_iff.mpr hx'
+                have hzero : m.segments.count x = 0 := List.count_eq_zero.mpr hxm
+                omega
+              rw [hB, bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 _ => hxm hxm2)]
+      omega
+
+/-! ## Indicator evaluation helpers -/
+
+/-- Every nonempty begin-group has a maximal end. -/
+lemma exists_group_top : ∀ (L : List Segment) (a : ℤ), (∃ y ∈ L, y.a = a) →
+    ∃ E, (∃ y ∈ L, y.a = a ∧ y.b = E) ∧ ∀ z ∈ L, z.a = a → z.b ≤ E := by
+  intro L
+  induction L with
+  | nil => rintro a ⟨y, hy, -⟩; simp at hy
+  | cons c cs ih =>
+    rintro a ⟨y, hy, hya⟩
+    by_cases hgrp : ∃ y ∈ cs, y.a = a
+    · obtain ⟨E, ⟨z, hz, hza, hzb⟩, hmax⟩ := ih a hgrp
+      by_cases hca : c.a = a
+      · refine ⟨max c.b E, ?_, ?_⟩
+        · rcases le_total c.b E with h | h
+          · exact ⟨z, List.mem_cons_of_mem _ hz, hza, by omega⟩
+          · exact ⟨c, List.mem_cons_self, hca, by omega⟩
+        · intro w hw hwa
+          rcases List.mem_cons.mp hw with rfl | hwr
+          · omega
+          · have := hmax w hwr hwa; omega
+      · refine ⟨E, ⟨z, List.mem_cons_of_mem _ hz, hza, hzb⟩, ?_⟩
+        intro w hw hwa
+        rcases List.mem_cons.mp hw with rfl | hwr
+        · exact absurd hwa hca
+        · exact hmax w hwr hwa
+    · -- the group is exactly the head
+      have hyc : y = c := by
+        rcases List.mem_cons.mp hy with rfl | hyr
+        · rfl
+        · exact absurd ⟨y, hyr, hya⟩ hgrp
+      subst hyc
+      refine ⟨y.b, ⟨y, List.mem_cons_self, hya, rfl⟩, ?_⟩
+      intro w hw hwa
+      rcases List.mem_cons.mp hw with rfl | hwr
+      · exact le_refl _
+      · exact absurd ⟨w, hwr, hwa⟩ hgrp
+
+/-- Every nonempty above-region has a first begin-group, with its maximal end. -/
+lemma exists_next_data : ∀ (L : List Segment) (a : ℤ), (∃ y ∈ L, a < y.a) →
+    ∃ a' E', a < a' ∧ (∃ z ∈ L, z.a = a' ∧ z.b = E') ∧
+      (∀ y ∈ L, a < y.a → a' ≤ y.a) ∧ (∀ z ∈ L, z.a = a' → z.b ≤ E') := by
+  intro L
+  induction L with
+  | nil => rintro a ⟨y, hy, -⟩; simp at hy
+  | cons c cs ih =>
+    rintro a ⟨y, hy, hya⟩
+    by_cases habove : ∃ y ∈ cs, a < y.a
+    · obtain ⟨a', E', ha', ⟨z, hz, hza, hzb⟩, hmin, hmax⟩ := ih a habove
+      by_cases hca : a < c.a
+      · rcases lt_trichotomy c.a a' with hlt | heq | hgt
+        · -- c starts a new, earlier group
+          refine ⟨c.a, c.b, hca, ⟨c, List.mem_cons_self, rfl, rfl⟩, ?_, ?_⟩
+          · intro w hw hwa
+            rcases List.mem_cons.mp hw with rfl | hwr
+            · exact le_refl _
+            · have := hmin w hwr hwa; omega
+          · intro w hw hwa
+            rcases List.mem_cons.mp hw with rfl | hwr
+            · exact le_refl _
+            · have := hmin w hwr (by omega); omega
+        · -- c joins the first group
+          refine ⟨a', max c.b E', ha', ?_, ?_, ?_⟩
+          · rcases le_total c.b E' with h | h
+            · exact ⟨z, List.mem_cons_of_mem _ hz, hza, by omega⟩
+            · exact ⟨c, List.mem_cons_self, heq, by omega⟩
+          · intro w hw hwa
+            rcases List.mem_cons.mp hw with rfl | hwr
+            · omega
+            · exact hmin w hwr hwa
+          · intro w hw hwa
+            rcases List.mem_cons.mp hw with rfl | hwr
+            · omega
+            · have := hmax w hwr hwa; omega
+        · -- c comes later
+          refine ⟨a', E', ha', ⟨z, List.mem_cons_of_mem _ hz, hza, hzb⟩, ?_, ?_⟩
+          · intro w hw hwa
+            rcases List.mem_cons.mp hw with rfl | hwr
+            · omega
+            · exact hmin w hwr hwa
+          · intro w hw hwa
+            rcases List.mem_cons.mp hw with rfl | hwr
+            · omega
+            · exact hmax w hwr hwa
+      · refine ⟨a', E', ha', ⟨z, List.mem_cons_of_mem _ hz, hza, hzb⟩, ?_, ?_⟩
+        · intro w hw hwa
+          rcases List.mem_cons.mp hw with rfl | hwr
+          · exact absurd hwa hca
+          · exact hmin w hwr hwa
+        · intro w hw hwa
+          rcases List.mem_cons.mp hw with rfl | hwr
+          · exfalso; exact hca (by omega)
+          · exact hmax w hwr hwa
+    · -- the above-region is exactly the head
+      have hyc : y = c := by
+        rcases List.mem_cons.mp hy with rfl | hyr
+        · rfl
+        · exact absurd ⟨y, hyr, hya⟩ habove
+      subst hyc
+      refine ⟨y.a, y.b, hya, ⟨y, List.mem_cons_self, rfl, rfl⟩, ?_, ?_⟩
+      · intro w hw hwa
+        rcases List.mem_cons.mp hw with rfl | hwr
+        · exact le_refl _
+        · exact absurd ⟨w, hwr, hwa⟩ habove
+      · intro w hw hwa
+        rcases List.mem_cons.mp hw with rfl | hwr
+        · exact le_refl _
+        · exact absurd ⟨w, hwr, by omega⟩ habove
+
+/-- `topInd` through a known group top. -/
+lemma topInd_eq_group (L : List Segment) (w : ℤ × ℤ) (E : ℤ)
+    (hE1 : ∃ y ∈ L, y.a = w.1 ∧ y.b = E) (hE2 : ∀ z ∈ L, z.a = w.1 → z.b ≤ E) :
+    topInd L w = if w.2 = E then 1 else 0 := by
+  unfold topInd
+  obtain ⟨y, hy, hya, hyb⟩ := hE1
+  by_cases hw2 : w.2 = E
+  · rw [if_pos ⟨y, hy, hya, by omega, fun z hz hza => by
+      have := hE2 z hz hza; omega⟩, if_pos hw2]
+  · rw [if_neg, if_neg hw2]
+    rintro ⟨x', hx', ha', hb', hmax'⟩
+    have h1 := hE2 x' hx' ha'
+    have h2 := hmax' y hy hya
+    omega
+
+/-- `transInd` through known next-group data. -/
+lemma transInd_eq_group (L : List Segment) (w : ℤ × ℤ)
+    (hsrc : ∃ x ∈ L, x.a = w.1) (a' E' : ℤ) (ha' : w.1 < a')
+    (hwit : ∃ z ∈ L, z.a = a' ∧ z.b = E')
+    (hmin : ∀ y ∈ L, w.1 < y.a → a' ≤ y.a)
+    (hmax : ∀ z ∈ L, z.a = a' → z.b ≤ E') :
+    transInd L w = if w.2 = E' then 1 else 0 := by
+  unfold transInd
+  obtain ⟨x, hx, hxa⟩ := hsrc
+  obtain ⟨z, hz, hza, hzb⟩ := hwit
+  by_cases hw2 : w.2 = E'
+  · rw [if_pos ⟨x, hx, hxa, z, hz, by omega, by omega,
+      fun y hy hya => by have := hmin y hy (by omega); omega,
+      fun y hy hya => by have := hmax y hy (by omega); omega⟩, if_pos hw2]
+  · rw [if_neg, if_neg hw2]
+    rintro ⟨x', hx', ha'', z', hz', hlt', hzb', hmin', hmax'⟩
+    -- the target group is forced: z'.a = a' and z'.b = E'
+    have h1 : a' ≤ z'.a := hmin z' hz' (by omega)
+    have h2 : z'.a ≤ z.a := hmin' z hz (by omega)
+    have h3 : z'.a = a' := by omega
+    have h4 := hmax z' hz' h3
+    have h5 := hmax' z hz (by omega)
+    omega
+
+/-- `transInd` vanishes when nothing lies above the source begin. -/
+lemma transInd_eq_zero_of_no_next (L : List Segment) (w : ℤ × ℤ)
+    (h : ∀ y ∈ L, ¬ w.1 < y.a) : transInd L w = 0 := by
+  unfold transInd
+  rw [if_neg]
+  rintro ⟨x', hx', ha', z, hz, hlt, -⟩
+  exact h z hz (by omega)
+
+/-- Pair equality componentwise. -/
+lemma pair_eq_iff (w : ℤ × ℤ) (p q : ℤ) : w = (p, q) ↔ (w.1 = p ∧ w.2 = q) := by
+  constructor
+  · intro h; rw [h]; exact ⟨rfl, rfl⟩
+  · rintro ⟨h1, h2⟩
+    have hw : w = (w.1, w.2) := rfl
+    rw [hw, h1, h2]
+
+/-- **Indicator transport at a chain fiber**: the tops-and-transitions corrections
+between a fiber `Fm` of `m` and its `m†` counterpart `Fd`. `σ` is the chain value, `t`
+its boundary partner; the set-level hypotheses record how the two fibers differ. -/
+lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
+    (hσmem : σ ∈ Fm) (hta : σ.a < t.a) (htmem : t ∈ Fm)
+    (hnextt : ∀ y ∈ Fm, σ.a < y.a → t.a ≤ y.a ∧ y.b ≤ t.b)
+    (hA1 : ∀ y ∈ Fd, y.a = σ.a → y ∈ Fm ∧ σ.b ≤ y.b)
+    (hA2 : ∀ y ∈ Fm, y.a = σ.a → σ.b < y.b → y ∈ Fd)
+    (hB1 : ∃ y ∈ Fd, y.a = σ.a + 1 ∧ y.b = σ.b)
+    (hB2 : ∀ y ∈ Fd, y.a = σ.a + 1 → y.b ≤ σ.b)
+    (hD1 : ∀ y : Segment, y.a ≠ σ.a → y.a ≠ σ.a + 1 → (y ∈ Fd ↔ y ∈ Fm))
+    (w : ℤ × ℤ) :
+    transInd Fd w + (if w = ((σ.a : ℤ), (t.b : ℤ)) then 1 else 0)
+      + (if w = ((σ.a + 1 : ℤ), (σ.b : ℤ)) then 1 else 0) + topInd Fm w
+    = transInd Fm w + (if w = ((σ.a + 1 : ℤ), (t.b : ℤ)) then 1 else 0)
+      + (if w = ((σ.a : ℤ), (σ.b : ℤ)) then 1 else 0) + topInd Fd w := by
+  classical
+  obtain ⟨E, hEwit, hEmax⟩ := exists_group_top Fm σ.a ⟨σ, hσmem, rfl⟩
+  have hEσ : σ.b ≤ E := hEmax σ hσmem rfl
+  obtain ⟨yB, hyB, hyBa, hyBb⟩ := hB1
+  by_cases hw1 : w.1 = σ.a
+  · -- source begin σ.a
+    have htm : topInd Fm w = if w.2 = E then 1 else 0 := by
+      apply topInd_eq_group Fm w E ?_ ?_
+      · obtain ⟨y, hy, hya, hyb⟩ := hEwit
+        exact ⟨y, hy, by omega, hyb⟩
+      · intro z hz hza
+        exact hEmax z hz (by omega)
+    have htrm : transInd Fm w = if w.2 = t.b then 1 else 0 := by
+      apply transInd_eq_group Fm w ⟨σ, hσmem, hw1.symm⟩ t.a t.b (by omega)
+        ⟨t, htmem, rfl, rfl⟩
+      · intro y hy hya
+        exact (hnextt y hy (by omega)).1
+      · intro z hz hza
+        exact (hnextt z hz (by omega)).2
+    by_cases hsurv : ∃ y ∈ Fd, y.a = σ.a
+    · obtain ⟨y₀, hy₀, hy₀a⟩ := hsurv
+      have htrd : transInd Fd w = if w.2 = σ.b then 1 else 0 := by
+        apply transInd_eq_group Fd w ⟨y₀, hy₀, by omega⟩ (σ.a + 1) σ.b (by omega)
+          ⟨yB, hyB, hyBa, hyBb⟩
+        · intro y hy hya
+          omega
+        · exact hB2
+      have htd : topInd Fd w = if w.2 = E then 1 else 0 := by
+        apply topInd_eq_group Fd w E ?_ ?_
+        · rcases eq_or_lt_of_le hEσ with heq | hlt
+          · -- E = σ.b: any survivor attains it
+            obtain ⟨hy₀m, hy₀b⟩ := hA1 y₀ hy₀ hy₀a
+            have := hEmax y₀ hy₀m hy₀a
+            exact ⟨y₀, hy₀, by omega, by omega⟩
+          · -- E > σ.b: the old top survives
+            obtain ⟨yE, hyE, hyEa, hyEb⟩ := hEwit
+            exact ⟨yE, hA2 yE hyE hyEa (by omega), by omega, hyEb⟩
+        · intro z hz hza
+          obtain ⟨hzm, -⟩ := hA1 z hz (by omega)
+          exact hEmax z hzm (by omega)
+      rw [htm, htrm, htrd, htd]
+      simp only [pair_eq_iff]
+      split_ifs <;> omega
+    · have htrd : transInd Fd w = 0 :=
+        transInd_eq_zero Fd w (fun x hx hxa => hsurv ⟨x, hx, by omega⟩)
+      have htd : topInd Fd w = 0 :=
+        topInd_eq_zero Fd w (fun x hx hxa => hsurv ⟨x, hx, by omega⟩)
+      have hEeq : E = σ.b := by
+        rcases eq_or_lt_of_le hEσ with heq | hlt
+        · omega
+        · exfalso
+          obtain ⟨yE, hyE, hyEa, hyEb⟩ := hEwit
+          exact hsurv ⟨yE, hA2 yE hyE hyEa (by omega), hyEa⟩
+      rw [htm, htrm, htrd, htd, hEeq]
+      simp only [pair_eq_iff]
+      split_ifs <;> omega
+  · by_cases hw1' : w.1 = σ.a + 1
+    · -- source begin σ.a + 1
+      have htd : topInd Fd w = if w.2 = σ.b then 1 else 0 := by
+        apply topInd_eq_group Fd w σ.b ⟨yB, hyB, by omega, hyBb⟩
+        intro z hz hza
+        exact hB2 z hz (by omega)
+      by_cases hY : ∃ y ∈ Fm, y.a = σ.a + 1
+      · obtain ⟨y₀, hy₀, hy₀a⟩ := hY
+        have hta' : t.a = σ.a + 1 := by
+          have := (hnextt y₀ hy₀ (by omega)).1
+          omega
+        have htm : topInd Fm w = if w.2 = t.b then 1 else 0 := by
+          apply topInd_eq_group Fm w t.b ⟨t, htmem, by omega, rfl⟩
+          intro z hz hza
+          exact (hnextt z hz (by omega)).2
+        by_cases hZ : ∃ y ∈ Fm, σ.a + 1 < y.a
+        · obtain ⟨a₂, E₂, ha₂, ⟨z₂, hz₂, hz₂a, hz₂b⟩, hmin₂, hmax₂⟩ :=
+            exists_next_data Fm (σ.a + 1) hZ
+          have hz₂d : z₂ ∈ Fd := (hD1 z₂ (by omega) (by omega)).mpr hz₂
+          have htrm : transInd Fm w = if w.2 = E₂ then 1 else 0 := by
+            apply transInd_eq_group Fm w ⟨y₀, hy₀, by omega⟩ a₂ E₂ (by omega)
+              ⟨z₂, hz₂, hz₂a, hz₂b⟩
+            · intro y hy hya
+              exact hmin₂ y hy (by omega)
+            · exact hmax₂
+          have htrd : transInd Fd w = if w.2 = E₂ then 1 else 0 := by
+            apply transInd_eq_group Fd w ⟨yB, hyB, by omega⟩ a₂ E₂ (by omega)
+              ⟨z₂, hz₂d, hz₂a, hz₂b⟩
+            · intro y hy hya
+              have hym : y ∈ Fm := (hD1 y (by omega) (by omega)).mp hy
+              exact hmin₂ y hym (by omega)
+            · intro z hz hza
+              have hzm : z ∈ Fm := (hD1 z (by omega) (by omega)).mp hz
+              exact hmax₂ z hzm hza
+          rw [htm, htd, htrm, htrd]
+          simp only [pair_eq_iff]
+          split_ifs <;> omega
+        · have htrm : transInd Fm w = 0 :=
+            transInd_eq_zero_of_no_next Fm w (fun y hy h => hZ ⟨y, hy, by omega⟩)
+          have htrd : transInd Fd w = 0 := by
+            apply transInd_eq_zero_of_no_next Fd w
+            intro y hy h
+            have hym : y ∈ Fm := (hD1 y (by omega) (by omega)).mp hy
+            exact hZ ⟨y, hym, by omega⟩
+          rw [htm, htd, htrm, htrd]
+          simp only [pair_eq_iff]
+          split_ifs <;> omega
+      · -- old fiber has nothing at σ.a + 1
+        have htm : topInd Fm w = 0 :=
+          topInd_eq_zero Fm w (fun x hx hxa => hY ⟨x, hx, by omega⟩)
+        have htrm : transInd Fm w = 0 :=
+          transInd_eq_zero Fm w (fun x hx hxa => hY ⟨x, hx, by omega⟩)
+        have htZ : σ.a + 1 < t.a := by
+          rcases eq_or_lt_of_le (by omega : σ.a + 1 ≤ t.a) with heq | hlt
+          · exact absurd ⟨t, htmem, heq.symm⟩ hY
+          · exact hlt
+        have htrd : transInd Fd w = if w.2 = t.b then 1 else 0 := by
+          apply transInd_eq_group Fd w ⟨yB, hyB, by omega⟩ t.a t.b (by omega)
+            ⟨t, (hD1 t (by omega) (by omega)).mpr htmem, rfl, rfl⟩
+          · intro y hy hya
+            have hym : y ∈ Fm := (hD1 y (by omega) (by omega)).mp hy
+            exact (hnextt y hym (by omega)).1
+          · intro z hz hza
+            have hzm : z ∈ Fm := (hD1 z (by omega) (by omega)).mp hz
+            exact (hnextt z hzm (by omega)).2
+        rw [htm, htd, htrm, htrd]
+        simp only [pair_eq_iff]
+        split_ifs <;> omega
+    · -- begins outside both groups: everything transports
+      have htop : topInd Fd w = topInd Fm w := by
+        by_cases hgrp : ∃ y ∈ Fm, y.a = w.1
+        · obtain ⟨Ew, hEwwit, hEwmax⟩ := exists_group_top Fm w.1 hgrp
+          obtain ⟨yw, hyw, hywa, hywb⟩ := hEwwit
+          have hywd : yw ∈ Fd := (hD1 yw (by omega) (by omega)).mpr hyw
+          rw [topInd_eq_group Fm w Ew ⟨yw, hyw, hywa, hywb⟩ hEwmax,
+            topInd_eq_group Fd w Ew ⟨yw, hywd, hywa, hywb⟩ ?_]
+          intro z hz hza
+          have hzm : z ∈ Fm := (hD1 z (by omega) (by omega)).mp hz
+          exact hEwmax z hzm hza
+        · rw [topInd_eq_zero Fm w (fun x hx hxa => hgrp ⟨x, hx, hxa⟩),
+            topInd_eq_zero Fd w (fun x hx hxa => hgrp
+              ⟨x, (hD1 x (by omega) (by omega)).mp hx, hxa⟩)]
+      have htrans : transInd Fd w = transInd Fm w := by
+        by_cases hsrc : ∃ x ∈ Fm, x.a = w.1
+        · obtain ⟨xs, hxs, hxsa⟩ := hsrc
+          have hxsd : xs ∈ Fd := (hD1 xs (by omega) (by omega)).mpr hxs
+          by_cases hab : ∃ y ∈ Fm, w.1 < y.a
+          · obtain ⟨a₂, E₂, ha₂, ⟨z₂, hz₂, hz₂a, hz₂b⟩, hmin₂, hmax₂⟩ :=
+              exists_next_data Fm w.1 hab
+            rcases lt_trichotomy a₂ σ.a with hlt | heq | hgt
+            · -- next group strictly before σ: pure transfer
+              have hz₂d : z₂ ∈ Fd := (hD1 z₂ (by omega) (by omega)).mpr hz₂
+              rw [transInd_eq_group Fm w ⟨xs, hxs, hxsa⟩ a₂ E₂ ha₂
+                  ⟨z₂, hz₂, hz₂a, hz₂b⟩ hmin₂ hmax₂,
+                transInd_eq_group Fd w ⟨xs, hxsd, hxsa⟩ a₂ E₂ ha₂
+                  ⟨z₂, hz₂d, hz₂a, hz₂b⟩ ?_ ?_]
+              · intro y hy hya
+                by_cases hyσ : y.a = σ.a
+                · omega
+                · by_cases hyσ' : y.a = σ.a + 1
+                  · omega
+                  · exact hmin₂ y ((hD1 y hyσ hyσ').mp hy) hya
+              · intro z hz hza
+                exact hmax₂ z ((hD1 z (by omega) (by omega)).mp hz) hza
+            · -- next group is σ's
+              have hE₂E : E₂ = E := by
+                obtain ⟨yE, hyE, hyEa, hyEb⟩ := hEwit
+                have h1 := hEmax z₂ hz₂ (by omega)
+                have h2 := hmax₂ yE hyE (by omega)
+                omega
+              have hwlt : w.1 < σ.a := by omega
+              rw [transInd_eq_group Fm w ⟨xs, hxs, hxsa⟩ a₂ E₂ ha₂
+                  ⟨z₂, hz₂, hz₂a, hz₂b⟩ hmin₂ hmax₂]
+              by_cases hsurv : ∃ y ∈ Fd, y.a = σ.a
+              · obtain ⟨y₀, hy₀, hy₀a⟩ := hsurv
+                rw [transInd_eq_group Fd w ⟨xs, hxsd, hxsa⟩ σ.a E (by omega) ?_ ?_ ?_]
+                · rw [hE₂E]
+                · rcases eq_or_lt_of_le hEσ with heq2 | hlt2
+                  · obtain ⟨hy₀m, hy₀b⟩ := hA1 y₀ hy₀ hy₀a
+                    have := hEmax y₀ hy₀m hy₀a
+                    exact ⟨y₀, hy₀, by omega, by omega⟩
+                  · obtain ⟨yE, hyE, hyEa, hyEb⟩ := hEwit
+                    exact ⟨yE, hA2 yE hyE hyEa (by omega), by omega, hyEb⟩
+                · intro y hy hya
+                  by_cases hyσ : y.a = σ.a
+                  · omega
+                  · by_cases hyσ' : y.a = σ.a + 1
+                    · omega
+                    · have := hmin₂ y ((hD1 y hyσ hyσ').mp hy) hya
+                      omega
+                · intro z hz hza
+                  obtain ⟨hzm, -⟩ := hA1 z hz hza
+                  exact hEmax z hzm hza
+              · have hEeq : E = σ.b := by
+                  rcases eq_or_lt_of_le hEσ with heq2 | hlt2
+                  · omega
+                  · exfalso
+                    obtain ⟨yE, hyE, hyEa, hyEb⟩ := hEwit
+                    exact hsurv ⟨yE, hA2 yE hyE hyEa (by omega), hyEa⟩
+                rw [transInd_eq_group Fd w ⟨xs, hxsd, hxsa⟩ (σ.a + 1) σ.b (by omega)
+                    ⟨yB, hyB, hyBa, hyBb⟩ ?_ hB2]
+                · rw [hE₂E, hEeq]
+                · intro y hy hya
+                  by_cases hyσ : y.a = σ.a
+                  · exact absurd ⟨y, hy, hyσ⟩ hsurv
+                  · by_cases hyσ' : y.a = σ.a + 1
+                    · omega
+                    · have := hmin₂ y ((hD1 y hyσ hyσ').mp hy) hya
+                      omega
+            · -- everything above w.1 is beyond σ + 1: pure transfer
+              have hwgt : σ.a + 1 < w.1 := by
+                have := hmin₂ σ hσmem
+                by_cases h : w.1 < σ.a
+                · exfalso; have := this h; omega
+                · omega
+              have hz₂d : z₂ ∈ Fd := (hD1 z₂ (by omega) (by omega)).mpr hz₂
+              rw [transInd_eq_group Fm w ⟨xs, hxs, hxsa⟩ a₂ E₂ ha₂
+                  ⟨z₂, hz₂, hz₂a, hz₂b⟩ hmin₂ hmax₂,
+                transInd_eq_group Fd w ⟨xs, hxsd, hxsa⟩ a₂ E₂ ha₂
+                  ⟨z₂, hz₂d, hz₂a, hz₂b⟩ ?_ ?_]
+              · intro y hy hya
+                exact hmin₂ y ((hD1 y (by omega) (by omega)).mp hy) hya
+              · intro z hz hza
+                exact hmax₂ z ((hD1 z (by omega) (by omega)).mp hz) hza
+          · -- nothing above w.1 anywhere
+            have hwgt : σ.a + 1 < w.1 := by
+              by_cases h : w.1 < σ.a
+              · exact absurd ⟨σ, hσmem, h⟩ hab
+              · omega
+            rw [transInd_eq_zero_of_no_next Fm w (fun y hy h => hab ⟨y, hy, h⟩),
+              transInd_eq_zero_of_no_next Fd w (fun y hy h => hab
+                ⟨y, (hD1 y (by omega) (by omega)).mp hy, h⟩)]
+        · rw [transInd_eq_zero Fm w (fun x hx hxa => hsrc ⟨x, hx, hxa⟩),
+            transInd_eq_zero Fd w (fun x hx hxa => hsrc
+              ⟨x, (hD1 x (by omega) (by omega)).mp hx, hxa⟩)]
+      rw [htop, htrans]
+      simp only [pair_eq_iff]
+      split_ifs <;> omega
+
+/-! ## Residual counts as fiber sums -/
+
+/-- Count over a `flatMap` is the sum of per-piece counts. -/
+lemma count_flatMap_pairs (f : ℕ → List (ℤ × ℤ)) : ∀ (l : List ℕ) (w : ℤ × ℤ),
+    (l.flatMap f).count w = (l.map (fun d => (f d).count w)).sum := by
+  intro l
+  induction l with
+  | nil => intro w; simp
+  | cons d ds ih =>
+    intro w
+    rw [List.flatMap_cons, List.count_append, List.map_cons, List.sum_cons, ih w]
+
+/-- The coordinate count of the RSK residual is the sum of derived-pair counts over
+the fibers. -/
+lemma count_residual_pairs (M : Multisegment) (w : ℤ × ℤ) :
+    ((RSK.residual M).segments.map segPair).count w =
+      ((List.range (RSK.maxDepth M + 1)).map
+        (fun d => (derivedPairs ((bucket M d).map (·.val))).count w)).sum := by
+  simp only [RSK.residual]
+  rw [((List.perm_insertionSort (· ≤ ·) _).map segPair).count_eq]
+  have hmapflat : ∀ (l : List ℕ),
+      ((l.flatMap (fun d => RSK.bucketResidual M d)).map segPair)
+        = l.flatMap (fun d => (RSK.bucketResidual M d).map segPair) := by
+    intro l
+    induction l with
+    | nil => rfl
+    | cons d ds ih => rw [List.flatMap_cons, List.flatMap_cons, List.map_append, ih]
+  rw [hmapflat, count_flatMap_pairs (fun d => (RSK.bucketResidual M d).map segPair)]
+  congr 1
+  apply List.map_congr_left
+  intro d _
+  rw [bucketResidual_pairs]
+
+/-! ## Non-chain fibers are untouched -/
+
+/-- At a depth carrying no chain element, the `m†` fiber equals the `m` fiber
+(count form). -/
+lemma fiber_count_nonchain (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (d : ℕ)
+    (hd : ∀ c ∈ (MW.leadingChain m).val.segments, ∀ hcm : c ∈ m.segments,
+      depth_of_segment m c hcm ≠ d)
+    (x : Segment) :
+    ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map (·.val)).count x
+      = ((bucket m d).map (·.val)).count x := by
+  classical
+  have hcount := count_mdag_full m x
+  have hBlt := leadingChain_begins_lt m
+  have hCsub : ∀ c ∈ (MW.leadingChain m).val.segments, c ∈ m.segments :=
+    fun c hc => MW.leadingChain_subset m c hc
+  by_cases hxC : x ∈ (MW.leadingChain m).val.segments
+  · -- a chain value: off this fiber on both sides
+    have hxm := hCsub x hxC
+    have hend : depth_of_segment m x hxm ≠ d := hd x hxC hxm
+    rw [bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+      have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+      omega)]
+    apply bucket_count_eq_zero_of_depth_ne
+    intro hx'
+    rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' ?_]
+    · exact hend
+    · rintro ⟨σw, hσwC, hσwm, hwa, hwb, -⟩
+      have := begin_unique_of_pairwise_lt _ hBlt σw hσwC x hxC (by omega)
+      rw [this] at hwb
+      omega
+  · by_cases hstt : ∃ c ∈ (MW.leadingChain m).val.segments,
+        c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b
+    · -- a starred value: off this fiber on both sides
+      obtain ⟨c, hcC, hcnd, hxa, hxb⟩ := hstt
+      have hcm := hCsub c hcC
+      have hdc : depth_of_segment m c hcm ≠ d := hd c hcC hcm
+      have hx' : x ∈ (MW.makeResidual m
+          (MW.leadingChain m).val.segments).segments := by
+        rw [← List.count_pos_iff]
+        rw [if_neg hxC, if_pos ⟨c, hcC, hcnd, hxa, hxb⟩] at hcount
+        omega
+      have hdd := mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC hcm hcnd
+        x hxa hxb hx'
+      have hB : ((bucket (MW.makeResidual m
+          (MW.leadingChain m).val.segments) d).map (·.val)).count x = 0 := by
+        apply bucket_count_eq_zero_of_depth_ne
+        intro hx'2
+        have hpi : depth_of_segment (MW.makeResidual m
+            (MW.leadingChain m).val.segments) x hx'2
+            = depth_of_segment (MW.makeResidual m
+            (MW.leadingChain m).val.segments) x hx' := rfl
+        omega
+      rw [hB]
+      symm
+      apply bucket_count_eq_zero_of_depth_ne
+      intro hxm hxd
+      have hge := depth_mdag_ge_notC m sₘ s_l hsₘ hs_l hmin x hxm hxC hx'
+      have hub := (mdag_depth_bound m sₘ s_l hsₘ hs_l hmin _).1 x hxm hx' rfl
+      obtain ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩ := hub.2 (by omega)
+      exact hd σw hσwC hσwm (by omega)
+    · rw [if_neg hxC, if_neg hstt] at hcount
+      by_cases hxm : x ∈ m.segments
+      · by_cases hsp : ∃ σw ∈ (MW.leadingChain m).val.segments,
+            ∃ hσwm : σw ∈ m.segments, x.a = σw.a ∧ x.b < σw.b ∧
+            depth_of_segment m x hxm = depth_of_segment m σw hσwm
+        · -- special: off this fiber on both sides
+          obtain ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩ := hsp
+          have hdw : depth_of_segment m σw hσwm ≠ d := hd σw hσwC hσwm
+          have hB1 : ((bucket m d).map (·.val)).count x = 0 :=
+            bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+              have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+              omega)
+          rw [hB1]
+          apply bucket_count_eq_zero_of_depth_ne
+          intro hx'
+          have hdep := special_moves_up m sₘ s_l hsₘ hs_l hmin x hxm hx'
+            σw hσwC hσwm hwa hwb hwd
+          intro hcon
+          have hheadne : (MW.leadingChain m).val.segments.head? ≠ some σw := by
+            rw [MW.leadingChain_head m sₘ hsₘ]
+            intro h
+            have heq := Option.some.inj h
+            have ha := congrArg Segment.a heq
+            have hb := congrArg Segment.b heq
+            simp only [] at ha hb
+            exact no_special_head m sₘ hsₘ x hxm (by omega) (by omega)
+          obtain ⟨u₂, σp, v₂, hsplit₂⟩ :=
+            exists_pred_split (MW.leadingChain m).val.segments σw hσwC hheadne
+          have hσpC : σp ∈ (MW.leadingChain m).val.segments := by
+            rw [hsplit₂]; simp
+          have hσpm := hCsub σp hσpC
+          have hgap := special_witness_gap m sₘ s_l hsₘ hs_l hmin x hxm
+            σw hσwm hwa hwb hwd u₂ v₂ σp hsplit₂ hσpm
+          exact hd σp hσpC hσpm (by omega)
+        · -- plain: depth preserved, counts equal
+          have hx' : x ∈ (MW.makeResidual m
+              (MW.leadingChain m).val.segments).segments :=
+            survivor_mem_mdag m _ x hxm hxC
+          have hdep := mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' hsp
+          by_cases hf : depth_of_segment m x hxm = d
+          · rw [bucket_count_eq_of_depth m _ x (fun hxm2 => by
+              have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+              omega)]
+            rw [bucket_count_eq_of_depth _ _ x (fun hx'2 => by
+              have hpi : depth_of_segment (MW.makeResidual m
+                  (MW.leadingChain m).val.segments) x hx'2
+                  = depth_of_segment (MW.makeResidual m
+                  (MW.leadingChain m).val.segments) x hx' := rfl
+              omega)]
+            omega
+          · rw [bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
+              have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
+              omega)]
+            apply bucket_count_eq_zero_of_depth_ne
+            intro hx'2
+            have hpi : depth_of_segment (MW.makeResidual m
+                (MW.leadingChain m).val.segments) x hx'2
+                = depth_of_segment (MW.makeResidual m
+                (MW.leadingChain m).val.segments) x hx' := rfl
+            omega
+      · have hB : ((bucket (MW.makeResidual m
+            (MW.leadingChain m).val.segments) d).map (·.val)).count x = 0 := by
+          apply bucket_count_eq_zero_of_depth_ne
+          intro hx'
+          have := List.count_pos_iff.mpr hx'
+          have hzero : m.segments.count x = 0 := List.count_eq_zero.mpr hxm
+          omega
+        rw [hB, bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 _ => hxm hxm2)]
+
+/-- At a non-chain depth the fiber lists coincide. -/
+lemma fiber_list_nonchain_eq (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (d : ℕ)
+    (hd : ∀ c ∈ (MW.leadingChain m).val.segments, ∀ hcm : c ∈ m.segments,
+      depth_of_segment m c hcm ≠ d) :
+    ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map (·.val))
+      = ((bucket m d).map (·.val)) := by
+  classical
+  refine (List.perm_iff_count.mpr
+      (fun x => fiber_count_nonchain m sₘ s_l hsₘ hs_l hmin d hd x)).eq_of_pairwise
+    ?_ (bucket_nested _ d) (bucket_nested m d)
+  intro a b _ _ h1 h2
+  obtain ⟨a1, b1⟩ := h1
+  obtain ⟨a2, b2⟩ := h2
+  exact seg_ext (by omega) (by omega)
+
+/-! ## Pair-level transfer and the per-fiber derived-count identity -/
+
+lemma count_map_segPair_eq (L : List Segment) (x : Segment) :
+    (L.map segPair).count (segPair x) = L.count x :=
+  List.count_map_of_injective _ _ segPair_inj _
+
+lemma count_map_segPair_illformed (L : List Segment) (w : ℤ × ℤ) (h : w.2 < w.1) :
+    (L.map segPair).count w = 0 := by
+  rw [List.count_eq_zero]
+  intro hmem
+  obtain ⟨x, hx, hfx⟩ := List.mem_map.mp hmem
+  have h1 : x.a = w.1 := by rw [← hfx]; rfl
+  have h2 : x.b = w.2 := by rw [← hfx]; rfl
+  have h3 : x.a ≤ x.b := x.fst_le_snd
+  omega
+
+lemma derivedPairs_count_illformed (L : List Segment)
+    (hs : L.Pairwise (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b)) (w : ℤ × ℤ)
+    (h : w.2 < w.1) : (derivedPairs L).count w = 0 := by
+  rw [List.count_eq_zero]
+  intro hmem
+  obtain ⟨⟨s, t⟩, hpair, hfw⟩ := List.mem_map.mp hmem
+  obtain ⟨l₁, l₂, hsplit⟩ := zip_tail_split L s t hpair
+  rw [hsplit] at hs
+  have hst := (List.pairwise_cons.mp (List.pairwise_append.mp hs).2.1).1 t (by simp)
+  have h1 : s.a = w.1 := by rw [← hfw]
+  have h2 : t.b = w.2 := by rw [← hfw]
+  have h3 : t.a ≤ t.b := t.fst_le_snd
+  obtain ⟨h4, -⟩ := hst
+  omega
+
+/-- **Per-fiber derived-count identity, chain step** (paper eqs. `sc2`/`sc3`): at `σ`'s
+fiber, the derived pairs of `m†` are those of `m` with `W = ⟨σ.a, t.b⟩` replaced by
+`⁻W = ⟨σ.a+1, t.b⟩`, the incoming specials of `σ'` added and the outgoing specials of
+`σ` removed. -/
+lemma derived_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (u v : List Segment) (σ σ' : Segment)
+    (hsplit : (MW.leadingChain m).val.segments = u ++ σ :: σ' :: v)
+    (hσm : σ ∈ m.segments) (hσ'm : σ' ∈ m.segments)
+    (i t : Segment) (l₁ l₂ : List Segment)
+    (hbsplit : (bucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hia : i.a = σ.a) (hta : σ.a < t.a)
+    (w : ℤ × ℤ) :
+    (derivedPairs ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val))).count w
+      + (if w = ((σ.a : ℤ), (t.b : ℤ)) then 1 else 0)
+      + (if w.1 = σ.a ∧ w.2 < σ.b
+         then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+         else 0)
+    = (derivedPairs ((bucket m (depth_of_segment m σ hσm)).map (·.val))).count w
+      + (if w = ((σ.a + 1 : ℤ), (t.b : ℤ)) then 1 else 0)
+      + (if w.1 = σ'.a ∧ w.2 < σ'.b
+         then (((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map segPair).count w
+         else 0) := by
+  classical
+  have hσC : σ ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
+  obtain ⟨⟨hlla, hllb⟩, hsucc⟩ := leadingChain_consecutive_link m u v σ σ' hsplit
+  have hnd : σ.a < σ.b := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σ hσC
+  have htb : t.a ≤ t.b := t.fst_le_snd
+  have hFdsort : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      (depth_of_segment m σ hσm)).map (·.val)).Pairwise
+      (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) :=
+    (bucket_nested _ _).imp (fun h => ⟨h.1, h.2⟩)
+  have hFmsort : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).Pairwise
+      (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) :=
+    (bucket_nested m _).imp (fun h => ⟨h.1, h.2⟩)
+  by_cases hwf : w.1 ≤ w.2
+  · -- w names a genuine segment
+    set x : Segment := ⟨⟨w.1, w.2⟩, hwf⟩ with hxdef
+    have hxa : x.a = w.1 := rfl
+    have hxb : x.b = w.2 := rfl
+    have hxw : segPair x = w := rfl
+    have hE1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
+      hσm hσ'm x
+    -- convert E1 to pair counts
+    have hcd : (((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        = ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val)).count x := by
+      rw [← hxw, count_map_segPair_eq]
+    have hcm : (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
+      rw [← hxw, count_map_segPair_eq]
+    have hcm' : (((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map segPair).count w
+        = ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x := by
+      rw [← hxw, count_map_segPair_eq]
+    -- E1 at pair level
+    have hE1p : (((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        + (if w = ((σ.a : ℤ), (σ.b : ℤ)) then 1 else 0)
+        + (if w.1 = σ.a ∧ w.2 < σ.b
+           then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+           else 0)
+        = (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        + (if w = ((σ.a + 1 : ℤ), (σ.b : ℤ)) then 1 else 0)
+        + (if w.1 = σ'.a ∧ w.2 < σ'.b
+           then (((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map segPair).count w
+           else 0) := by
+      rw [hcd, hcm, hcm']
+      have e1 : (w = ((σ.a : ℤ), (σ.b : ℤ))) ↔ (x = σ) := by
+        rw [pair_eq_iff]
+        constructor
+        · rintro ⟨h1, h2⟩; exact seg_ext (by omega) (by omega)
+        · intro h
+          have ha := congrArg Segment.a h
+          have hb := congrArg Segment.b h
+          simp only [] at ha hb
+          omega
+      have e2 : (w = ((σ.a + 1 : ℤ), (σ.b : ℤ))) ↔ (x.a = σ.a + 1 ∧ x.b = σ.b) := by
+        rw [pair_eq_iff]
+        constructor
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+      have e3 : (w.1 = σ.a ∧ w.2 < σ.b) ↔ (x.a = σ.a ∧ x.b < σ.b) := by
+        constructor
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+      have e4 : (w.1 = σ'.a ∧ w.2 < σ'.b) ↔ (x.a = σ'.a ∧ x.b < σ'.b) := by
+        constructor
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+      simp only [e1, e2, e3, e4]
+      exact hE1
+    -- characterizations of both derived-pair counts
+    have hcharD := derivedPairs_count w _ hFdsort
+    have hcharM := derivedPairs_count w _ hFmsort
+    -- indicator transport hypotheses
+    have hIND := indicator_transport
+      ((bucket m (depth_of_segment m σ hσm)).map (·.val))
+      ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val))
+      σ t
+      (RSK.mem_bucket_of_depth m _ σ hσm rfl) hta (by rw [hbsplit]; simp)
+      (fun y hy hya => boundary_next_facts m _ i t l₁ l₂ hbsplit y hy (by omega))
+      ?_ ?_ ?_ ?_ ?_ w
+    · omega
+    · -- A1: the new σ-group sits inside the old one, ending at or after σ
+      intro y hy hya
+      have hyc : 0 < ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          (depth_of_segment m σ hσm)).map (·.val)).count y := List.count_pos_iff.mpr hy
+      have hy1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
+        hσm hσ'm y
+      have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨h1, -⟩; omega
+      have hn4 : ¬(y.a = σ'.a ∧ y.b < σ'.b) := by rintro ⟨h1, -⟩; omega
+      rw [if_neg hn3, if_neg hn4] at hy1
+      by_cases hyσ : y = σ
+      · subst hyσ
+        exact ⟨RSK.mem_bucket_of_depth m _ y hσm rfl, le_refl _⟩
+      · rw [if_neg hyσ] at hy1
+        by_cases hyb : y.b < σ.b
+        · rw [if_pos ⟨hya, hyb⟩] at hy1
+          omega
+        · have hn2 : ¬(y.a = σ.a ∧ y.b < σ.b) := by rintro ⟨-, h⟩; omega
+          rw [if_neg hn2] at hy1
+          exact ⟨List.count_pos_iff.mp (by omega), by omega⟩
+    · -- A2: old strictly-longer group members survive
+      intro y hy hya hyb
+      have hyc : 0 < ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count y :=
+        List.count_pos_iff.mpr hy
+      have hy1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
+        hσm hσ'm y
+      have hn1 : y ≠ σ := fun h => by
+        have hb := congrArg Segment.b h
+        simp only [] at hb
+        omega
+      have hn2 : ¬(y.a = σ.a ∧ y.b < σ.b) := by rintro ⟨-, h⟩; omega
+      have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨h, -⟩; omega
+      have hn4 : ¬(y.a = σ'.a ∧ y.b < σ'.b) := by rintro ⟨h, -⟩; omega
+      rw [if_neg hn1, if_neg hn2, if_neg hn3, if_neg hn4] at hy1
+      exact List.count_pos_iff.mp (by omega)
+    · -- B1: the starred value is present
+      have hstep : σ.a + 1 ≤ σ.b := by omega
+      refine ⟨⟨⟨σ.a + 1, σ.b⟩, hstep⟩, ?_, rfl, rfl⟩
+      have hy1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
+        hσm hσ'm ⟨⟨σ.a + 1, σ.b⟩, hstep⟩
+      have hga : Segment.a (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.a + 1 := rfl
+      have hgb : Segment.b (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.b := rfl
+      have hn1 : (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) ≠ σ := fun h => by
+        have ha := congrArg Segment.a h
+        simp only [] at ha
+        omega
+      have hn2 : ¬(Segment.a (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.a ∧
+          Segment.b (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) < σ.b) := by
+        rintro ⟨h, -⟩
+        omega
+      have hp3 : Segment.a (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.a + 1 ∧
+          Segment.b (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.b := ⟨hga, hgb⟩
+      have hp4 : Segment.a (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ'.a ∧
+          Segment.b (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) < σ'.b := ⟨by omega, by omega⟩
+      rw [if_neg hn1, if_neg hn2, if_pos hp3, if_pos hp4] at hy1
+      exact List.count_pos_iff.mp (by omega)
+    · -- B2: the new successor group ends at or before σ
+      intro y hy hya
+      have hyc : 0 < ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          (depth_of_segment m σ hσm)).map (·.val)).count y := List.count_pos_iff.mpr hy
+      have hy1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
+        hσm hσ'm y
+      have hn1 : y ≠ σ := fun h => by
+        have ha := congrArg Segment.a h
+        simp only [] at ha
+        omega
+      have hn2 : ¬(y.a = σ.a ∧ y.b < σ.b) := by rintro ⟨h, -⟩; omega
+      rw [if_neg hn1, if_neg hn2] at hy1
+      by_cases hyb : y.b = σ.b
+      · omega
+      · have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨-, h⟩; omega
+        rw [if_neg hn3] at hy1
+        by_cases hyJ : y.a = σ'.a ∧ y.b < σ'.b
+        · rw [if_pos hyJ] at hy1
+          by_cases hym0 : 0 < ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count y
+          · obtain ⟨hym, hyd⟩ := RSK.mem_bucket_depth m _ y (List.count_pos_iff.mp hym0)
+            exact fiber_succ_end_le m σ hσm y hym hya hyd
+          · have hyJ0 : 0 < ((bucket m
+                (depth_of_segment m σ' hσ'm)).map (·.val)).count y := by omega
+            obtain ⟨hym, -⟩ := RSK.mem_bucket_depth m _ y (List.count_pos_iff.mp hyJ0)
+            exact special_end_le_pred m u v σ σ' hsplit y hym hyJ.1 hyJ.2
+        · rw [if_neg hyJ] at hy1
+          have hym0 : 0 < ((bucket m
+              (depth_of_segment m σ hσm)).map (·.val)).count y := by omega
+          obtain ⟨hym, hyd⟩ := RSK.mem_bucket_depth m _ y (List.count_pos_iff.mp hym0)
+          exact fiber_succ_end_le m σ hσm y hym hya hyd
+    · -- D1: other begin-groups are untouched
+      intro y hy1a hy2a
+      have hy1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
+        hσm hσ'm y
+      have hn1 : y ≠ σ := fun h => hy1a (by rw [h])
+      have hn2 : ¬(y.a = σ.a ∧ y.b < σ.b) := by rintro ⟨h, -⟩; exact hy1a h
+      have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨h, -⟩; exact hy2a h
+      have hn4 : ¬(y.a = σ'.a ∧ y.b < σ'.b) := by rintro ⟨h, -⟩; omega
+      rw [if_neg hn1, if_neg hn2, if_neg hn3, if_neg hn4] at hy1
+      constructor
+      · intro hy
+        have := List.count_pos_iff.mpr hy
+        exact List.count_pos_iff.mp (by omega)
+      · intro hy
+        have := List.count_pos_iff.mpr hy
+        exact List.count_pos_iff.mp (by omega)
+  · -- ill-formed pairs contribute nothing anywhere
+    push_neg at hwf
+    have hnv1 : ¬(w = ((σ.a : ℤ), (t.b : ℤ))) := fun h => by
+      rw [pair_eq_iff] at h
+      omega
+    have hnv2 : ¬(w = ((σ.a + 1 : ℤ), (t.b : ℤ))) := fun h => by
+      rw [pair_eq_iff] at h
+      omega
+    rw [derivedPairs_count_illformed _ hFdsort w hwf,
+      derivedPairs_count_illformed _ hFmsort w hwf,
+      if_neg hnv1, if_neg hnv2]
+    by_cases h1 : w.1 = σ.a ∧ w.2 < σ.b
+    · rw [if_pos h1, count_map_segPair_illformed _ w hwf]
+      by_cases h2 : w.1 = σ'.a ∧ w.2 < σ'.b
+      · rw [if_pos h2, count_map_segPair_illformed _ w hwf]
+      · rw [if_neg h2]
+    · rw [if_neg h1]
+      by_cases h2 : w.1 = σ'.a ∧ w.2 < σ'.b
+      · rw [if_pos h2, count_map_segPair_illformed _ w hwf]
+      · rw [if_neg h2]
+
+/-- **Per-fiber derived-count identity, last chain element**: as
+`derived_count_chain_step` without an incoming-specials term. -/
+lemma derived_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (u : List Segment) (σ : Segment)
+    (hsplit : (MW.leadingChain m).val.segments = u ++ [σ])
+    (hσm : σ ∈ m.segments)
+    (i t : Segment) (l₁ l₂ : List Segment)
+    (hbsplit : (bucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hia : i.a = σ.a) (hta : σ.a < t.a)
+    (w : ℤ × ℤ) :
+    (derivedPairs ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val))).count w
+      + (if w = ((σ.a : ℤ), (t.b : ℤ)) then 1 else 0)
+      + (if w.1 = σ.a ∧ w.2 < σ.b
+         then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+         else 0)
+    = (derivedPairs ((bucket m (depth_of_segment m σ hσm)).map (·.val))).count w
+      + (if w = ((σ.a + 1 : ℤ), (t.b : ℤ)) then 1 else 0) := by
+  classical
+  have hσC : σ ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
+  have hnd : σ.a < σ.b := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σ hσC
+  have htb : t.a ≤ t.b := t.fst_le_snd
+  have hFdsort : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      (depth_of_segment m σ hσm)).map (·.val)).Pairwise
+      (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) :=
+    (bucket_nested _ _).imp (fun h => ⟨h.1, h.2⟩)
+  have hFmsort : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).Pairwise
+      (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) :=
+    (bucket_nested m _).imp (fun h => ⟨h.1, h.2⟩)
+  by_cases hwf : w.1 ≤ w.2
+  · set x : Segment := ⟨⟨w.1, w.2⟩, hwf⟩ with hxdef
+    have hxa : x.a = w.1 := rfl
+    have hxb : x.b = w.2 := rfl
+    have hxw : segPair x = w := rfl
+    have hE1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm x
+    have hcd : (((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        = ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val)).count x := by
+      rw [← hxw, count_map_segPair_eq]
+    have hcm : (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
+      rw [← hxw, count_map_segPair_eq]
+    have hE1p : (((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        + (if w = ((σ.a : ℤ), (σ.b : ℤ)) then 1 else 0)
+        + (if w.1 = σ.a ∧ w.2 < σ.b
+           then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+           else 0)
+        = (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        + (if w = ((σ.a + 1 : ℤ), (σ.b : ℤ)) then 1 else 0) := by
+      rw [hcd, hcm]
+      have e1 : (w = ((σ.a : ℤ), (σ.b : ℤ))) ↔ (x = σ) := by
+        rw [pair_eq_iff]
+        constructor
+        · rintro ⟨h1, h2⟩; exact seg_ext (by omega) (by omega)
+        · intro h
+          have ha := congrArg Segment.a h
+          have hb := congrArg Segment.b h
+          simp only [] at ha hb
+          omega
+      have e2 : (w = ((σ.a + 1 : ℤ), (σ.b : ℤ))) ↔ (x.a = σ.a + 1 ∧ x.b = σ.b) := by
+        rw [pair_eq_iff]
+        constructor
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+      have e3 : (w.1 = σ.a ∧ w.2 < σ.b) ↔ (x.a = σ.a ∧ x.b < σ.b) := by
+        constructor
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+        · rintro ⟨h1, h2⟩; exact ⟨by omega, by omega⟩
+      simp only [e1, e2, e3]
+      exact hE1
+    have hcharD := derivedPairs_count w _ hFdsort
+    have hcharM := derivedPairs_count w _ hFmsort
+    have hIND := indicator_transport
+      ((bucket m (depth_of_segment m σ hσm)).map (·.val))
+      ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        (depth_of_segment m σ hσm)).map (·.val))
+      σ t
+      (RSK.mem_bucket_of_depth m _ σ hσm rfl) hta (by rw [hbsplit]; simp)
+      (fun y hy hya => boundary_next_facts m _ i t l₁ l₂ hbsplit y hy (by omega))
+      ?_ ?_ ?_ ?_ ?_ w
+    · omega
+    · -- A1
+      intro y hy hya
+      have hyc : 0 < ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          (depth_of_segment m σ hσm)).map (·.val)).count y := List.count_pos_iff.mpr hy
+      have hy1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm y
+      have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨h1, -⟩; omega
+      rw [if_neg hn3] at hy1
+      by_cases hyσ : y = σ
+      · subst hyσ
+        exact ⟨RSK.mem_bucket_of_depth m _ y hσm rfl, le_refl _⟩
+      · rw [if_neg hyσ] at hy1
+        by_cases hyb : y.b < σ.b
+        · rw [if_pos ⟨hya, hyb⟩] at hy1
+          omega
+        · have hn2 : ¬(y.a = σ.a ∧ y.b < σ.b) := by rintro ⟨-, h⟩; omega
+          rw [if_neg hn2] at hy1
+          exact ⟨List.count_pos_iff.mp (by omega), by omega⟩
+    · -- A2
+      intro y hy hya hyb
+      have hyc : 0 < ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count y :=
+        List.count_pos_iff.mpr hy
+      have hy1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm y
+      have hn1 : y ≠ σ := fun h => by
+        have hb := congrArg Segment.b h
+        simp only [] at hb
+        omega
+      have hn2 : ¬(y.a = σ.a ∧ y.b < σ.b) := by rintro ⟨-, h⟩; omega
+      have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨h, -⟩; omega
+      rw [if_neg hn1, if_neg hn2, if_neg hn3] at hy1
+      exact List.count_pos_iff.mp (by omega)
+    · -- B1
+      have hstep : σ.a + 1 ≤ σ.b := by omega
+      refine ⟨⟨⟨σ.a + 1, σ.b⟩, hstep⟩, ?_, rfl, rfl⟩
+      have hy1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm
+        ⟨⟨σ.a + 1, σ.b⟩, hstep⟩
+      have hga : Segment.a (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.a + 1 := rfl
+      have hgb : Segment.b (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.b := rfl
+      have hn1 : (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) ≠ σ := fun h => by
+        have ha := congrArg Segment.a h
+        simp only [] at ha
+        omega
+      have hn2 : ¬(Segment.a (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.a ∧
+          Segment.b (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) < σ.b) := by
+        rintro ⟨h, -⟩
+        omega
+      have hp3 : Segment.a (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.a + 1 ∧
+          Segment.b (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) = σ.b := ⟨hga, hgb⟩
+      rw [if_neg hn1, if_neg hn2, if_pos hp3] at hy1
+      exact List.count_pos_iff.mp (by omega)
+    · -- B2
+      intro y hy hya
+      have hyc : 0 < ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          (depth_of_segment m σ hσm)).map (·.val)).count y := List.count_pos_iff.mpr hy
+      have hy1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm y
+      have hn1 : y ≠ σ := fun h => by
+        have ha := congrArg Segment.a h
+        simp only [] at ha
+        omega
+      have hn2 : ¬(y.a = σ.a ∧ y.b < σ.b) := by rintro ⟨h, -⟩; omega
+      rw [if_neg hn1, if_neg hn2] at hy1
+      by_cases hyb : y.b = σ.b
+      · omega
+      · have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨-, h⟩; omega
+        rw [if_neg hn3] at hy1
+        have hym0 : 0 < ((bucket m
+            (depth_of_segment m σ hσm)).map (·.val)).count y := by omega
+        obtain ⟨hym, hyd⟩ := RSK.mem_bucket_depth m _ y (List.count_pos_iff.mp hym0)
+        exact fiber_succ_end_le m σ hσm y hym hya hyd
+    · -- D1
+      intro y hy1a hy2a
+      have hy1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm y
+      have hn1 : y ≠ σ := fun h => hy1a (by rw [h])
+      have hn2 : ¬(y.a = σ.a ∧ y.b < σ.b) := by rintro ⟨h, -⟩; exact hy1a h
+      have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨h, -⟩; exact hy2a h
+      rw [if_neg hn1, if_neg hn2, if_neg hn3] at hy1
+      constructor
+      · intro hy
+        have := List.count_pos_iff.mpr hy
+        exact List.count_pos_iff.mp (by omega)
+      · intro hy
+        have := List.count_pos_iff.mpr hy
+        exact List.count_pos_iff.mp (by omega)
+  · push_neg at hwf
+    have hnv1 : ¬(w = ((σ.a : ℤ), (t.b : ℤ))) := fun h => by
+      rw [pair_eq_iff] at h
+      omega
+    have hnv2 : ¬(w = ((σ.a + 1 : ℤ), (t.b : ℤ))) := fun h => by
+      rw [pair_eq_iff] at h
+      omega
+    rw [derivedPairs_count_illformed _ hFdsort w hwf,
+      derivedPairs_count_illformed _ hFmsort w hwf,
+      if_neg hnv1, if_neg hnv2]
+    by_cases h1 : w.1 = σ.a ∧ w.2 < σ.b
+    · rw [if_pos h1, count_map_segPair_illformed _ w hwf]
+    · rw [if_neg h1]
+
+/-- Permutations preserve sums of naturals. -/
+lemma sum_perm_nat : ∀ {l₁ l₂ : List ℕ}, l₁.Perm l₂ → l₁.sum = l₂.sum := by
+  intro l₁ l₂ h
+  induction h with
+  | nil => rfl
+  | cons x _ ih => simp only [List.sum_cons, ih]
+  | swap x y l => simp only [List.sum_cons]; omega
+  | trans _ _ ih1 ih2 => rw [ih1, ih2]
+
+/-- **The telescoping identity** (paper eq. `deltau`, value form): summed over all
+fibers, the derived pairs of `m†` are those of `m` with each residual-chain value `Wⱼ`
+replaced by its left-shortened copy `⁻Wⱼ`. Stated against the leading chain of the RSK
+residual, whose entries are exactly the `Wⱼ` (`leadingChain_residual_entries`). -/
+lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (w : ℤ × ℤ) :
+    ((List.range (RSK.maxDepth m + 1)).map
+        (fun d => (derivedPairs ((bucket (MW.makeResidual m
+          (MW.leadingChain m).val.segments) d).map (·.val))).count w)).sum
+      + ((MW.leadingChain (RSK.residual m)).val.segments.map
+          (fun c => if w = segPair c then 1 else 0)).sum
+    = ((List.range (RSK.maxDepth m + 1)).map
+        (fun d => (derivedPairs ((bucket m d).map (·.val))).count w)).sum
+      + ((MW.leadingChain (RSK.residual m)).val.segments.map
+          (fun c => if w = ((c.a + 1 : ℤ), (c.b : ℤ)) then 1 else 0)).sum := by
+  classical
+  have hlen := chainLenPreserved m sₘ s_l hsₘ hs_l hmin
+  have hBlt := leadingChain_begins_lt m
+  -- the incoming-specials term carried by the head of the remaining chain
+  have haux : ∀ (cs : List Segment), ∀ (pre : List Segment),
+      (MW.leadingChain m).val.segments = pre ++ cs →
+      ∀ (cs' pre' : List Segment),
+      (MW.leadingChain (RSK.residual m)).val.segments = pre' ++ cs' →
+      pre'.length = pre.length →
+      ∀ (R : List ℕ), R.Nodup →
+      (∀ c ∈ cs, ∀ hcm : c ∈ m.segments, depth_of_segment m c hcm ∈ R) →
+      (∀ d ∈ R, ∀ c ∈ pre, ∀ hcm : c ∈ m.segments, depth_of_segment m c hcm ≠ d) →
+      (R.map (fun d => (derivedPairs ((bucket (MW.makeResidual m
+          (MW.leadingChain m).val.segments) d).map (·.val))).count w)).sum
+        + (cs'.map (fun c => if w = segPair c then 1 else 0)).sum
+        + (cs.head?.elim 0 (fun σ =>
+            if hm : σ ∈ m.segments then
+              (if w.1 = σ.a ∧ w.2 < σ.b
+               then (((bucket m (depth_of_segment m σ hm)).map (·.val)).map
+                 segPair).count w
+               else 0)
+            else 0))
+      = (R.map (fun d => (derivedPairs ((bucket m d).map (·.val))).count w)).sum
+        + (cs'.map (fun c => if w = ((c.a + 1 : ℤ), (c.b : ℤ)) then 1 else 0)).sum := by
+    intro cs
+    induction cs with
+    | nil =>
+      intro pre hsplitC cs' pre' hsplitC' hlen' R hnd hin hout
+      have hcs' : cs' = [] := by
+        have h1 : (MW.leadingChain (RSK.residual m)).val.segments.length
+            = pre'.length + cs'.length := by rw [hsplitC']; simp
+        have h2 : (MW.leadingChain m).val.segments.length = pre.length := by
+          rw [hsplitC]; simp
+        have h3 : cs'.length = 0 := by omega
+        exact List.eq_nil_of_length_eq_zero h3
+      subst hcs'
+      simp only [List.map_nil, List.sum_nil, List.head?_nil, Option.elim]
+      have hcong : ∀ d ∈ R,
+          (derivedPairs ((bucket (MW.makeResidual m
+            (MW.leadingChain m).val.segments) d).map (·.val))).count w
+          = (derivedPairs ((bucket m d).map (·.val))).count w := by
+        intro d hd
+        rw [fiber_list_nonchain_eq m sₘ s_l hsₘ hs_l hmin d ?_]
+        intro c hc hcm
+        rw [hsplitC] at hc
+        simp only [List.append_nil] at hc
+        exact hout d hd c hc hcm
+      rw [List.map_congr_left hcong]
+      omega
+    | cons σ rest ih =>
+      intro pre hsplitC cs' pre' hsplitC' hlen' R hnd hin hout
+      -- align the residual chain
+      obtain ⟨w', rest', hcs'⟩ : ∃ w' rest', cs' = w' :: rest' := by
+        cases cs' with
+        | nil =>
+          exfalso
+          have h1 : (MW.leadingChain (RSK.residual m)).val.segments.length
+              = pre'.length := by rw [hsplitC']; simp
+          have h2 : (MW.leadingChain m).val.segments.length
+              = pre.length + rest.length + 1 := by rw [hsplitC]; simp; omega
+          have := hlen
+          omega
+        | cons a b => exact ⟨a, b, rfl⟩
+      subst hcs'
+      have hσget : (MW.leadingChain m).val.segments[pre.length]? = some σ :=
+        getElem?_of_split pre (rest) σ _ hsplitC
+      have hw'get : (MW.leadingChain (RSK.residual m)).val.segments[pre.length]?
+          = some w' := by
+        rw [← hlen']
+        exact getElem?_of_split pre' rest' w' _ hsplitC'
+      obtain ⟨hσm, i, t, l₁, l₂, hbsplit, hia, hta, w'', hw''get, hw''a, hw''b⟩ :=
+        leadingChain_residual_entries m sₘ s_l hsₘ hs_l hmin pre.length σ hσget
+      have heqw : w'' = w' := by
+        rw [hw'get] at hw''get
+        exact (Option.some.inj hw''get).symm
+      have hw'a : w'.a = σ.a := by rw [← heqw]; exact hw''a
+      have hw'b : w'.b = t.b := by rw [← heqw]; exact hw''b
+      have hσC : σ ∈ (MW.leadingChain m).val.segments := by rw [hsplitC]; simp
+      have hdmem : depth_of_segment m σ hσm ∈ R := by
+        have := hin σ List.mem_cons_self hσm
+        exact this
+      have hperm : R.Perm (depth_of_segment m σ hσm :: R.erase
+          (depth_of_segment m σ hσm)) := List.perm_cons_erase hdmem
+      have hndE : (R.erase (depth_of_segment m σ hσm)).Nodup := hnd.erase _
+      -- value conversions for the two indicator terms
+      have hW : ((σ.a : ℤ), (t.b : ℤ)) = segPair w' := by
+        unfold segPair
+        rw [hw'a, hw'b]
+      have hBv : ((σ.a + 1 : ℤ), (t.b : ℤ)) = ((w'.a + 1 : ℤ), (w'.b : ℤ)) := by
+        rw [hw'a, hw'b]
+      -- unfold the head term at σ
+      have hJσ : ((σ :: rest).head?.elim 0 (fun τ =>
+          if hm : τ ∈ m.segments then
+            (if w.1 = τ.a ∧ w.2 < τ.b
+             then (((bucket m (depth_of_segment m τ hm)).map (·.val)).map
+               segPair).count w
+             else 0)
+          else 0))
+          = (if w.1 = σ.a ∧ w.2 < σ.b
+             then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map
+               segPair).count w
+             else 0) := by
+        simp only [List.head?_cons, Option.elim]
+        rw [dif_pos hσm]
+      -- sums split off the σ-fiber
+      have hsumdag : (R.map (fun d => (derivedPairs ((bucket (MW.makeResidual m
+          (MW.leadingChain m).val.segments) d).map (·.val))).count w)).sum
+          = (derivedPairs ((bucket (MW.makeResidual m
+              (MW.leadingChain m).val.segments)
+              (depth_of_segment m σ hσm)).map (·.val))).count w
+            + ((R.erase (depth_of_segment m σ hσm)).map
+                (fun d => (derivedPairs ((bucket (MW.makeResidual m
+                  (MW.leadingChain m).val.segments) d).map (·.val))).count w)).sum := by
+        rw [sum_perm_nat (hperm.map _)]
+        simp
+      have hsumm : (R.map (fun d =>
+          (derivedPairs ((bucket m d).map (·.val))).count w)).sum
+          = (derivedPairs ((bucket m
+              (depth_of_segment m σ hσm)).map (·.val))).count w
+            + ((R.erase (depth_of_segment m σ hσm)).map (fun d =>
+                (derivedPairs ((bucket m d).map (·.val))).count w)).sum := by
+        rw [sum_perm_nat (hperm.map _)]
+        simp
+      cases rest with
+      | nil =>
+        -- last chain element
+        have hid := derived_count_chain_last m sₘ s_l hsₘ hs_l hmin pre σ hsplitC hσm
+          i t l₁ l₂ hbsplit hia hta w
+        rw [hW, hBv] at hid
+        have hihx := ih (pre ++ [σ]) (by rw [hsplitC, List.append_assoc]; rfl)
+          rest' (pre' ++ [w']) (by rw [hsplitC', List.append_assoc]; rfl)
+          (by simp; omega)
+          (R.erase (depth_of_segment m σ hσm)) hndE
+          (by intro c hc; simp at hc)
+          ?_
+        · rw [hJσ, hsumdag, hsumm]
+          simp only [List.head?_nil, Option.elim] at hihx
+          simp only [List.map_cons, List.sum_cons]
+          omega
+        · intro d hd c hc hcm
+          rcases List.mem_append.mp hc with h1 | h2
+          · exact hout d (List.mem_of_mem_erase hd) c h1 hcm
+          · rw [List.mem_singleton] at h2
+            subst h2
+            have hne := (List.Nodup.mem_erase_iff hnd).mp hd
+            intro heq
+            have : depth_of_segment m c hcm = depth_of_segment m c hσm := rfl
+            omega
+      | cons σ' rest2 =>
+        -- interior chain element: successor exists
+        have hσ'C : σ' ∈ (MW.leadingChain m).val.segments := by rw [hsplitC]; simp
+        have hσ'm : σ' ∈ m.segments := MW.leadingChain_subset m σ' hσ'C
+        have hid := derived_count_chain_step m sₘ s_l hsₘ hs_l hmin pre rest2 σ σ'
+          hsplitC hσm hσ'm i t l₁ l₂ hbsplit hia hta w
+        rw [hW, hBv] at hid
+        have hihx := ih (pre ++ [σ]) (by rw [hsplitC, List.append_assoc]; rfl)
+          rest' (pre' ++ [w']) (by rw [hsplitC', List.append_assoc]; rfl)
+          (by simp; omega)
+          (R.erase (depth_of_segment m σ hσm)) hndE
+          ?_ ?_
+        · have hJσ' : ((σ' :: rest2).head?.elim 0 (fun τ =>
+              if hm : τ ∈ m.segments then
+                (if w.1 = τ.a ∧ w.2 < τ.b
+                 then (((bucket m (depth_of_segment m τ hm)).map (·.val)).map
+                   segPair).count w
+                 else 0)
+              else 0))
+              = (if w.1 = σ'.a ∧ w.2 < σ'.b
+                 then (((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map
+                   segPair).count w
+                 else 0) := by
+            simp only [List.head?_cons, Option.elim]
+            rw [dif_pos hσ'm]
+          rw [hJσ'] at hihx
+          simp only [List.map_cons, List.sum_cons] at hihx ⊢
+          rw [hJσ, hsumdag, hsumm]
+          omega
+        · intro c hc hcm
+          have hcC : c ∈ (MW.leadingChain m).val.segments := by
+            rw [hsplitC]
+            exact List.mem_append_right _ (List.mem_cons_of_mem _ hc)
+          have hcin := hin c (List.mem_cons_of_mem _ hc) hcm
+          have hcane : c.a ≠ σ.a := by
+            have hp := hBlt
+            rw [hsplitC] at hp
+            have hp2 := (List.pairwise_append.mp hp).2.1
+            have := (List.pairwise_cons.mp hp2).1 c hc
+            omega
+          have hne := chain_mem_depth_ne m c σ hcC hσC hcane hcm hσm
+          exact (List.mem_erase_of_ne hne).mpr hcin
+        · intro d hd c hc hcm
+          rcases List.mem_append.mp hc with h1 | h2
+          · exact hout d (List.mem_of_mem_erase hd) c h1 hcm
+          · rw [List.mem_singleton] at h2
+            subst h2
+            have hne := (List.Nodup.mem_erase_iff hnd).mp hd
+            intro heq
+            have : depth_of_segment m c hcm = depth_of_segment m c hσm := rfl
+            omega
+  -- outer application at the full chain and full depth range
+  have hm : m.segments ≠ [] := by
+    intro h
+    rw [h] at hsₘ
+    simp at hsₘ
+  have hres := haux (MW.leadingChain m).val.segments [] rfl
+    (MW.leadingChain (RSK.residual m)).val.segments [] rfl rfl
+    (List.range (RSK.maxDepth m + 1)) (List.nodup_range)
+    (fun c hc hcm => List.mem_range.mpr
+      (Nat.lt_succ_of_le (RSK.depth_le_maxDepth m c hcm)))
+    (fun d hd c hc => absurd hc (List.not_mem_nil))
+  -- the head of the chain carries no specials
+  have hJ0 : ((MW.leadingChain m).val.segments.head?.elim 0 (fun σ =>
+      if hm : σ ∈ m.segments then
+        (if w.1 = σ.a ∧ w.2 < σ.b
+         then (((bucket m (depth_of_segment m σ hm)).map (·.val)).map segPair).count w
+         else 0)
+      else 0)) = 0 := by
+    rw [MW.leadingChain_head m sₘ hsₘ]
+    simp only [Option.elim]
+    by_cases hsm : sₘ ∈ m.segments
+    · rw [dif_pos hsm]
+      by_cases hcond : w.1 = sₘ.a ∧ w.2 < sₘ.b
+      · rw [if_pos hcond]
+        rw [List.count_eq_zero]
+        intro hmem
+        obtain ⟨y, hy, hfy⟩ := List.mem_map.mp hmem
+        obtain ⟨hym, -⟩ := RSK.mem_bucket_depth m _ y hy
+        have h1 : y.a = w.1 := by rw [← hfy]; rfl
+        have h2 : y.b = w.2 := by rw [← hfy]; rfl
+        exact no_special_head m sₘ hsₘ y hym (by omega) (by omega)
+      · rw [if_neg hcond]
+    · rw [dif_neg hsm]
+  rw [hJ0] at hres
+  omega
+
+/-! ## The `(m′)†` side and the commutation core -/
+
+/-- A sum of equality indicators is a count. -/
+lemma sum_ind_eq_count : ∀ (l : List Segment) (x : Segment),
+    (l.map (fun c => if x = c then 1 else 0)).sum = l.count x := by
+  intro l
+  induction l with
+  | nil => intro x; simp
+  | cons c cs ih =>
+    intro x
+    rw [List.map_cons, List.sum_cons, count_seg_cons, ih]
+    omega
+
+/-- In a duplicate-free list, counts are membership indicators. -/
+lemma count_eq_ite_of_nodup (l : List Segment) (hnd : l.Nodup) (x : Segment) :
+    l.count x = if x ∈ l then 1 else 0 := by
+  by_cases h : x ∈ l
+  · rw [if_pos h]
+    exact List.count_eq_one_of_mem hnd h
+  · rw [if_neg h, List.count_eq_zero]
+    exact h
+
+/-- With strictly increasing begins, at most one starred indicator fires. -/
+lemma sum_starred_ind : ∀ (l : List Segment),
+    l.Pairwise (fun s t => s.a < t.a) → (∀ c ∈ l, c.a < c.b) → ∀ (x : Segment),
+    (l.map (fun c => if x.a = c.a + 1 ∧ x.b = c.b then 1 else 0)).sum
+      = if ∃ c ∈ l, c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b then 1 else 0 := by
+  intro l
+  induction l with
+  | nil => intro _ _ x; simp
+  | cons c cs ih =>
+    intro hp hnd x
+    obtain ⟨hlt, hp'⟩ := List.pairwise_cons.mp hp
+    rw [List.map_cons, List.sum_cons,
+      ih hp' (fun c' hc' => hnd c' (List.mem_cons_of_mem _ hc')) x]
+    by_cases hc : x.a = c.a + 1 ∧ x.b = c.b
+    · have hno : ¬ ∃ c' ∈ cs, c'.a < c'.b ∧ x.a = c'.a + 1 ∧ x.b = c'.b := by
+        rintro ⟨c', hc', -, ha, -⟩
+        have := hlt c' hc'
+        omega
+      have hPos : ∃ c' ∈ c :: cs, c'.a < c'.b ∧ x.a = c'.a + 1 ∧ x.b = c'.b :=
+        ⟨c, List.mem_cons_self, hnd c List.mem_cons_self, hc.1, hc.2⟩
+      rw [if_pos hc, if_neg hno, if_pos hPos]
+    · rw [if_neg hc]
+      have hiff : (∃ c' ∈ c :: cs, c'.a < c'.b ∧ x.a = c'.a + 1 ∧ x.b = c'.b) ↔
+          (∃ c' ∈ cs, c'.a < c'.b ∧ x.a = c'.a + 1 ∧ x.b = c'.b) := by
+        constructor
+        · rintro ⟨c', hc', h1, h2, h3⟩
+          rcases List.mem_cons.mp hc' with rfl | hr
+          · exact absurd ⟨h2, h3⟩ hc
+          · exact ⟨c', hr, h1, h2, h3⟩
+        · rintro ⟨c', hc', h1, h2, h3⟩
+          exact ⟨c', List.mem_cons_of_mem _ hc', h1, h2, h3⟩
+      by_cases hQ : ∃ c' ∈ cs, c'.a < c'.b ∧ x.a = c'.a + 1 ∧ x.b = c'.b
+      · rw [if_pos hQ, if_pos (hiff.mpr hQ)]
+      · rw [if_neg hQ, if_neg (fun h => hQ (hiff.mp h))]
+
+/-- Every residual leading-chain entry is nondegenerate. -/
+lemma residual_chain_nondegenerate (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (c : Segment) (hc : c ∈ (MW.leadingChain (RSK.residual m)).val.segments) :
+    c.a < c.b := by
+  obtain ⟨j, hj, hgetc⟩ := List.getElem_of_mem hc
+  have hget? : (MW.leadingChain (RSK.residual m)).val.segments[j]? = some c := by
+    rw [List.getElem?_eq_getElem hj, hgetc]
+  have hlen := chainLenPreserved m sₘ s_l hsₘ hs_l hmin
+  have hjC : j < (MW.leadingChain m).val.segments.length := by omega
+  have hσget : (MW.leadingChain m).val.segments[j]? =
+      some ((MW.leadingChain m).val.segments[j]'hjC) := List.getElem?_eq_getElem hjC
+  obtain ⟨hσm, i, t, l₁, l₂, hbsplit, hia, hta, w', hw'get, hw'a, hw'b⟩ :=
+    leadingChain_residual_entries m sₘ s_l hsₘ hs_l hmin j _ hσget
+  rw [hget?] at hw'get
+  obtain rfl := Option.some.inj hw'get
+  have htb : t.a ≤ t.b := t.fst_le_snd
+  omega
+
+/-- **The `(m′)†` count identity**: the MW residual of `m′` removes each chain value
+and adds its left-shortened copy. -/
+lemma count_mdag_residual_pairs (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
+    (w : ℤ × ℤ) :
+    ((MW.makeResidual (RSK.residual m)
+        (MW.leadingChain (RSK.residual m)).val.segments).segments.map segPair).count w
+      + ((MW.leadingChain (RSK.residual m)).val.segments.map
+          (fun c => if w = segPair c then 1 else 0)).sum
+    = ((RSK.residual m).segments.map segPair).count w
+      + ((MW.leadingChain (RSK.residual m)).val.segments.map
+          (fun c => if w = ((c.a + 1 : ℤ), (c.b : ℤ)) then 1 else 0)).sum := by
+  classical
+  have hBlt' := leadingChain_begins_lt (RSK.residual m)
+  have hne' : (MW.leadingChain (RSK.residual m)).val.segments.Pairwise (· ≠ ·) :=
+    hBlt'.imp (fun h heq => by rw [heq] at h; omega)
+  have hnd' : (MW.leadingChain (RSK.residual m)).val.segments.Nodup := hne'
+  have hnondeg := fun c hc =>
+    residual_chain_nondegenerate m sₘ s_l hsₘ hs_l hmin c hc
+  by_cases hwf : w.1 ≤ w.2
+  · set x : Segment := ⟨⟨w.1, w.2⟩, hwf⟩ with hxdef
+    have hxw : segPair x = w := rfl
+    -- segment-level counts
+    have hcm := count_makeResidual (RSK.residual m)
+      (MW.leadingChain (RSK.residual m)).val.segments x
+    have hce := count_foldl_erase (MW.leadingChain (RSK.residual m)).val.segments
+      (RSK.residual m).segments hne'
+      (fun c hc => MW.leadingChain_subset _ c hc) x
+    have hcf := count_filterMap_residual
+      (MW.leadingChain (RSK.residual m)).val.segments hBlt' x
+    -- indicator sums as counts
+    have hs1 : ((MW.leadingChain (RSK.residual m)).val.segments.map
+        (fun c => if w = segPair c then 1 else 0)).sum
+        = if x ∈ (MW.leadingChain (RSK.residual m)).val.segments then 1 else 0 := by
+      rw [← count_eq_ite_of_nodup _ hnd' x, ← sum_ind_eq_count]
+      refine congrArg List.sum (List.map_congr_left ?_)
+      intro c _
+      by_cases h : x = c
+      · rw [if_pos h, if_pos (by rw [← h, hxw])]
+      · rw [if_neg h, if_neg (fun hh => h (segPair_inj (by rw [hxw, hh])))]
+    have hs3 : ((MW.leadingChain (RSK.residual m)).val.segments.map
+        (fun c => if w = ((c.a + 1 : ℤ), (c.b : ℤ)) then 1 else 0)).sum
+        = if ∃ c ∈ (MW.leadingChain (RSK.residual m)).val.segments,
+            c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b then 1 else 0 := by
+      rw [← sum_starred_ind _ hBlt' hnondeg x]
+      refine congrArg List.sum (List.map_congr_left ?_)
+      intro c _
+      by_cases h : x.a = c.a + 1 ∧ x.b = c.b
+      · rw [if_pos (by rw [pair_eq_iff]; exact ⟨h.1, h.2⟩), if_pos h]
+      · rw [if_neg (fun hh => h (by rw [pair_eq_iff] at hh; exact ⟨hh.1, hh.2⟩)),
+          if_neg h]
+    have hc1 : ((MW.makeResidual (RSK.residual m)
+        (MW.leadingChain (RSK.residual m)).val.segments).segments.map segPair).count w
+        = (MW.makeResidual (RSK.residual m)
+          (MW.leadingChain (RSK.residual m)).val.segments).segments.count x := by
+      rw [← hxw, count_map_segPair_eq]
+    have hc2 : ((RSK.residual m).segments.map segPair).count w
+        = (RSK.residual m).segments.count x := by
+      rw [← hxw, count_map_segPair_eq]
+    rw [hc1, hc2, hs1, hs3]
+    omega
+  · push_neg at hwf
+    have hz1 : ((MW.leadingChain (RSK.residual m)).val.segments.map
+        (fun c => if w = segPair c then 1 else 0)).sum = 0 := by
+      rw [List.map_congr_left (g := fun _ => (0 : ℕ)) ?_]
+      · simp
+      · intro c hc
+        rw [if_neg]
+        intro h
+        have h1 : w.1 = c.a := by rw [h]; rfl
+        have h2 : w.2 = c.b := by rw [h]; rfl
+        have h3 : c.a ≤ c.b := c.fst_le_snd
+        omega
+    have hz2 : ((MW.leadingChain (RSK.residual m)).val.segments.map
+        (fun c => if w = ((c.a + 1 : ℤ), (c.b : ℤ)) then 1 else 0)).sum = 0 := by
+      rw [List.map_congr_left (g := fun _ => (0 : ℕ)) ?_]
+      · simp
+      · intro c hc
+        rw [if_neg]
+        intro h
+        have h1 : w.1 = c.a + 1 := by rw [h]
+        have h2 : w.2 = c.b := by rw [h]
+        have h3 := hnondeg c hc
+        omega
+    rw [count_map_segPair_illformed _ w hwf, count_map_segPair_illformed _ w hwf,
+      hz1, hz2]
+
+/-- Multisegments with equal segment lists are equal. -/
+lemma Multisegment.eq_of_segments_eq {A B : Multisegment}
+    (h : A.segments = B.segments) : A = B := by
+  cases A with | mk s hs =>
+  cases B with | mk s' hs' =>
+  simp only at h
+  subst h
+  rfl
+
+/-- **The commutation core** (paper Cor. `main`, third component): applying MW then RSK
+equals applying RSK then MW, at the level of segment lists. -/
+lemma residual_commute_core (m : Multisegment) (sₘ s_l : Segment)
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a) :
+    (RSK.residual (MW.makeResidual m (MW.leadingChain m).val.segments)).segments
+      = (MW.makeResidual (RSK.residual m)
+          (MW.leadingChain (RSK.residual m)).val.segments).segments := by
+  classical
+  have hm : m.segments ≠ [] := by
+    intro h
+    rw [h] at hsₘ
+    simp at hsₘ
+  -- m† is nonempty: it contains the starred head
+  have hsₘC : sₘ ∈ (MW.leadingChain m).val.segments := by
+    have h := MW.leadingChain_head m sₘ hsₘ
+    rw [head?_eq_cons h]
+    exact List.mem_cons_self
+  have hndg : sₘ.a < sₘ.b := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin sₘ hsₘC
+  have hmdne : (MW.makeResidual m (MW.leadingChain m).val.segments).segments ≠ [] :=
+    List.ne_nil_of_mem (starred_mem_mdag m _ sₘ hsₘC hndg)
+  have hmaxeq := mdag_maxDepth_eq m sₘ s_l hsₘ hs_l hmin hm hmdne
+  -- coordinate counts agree everywhere
+  have hkey : ∀ w : ℤ × ℤ,
+      ((RSK.residual (MW.makeResidual m
+        (MW.leadingChain m).val.segments)).segments.map segPair).count w
+      = ((MW.makeResidual (RSK.residual m)
+          (MW.leadingChain (RSK.residual m)).val.segments).segments.map segPair).count w := by
+    intro w
+    have h1 := residual_count_telescope m sₘ s_l hsₘ hs_l hmin w
+    have h2 := count_mdag_residual_pairs m sₘ s_l hsₘ hs_l hmin w
+    have h3 := count_residual_pairs (MW.makeResidual m
+      (MW.leadingChain m).val.segments) w
+    have h4 := count_residual_pairs m w
+    rw [hmaxeq] at h3
+    omega
+  -- segment counts agree everywhere
+  have hcnt : ∀ x : Segment,
+      (RSK.residual (MW.makeResidual m
+        (MW.leadingChain m).val.segments)).segments.count x
+      = (MW.makeResidual (RSK.residual m)
+          (MW.leadingChain (RSK.residual m)).val.segments).segments.count x := by
+    intro x
+    have h := hkey (segPair x)
+    rw [count_map_segPair_eq, count_map_segPair_eq] at h
+    exact h
+  refine (List.perm_iff_count.mpr hcnt).eq_of_pairwise ?_
+    (RSK.residual _).is_sorted
+    (MW.makeResidual (RSK.residual m) _).is_sorted
+  intro a b _ _ h1 h2
+  exact le_antisymm h1 h2

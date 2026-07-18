@@ -54,4 +54,22 @@ lemma mw_residual_commute
     let m' : Multisegment := (RSK.rsk_step (MW.mw_step m hm).2).2
     let m'' : Multisegment :=
       (MW.mw_step (RSK.rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).2
-    m' = m'' := by sorry
+    m' = m'' := by
+  intro m' m''
+  have hne' := cond_rsk_residual_nonempty m hm h_min
+  have hsₘ : m.segments.head? = some (m.segments.head hm) := List.head?_eq_some_head hm
+  have hs_l : (RSK.ladderRungs m).head? =
+      some ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)) :=
+    List.head?_eq_some_head _
+  have hmin : (m.segments.head hm).a
+      < ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
+  have h1 : (RSK.rsk_step (MW.mw_step m hm).2).2
+      = RSK.residual (MW.makeResidual m (MW.leadingChain m).val.segments) := by
+    rw [mw_step_snd_eq m hm]
+    rfl
+  have h2 : (MW.mw_step (RSK.rsk_step m).2 hne').2
+      = MW.makeResidual (RSK.residual m)
+          (MW.leadingChain (RSK.residual m)).val.segments :=
+    mw_step_snd_eq (RSK.residual m) hne'
+  exact h1.trans ((Multisegment.eq_of_segments_eq
+    (residual_commute_core m _ _ hsₘ hs_l hmin)).trans h2.symm)
