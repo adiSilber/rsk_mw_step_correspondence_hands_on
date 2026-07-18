@@ -16,7 +16,7 @@ open scoped List
 /-- A multisegment whose segments form a ladder (pairwise `≪`). -/
 def Ladder := {ms : Multisegment // isLadder ms.segments}
 
-def subms_ladder (l : Ladder) (ms : Multisegment) := l.val ⊆ ms
+private def subms_ladder (l : Ladder) (ms : Multisegment) := l.val ⊆ ms
 infix:90 " ⊆ " => subms_ladder
 
 instance : forall x, Decidable (isLadder x) := by
@@ -203,7 +203,7 @@ lemma bucket_sink (ms : Multisegment) d s₁ s₂
   all_goals { apply ll_ne_depth ms at rl; omega }
 
 /-- Proof-side name for the contents of `bucket` before the sort (the depth-`d` filter). -/
-def bucketRaw (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
+private def bucketRaw (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
   ms.segments.attach.filter fun ⟨s, hs⟩ => depth_of_segment ms s hs = d
 
 /-- The bucket is genuinely sorted by reverse inclusion: each later element is `⊆`
