@@ -48,3 +48,6 @@ instance : Transitive (· ≪ ·) := ll_trans
 
 instance : ∀(s₁ s₂ : Segment), Decidable (s₁ ⊆ s₂) := by
   unfold subsegment; infer_instance
+
+instance : ∀ (ms₀ ms₁ : Multisegment), Decidable (ms₀ ⊆ ms₁) := by
+  unfold subms; infer_instance

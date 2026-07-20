@@ -28,10 +28,6 @@ namespace MW
 instance : ∀ l, Decidable (isChain l) := by
   intro l; unfold isChain; infer_instance
 
-
-/-- A chain: a multisegment whose adjacent segments are linked by `chainLink`. -/
-def Chain := {ms : Multisegment // isChain ms.segments}
-
 /-- A `chainLink` between two segments implies strict lex order. -/
 lemma chainLink_imp_lt (s₁ s₂ : Segment) (h : chainLink s₁ s₂) : s₁ < s₂ :=
   Prod.Lex.left _ _ h.1.1
@@ -65,8 +61,9 @@ lemma extendChain.go_isChain
     · exact ih _ _ (isChain_snoc chain hne h_chain s hcl)
     · exact ih _ _ h_chain
 
-/-- Extend `c` by scanning the sorted multisegment `m` for the next chain link. -/
-def extendChain (m : Multisegment) (c : Chain) (hne : c.val.segments ≠ []) : Chain :=
+/-- Extend `c` by scanning the sorted multisegment `m` for the next chain link:
+the proof-carrying packaging of `extendChain.go`. -/
+private def extendChain (m : Multisegment) (c : Chain) (hne : c.val.segments ≠ []) : Chain :=
   let result : List Segment := extendChain.go m.segments c.val.segments hne
   have h_chain : isChain result :=
     extendChain.go_isChain m.segments c.val.segments hne c.property

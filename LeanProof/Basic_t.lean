@@ -19,9 +19,6 @@ namespace Segment
 def a (s : Segment) : ℤ := s.fst
 def b (s : Segment) : ℤ := s.snd
 
-/-- The length of a segment as a `ℕ`. -/
-def length (s : Segment) : ℕ := (s.b - s.a).toNat + 1
-
 end Segment
 
 /-- Lexicographic order on segments: `s₁ ≤ s₂` iff `a₁ < a₂`, or `a₁ = a₂` and `b₁ ≤ b₂`. -/

@@ -13,9 +13,6 @@ set_option linter.hashCommand false
 
 open scoped List
 
-/-- A multisegment whose segments form a ladder (pairwise `≪`). -/
-def Ladder := {ms : Multisegment // isLadder ms.segments}
-
 private def subms_ladder (l : Ladder) (ms : Multisegment) := l.val ⊆ ms
 infix:90 " ⊆ " => subms_ladder
 
@@ -69,7 +66,6 @@ lemma Pairwise_ReflGen_rel_getHead (R : α → α → Prop) (l : List α) (a : �
     · exact .refl
     · exact .single ((List.pairwise_cons.mp h₁).1 a hmem)
 
-
 lemma isLadder_extend l (hl : isLadder l) s₀ s₁ :
     s₀ ∈ l.head? → s₁ ≪ s₀ →
     isLadder (s₁ :: l) := by
@@ -81,7 +77,6 @@ lemma isLadder_extend l (hl : isLadder l) s₀ s₁ :
     rw [decide_eq_true_eq] at *
     have hhd : hd = s₀ := by simpa using h_head
     refine List.Pairwise.cons ?_ hl
-    -- refine List.Pairwise.cons ?_ hl
     intro y hy
     -- annotation forces (hd :: tl).head _ to reduce to hd here
     have h : Relation.ReflGen (· ≪ ·) hd y :=
@@ -91,9 +86,9 @@ lemma isLadder_extend l (hl : isLadder l) s₀ s₁ :
     | refl       => exact h_ll
     | single hsy => exact ll_trans _ _ _ h_ll hsy
 
-
-
-def Ladder_extend (l : Ladder) s₀ s₁ :
+/-- Prepend `s₁` to the ladder `l` given a link into its head: the proof-carrying
+packaging of list `cons` for ladders. -/
+private def Ladder_extend (l : Ladder) s₀ s₁ :
     s₀ ∈ l.val.segments.head? -> s₁ ≪ s₀-> Ladder := by
   intros hs0 hs01
   let app := s₁ :: l.val.segments
@@ -124,8 +119,10 @@ lemma Ladder_sublist_extend (ms : Multisegment)
     ms.is_sorted s₁ h hs1 h_notin h_le
 
 
-/-- The list of lengths of all valid-ladder sublists of `ms` having `s` at the head. -/
-def validLadderLengths (ms : Multisegment) (s : Segment) : List ℕ :=
+/-- The list of lengths of all valid-ladder sublists of `ms` having `s` at the head:
+a proof-side reformulation of the trusted `depth_of_segment` (definitionally, depth =
+its max − 1). -/
+private def validLadderLengths (ms : Multisegment) (s : Segment) : List ℕ :=
   (ms.segments.sublists.filter (fun l => isLadder l ∧ s ∈ l.head?)).map List.length
 
 /-- The one-segment ladder `[s]` is always valid, so the list is non-empty. -/

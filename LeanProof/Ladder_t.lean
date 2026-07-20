@@ -38,3 +38,6 @@ family (any two of its segments are `⊆`-comparable): see `bucket_sink` and
 def bucket (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
   (ms.segments.attach.filter fun ⟨s, hs⟩ => depth_of_segment ms s hs = d).insertionSort
     (fun x y => y.val ⊆ x.val)
+
+/-- A multisegment whose segments form a ladder (pairwise `≪`). -/
+def Ladder := {ms : Multisegment // isLadder ms.segments}

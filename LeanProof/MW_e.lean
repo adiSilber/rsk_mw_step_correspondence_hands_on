@@ -61,25 +61,23 @@ def chain₃ : List Segment :=
 #eval decide (isChain
   [(⟨⟨1, 5⟩, by omega⟩ : Segment), ⟨⟨2, 4⟩, by omega⟩])
 
--- A singleton chain `[(1,3)]` reused as the starting chain in the cases below.
-def init_chain : Chain :=
-  ⟨⟨[⟨⟨1, 3⟩, by omega⟩], by decide⟩, by decide⟩
+-- The greedy scan `extendChain.go`, starting from the singleton chain [(1,3)].
 
 -- Case A: scanning [(2,4),(3,5)] — both link. Expected: [(1,3),(2,4),(3,5)].
-#eval (extendChain
-  (msOf [⟨⟨2, 4⟩, by omega⟩, ⟨⟨3, 5⟩, by omega⟩])
-  init_chain (by decide)).val.segments
+#eval extendChain.go
+  [⟨⟨2, 4⟩, by omega⟩, ⟨⟨3, 5⟩, by omega⟩]
+  [⟨⟨1, 3⟩, by omega⟩] (by simp)
 
 -- Case B: scanning [(2,4),(5,7)] — (2,4) links, (5,7) breaks (a jumps 2→5).
 -- Expected: [(1,3),(2,4)].
-#eval (extendChain
-  (msOf [⟨⟨2, 4⟩, by omega⟩, ⟨⟨5, 7⟩, by omega⟩])
-  init_chain (by decide)).val.segments
+#eval extendChain.go
+  [⟨⟨2, 4⟩, by omega⟩, ⟨⟨5, 7⟩, by omega⟩]
+  [⟨⟨1, 3⟩, by omega⟩] (by simp)
 
 -- Case C: scanning [(5,7)] — doesn't link with (1,3). Expected: [(1,3)].
-#eval (extendChain
-  (msOf [⟨⟨5, 7⟩, by omega⟩])
-  init_chain (by decide)).val.segments
+#eval extendChain.go
+  [⟨⟨5, 7⟩, by omega⟩]
+  [⟨⟨1, 3⟩, by omega⟩] (by simp)
 
 -- m = [[1,3],[2,4],[3,5],[4,6]] → full chain: all four segments
 #eval (leadingChain

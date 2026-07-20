@@ -23,8 +23,8 @@ The MW algorithm (mirror-image / min-based version from §3.1):
 4. `m†`: remove chain segments; add back `[a+1, b]` for non-singletons; re-sort.
 5. `m# = Δ◦(m) + (m†)#`  recursively, with `∅# = ∅`.
 
-The greedy scan `extendChain.go` is the computational core; its proof-carrying
-packagings (`extendChain`, `leadingChain`, `mwStep`) live in `MW_u`.
+The greedy scan `extendChain.go` is the computational core; `extendChain` and
+`leadingChain` are its proof-carrying packagings. The API lemmas live in `MW_u`.
 -/
 
 namespace MW
@@ -49,6 +49,9 @@ def extendChain.go (m : List Segment) (chain : List Segment) (hne : chain ≠ []
       extendChain.go rest (chain ++ [s]) (by simp)
     else
       extendChain.go rest chain hne
+
+/-- A chain: a multisegment whose adjacent segments are linked by `chainLink`. -/
+def Chain := {ms : Multisegment // isChain ms.segments}
 
 /-- Residual of a chain segment: `[a, b] → [a+1, b]`; singletons are discarded. -/
 def segmentResidual (s : Segment) : Option Segment :=

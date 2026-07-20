@@ -1,9 +1,6 @@
 import LeanProof.Basic_t
-import LeanProof.Basic_u
 import LeanProof.Ladder_t
-import LeanProof.Ladder_u
 import LeanProof.RSK_t
-import LeanProof.RSK_u
 
 set_option linter.style.setOption false
 set_option linter.flexible false
@@ -49,6 +46,19 @@ def m_repeated : Multisegment :=
 #eval (residual m_complex).segments  -- [(1, 90), (2, 190), (3, 80), (4, 180)]
 #eval (residual m_repeated).segments -- [(1, 3)]
 
+-- bucketResidual: adjacent pairs of one bucket, each replaced by ⟨outer.a, inner.b⟩.
+#eval bucketResidual m_complex 0   -- bucket [(2,200),(4,190),(6,180)] → [(2,190),(4,180)]
+#eval bucketResidual m_repeated 1  -- bucket [(1,3),(1,3)] → [(1,3)] (equal-pair edge)
+#eval bucketResidual m_repeated 0  -- singleton bucket [(2,4)] → [] (no adjacent pair)
+#eval bucketResidual m_repeated 5  -- empty bucket → []
 
+-- rsk_step: the extracted ladder together with the residual, in one step.
+#eval ((rsk_step m_repeated).1, (rsk_step m_repeated).2.segments)
+  -- ([(1, 3), (2, 4)], [(1, 3)])
+#eval ((rsk_step ⟨[], by simp⟩).1, (rsk_step ⟨[], by simp⟩).2.segments)
+  -- ([], []) — the empty multisegment is a fixed point (edge case)
+#eval ((rsk_step ⟨[⟨⟨7, 7⟩, by omega⟩], by simp⟩).1,
+       (rsk_step ⟨[⟨⟨7, 7⟩, by omega⟩], by simp⟩).2.segments)
+  -- ([(7, 7)], []) — a singleton segment: one rung, empty residual (edge case)
 
 end RSK
