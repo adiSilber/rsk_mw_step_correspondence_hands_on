@@ -29,7 +29,7 @@ private lemma mem_indexLists (n k : ℕ) (i : List ℕ) :
 private lemma exists_indices_iff {j : ℕ} {m : Multisegment} (P : Indices j m → Prop) :
     (∃ i, P i) ↔
       ∃ l ∈ indexLists m.segments.length (j + 1), ∃ h : l ∈ Indices j m, P ⟨l, h⟩ :=
-  ⟨fun ⟨⟨l, h⟩, hP⟩ => ⟨l, (mem_indexLists _ _ l).mpr h, h, hP⟩,
+  ⟨fun ⟨⟨l, h⟩, hP⟩ => ⟨l, (mem_indexLists _ _ l).mpr ⟨h.1, h.2.2⟩, h, hP⟩,
     fun ⟨l, _, h, hP⟩ => ⟨⟨l, h⟩, hP⟩⟩
 
 instance (m : Multisegment) (s : Segment) (j : ℕ) : Decidable (j ∈ depthSet m s) := by
@@ -58,7 +58,7 @@ private lemma a_lt_of_chain {m : Multisegment} {j : ℕ} (i : List ℕ) (hlen : 
 /-- The `j + 1` indices of a member are distinct, so `j < m.segments.length`. -/
 lemma lt_length_of_mem_depthSet {m : Multisegment} {s : Segment} {j : ℕ}
     (hj : j ∈ depthSet m s) : j < m.segments.length := by
-  obtain ⟨⟨i, hlen, hi⟩, -, hchain⟩ := hj
+  obtain ⟨⟨i, hlen, _, hi⟩, -, hchain⟩ := hj
   let f : Fin (j + 1) → Fin m.segments.length := fun r =>
     ⟨i[r.val]'(by omega), hi _ (List.getElem_mem _)⟩
   have hf : Function.Injective f := by

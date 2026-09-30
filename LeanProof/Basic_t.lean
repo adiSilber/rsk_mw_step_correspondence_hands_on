@@ -46,6 +46,6 @@ structure Multisegment where
 def subms (ms₀ ms₁ : Multisegment) := ms₀.segments <+ ms₁.segments
 infix:90 " ⊆ " => subms
 
-/-- `j + 1` indices `i₀, …, iⱼ` into `m`. -/
+/-- `j + 1` distinct indices `i₀, …, iⱼ` into `m`. -/
 def Indices (j : ℕ) (m : Multisegment) : Set (List ℕ) :=
-  { i | i.length = j + 1 ∧ ∀ k ∈ i, k < m.segments.length }
+  { i | i.length = j + 1 ∧ i.Nodup ∧ ∀ k ∈ i, k < m.segments.length }

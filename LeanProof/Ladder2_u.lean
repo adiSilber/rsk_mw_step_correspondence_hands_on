@@ -157,7 +157,7 @@ length `j + 1`. -/
 lemma exists_ladder_of_mem_depthSet {m : Multisegment} {s : Segment} {j : ℕ}
     (hj : j ∈ depthSet m s) :
     ∃ l : List Segment, l <+ m.segments ∧ s ∈ l.head? ∧ isLadder l ∧ l.length = j + 1 := by
-  obtain ⟨⟨i, hlen, hi⟩, h0, hchain⟩ := hj
+  obtain ⟨⟨i, hlen, _, hi⟩, h0, hchain⟩ := hj
   let l := List.ofFn fun r : Fin (j + 1) =>
     m.segments[i[r.val]'(by omega)]'(hi _ (List.getElem_mem _))
   have hpw : l.Pairwise (· ≪ ·) := by
@@ -185,7 +185,9 @@ lemma mem_depthSet_of_ladder {m : Multisegment} {s : Segment} (l : List Segment)
   have hpos : 0 < l.length := List.length_pos_iff.mpr hne
   have hmem : ∀ x ∈ l, x ∈ m.segments := fun x hx => hsub.subset hx
   have hpw : l.Pairwise (· ≪ ·) := by simpa [isLadder] using hl
-  refine ⟨⟨l.map m.segments.idxOf, by simp; omega, ?_⟩, ?_, ?_⟩
+  have hnodup : l.Nodup := hpw.imp fun h heq => by subst heq; exact lt_irrefl _ h.1
+  refine ⟨⟨l.map m.segments.idxOf, by simp; omega, ?_, ?_⟩, ?_, ?_⟩
+  · exact hnodup.map_on fun x hx y _ h => (List.idxOf_inj (hmem x hx)).mp h
   · intro k hk
     obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hk
     exact List.idxOf_lt_length_iff.mpr (hmem x hx)
