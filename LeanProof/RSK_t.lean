@@ -1,7 +1,9 @@
 import LeanProof.Basic_t
 import LeanProof.Basic_u
-import LeanProof.Ladder_t
-import LeanProof.Ladder_u
+import LeanProof.Ladder1_t
+import LeanProof.Ladder1_u
+import LeanProof.Ladder2_t
+import LeanProof.Ladder2_u
 import Mathlib.Data.List.Sort
 
 set_option linter.style.setOption false

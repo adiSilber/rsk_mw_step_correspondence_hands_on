@@ -1,6 +1,8 @@
 import LeanProof.Basic_t
 import LeanProof.Basic_u
-import LeanProof.Ladder_t
+import LeanProof.Ladder1_t
+import LeanProof.Ladder1_u
+import LeanProof.Ladder2_t
 import Mathlib.Data.List.Sort
 import Mathlib.Data.Finset.Sort
 -- import Mathlib.Data.Set.Finite
@@ -119,57 +121,103 @@ lemma Ladder_sublist_extend (ms : Multisegment)
     ms.is_sorted s₁ h hs1 h_notin h_le
 
 
-/-- The list of lengths of all valid-ladder sublists of `ms` having `s` at the head:
-a proof-side reformulation of the trusted `depth_of_segment` (definitionally, depth =
-its max − 1). -/
-private def validLadderLengths (ms : Multisegment) (s : Segment) : List ℕ :=
-  (ms.segments.sublists.filter (fun l => isLadder l ∧ s ∈ l.head?)).map List.length
+/-- The depth is attained: it is an element of `depthSet`. -/
+lemma depth_of_segment_mem (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) :
+    depth_of_segment m s hs ∈ depthSet m s := by
+  unfold depth_of_segment
+  exact Set.mem_toFinset.mp (Finset.max'_mem _ _)
 
-/-- The one-segment ladder `[s]` is always valid, so the list is non-empty. -/
-lemma validLadderLengths_ne_nil (ms : Multisegment) (s : Segment)
-    (hs : s ∈ ms.segments) : validLadderLengths ms s ≠ [] := by
-  apply List.ne_nil_of_mem (a := [s].length)
-  apply List.mem_map_of_mem
-  simp [hs, isLadder]
+/-- The depth bounds every element of `depthSet`. -/
+lemma le_depth_of_segment {m : Multisegment} {s : Segment} (hs : s ∈ m.segments) {j : ℕ}
+    (hj : j ∈ depthSet m s) : j ≤ depth_of_segment m s hs := by
+  unfold depth_of_segment
+  exact Finset.le_max' _ _ (Set.mem_toFinset.mpr hj)
 
-/-- The key fact: `depth_of_segment + 1` is exactly the maximum valid ladder length. -/
-lemma depth_succ_eq_max (ms : Multisegment) (s : Segment) (hs : s ∈ ms.segments) :
-    depth_of_segment ms s hs + 1 =
-      (validLadderLengths ms s).max (validLadderLengths_ne_nil ms s hs) := by
-  have h_one_in : (1 : ℕ) ∈ validLadderLengths ms s := by
-    have h_s_in : [s] ∈ ms.segments.sublists.filter (fun l => isLadder l ∧ s ∈ l.head?) := by
-      simp [hs, isLadder]
-    have := List.mem_map_of_mem (f := List.length) h_s_in
-    simpa [validLadderLengths] using this
-  have h_max_ge := List.le_max_of_mem h_one_in
-  have h_unfold : depth_of_segment ms s hs =
-      (validLadderLengths ms s).max (validLadderLengths_ne_nil ms s hs) - 1 := by
-    unfold depth_of_segment validLadderLengths; rfl
-  omega
+/-- Along the index list of a member of `depthSet`, segments are pairwise `≪`. -/
+private lemma ll_of_chain {m : Multisegment} {j : ℕ} (i : List ℕ) (hlen : i.length = j + 1)
+    (hi : ∀ k ∈ i, k < m.segments.length)
+    (hchain : ∀ r (hr : r < j),
+      m.segments[i[r]]'(hi _ (List.getElem_mem _)) ≪
+        m.segments[i[r + 1]]'(hi _ (List.getElem_mem _))) :
+    ∀ r' (hr' : r' ≤ j) r (hr : r < r'),
+      m.segments[i[r]]'(hi _ (List.getElem_mem (by omega))) ≪
+        m.segments[i[r']]'(hi _ (List.getElem_mem (by omega))) := by
+  intro r'
+  induction r' with
+  | zero => intro _ r hr; omega
+  | succ r' ih =>
+    intro hr' r hr
+    have step := hchain r' (by omega)
+    rcases Nat.lt_succ_iff_lt_or_eq.mp hr with h | rfl
+    · exact ll_trans _ _ _ (ih (by omega) r h) step
+    · exact step
+
+/-- A member `j` of `depthSet m s` gives a ladder sublist of `m`, headed by `s`, of
+length `j + 1`. -/
+lemma exists_ladder_of_mem_depthSet {m : Multisegment} {s : Segment} {j : ℕ}
+    (hj : j ∈ depthSet m s) :
+    ∃ l : List Segment, l <+ m.segments ∧ s ∈ l.head? ∧ isLadder l ∧ l.length = j + 1 := by
+  obtain ⟨⟨i, hlen, hi⟩, h0, hchain⟩ := hj
+  let l := List.ofFn fun r : Fin (j + 1) =>
+    m.segments[i[r.val]'(by omega)]'(hi _ (List.getElem_mem _))
+  have hpw : l.Pairwise (· ≪ ·) := by
+    rw [List.pairwise_iff_getElem]
+    intro r r' hr hr' hlt
+    simp only [l, List.getElem_ofFn]
+    simp only [l, List.length_ofFn] at hr'
+    exact ll_of_chain i hlen hi hchain r' (by omega) r hlt
+  have hnodup : l.Nodup := hpw.imp fun h heq => by subst heq; exact lt_irrefl _ h.1
+  have hsubset : l ⊆ m.segments := by
+    intro x hx
+    obtain ⟨r, rfl⟩ := List.mem_ofFn.mp hx
+    exact List.getElem_mem _
+  have hlad : isLadder l := by simpa [isLadder] using hpw
+  refine ⟨l, List.sublist_of_subperm_of_pairwise (hnodup.subperm hsubset)
+    (isLadder_sorted _ hlad) m.is_sorted, ?_, hlad, by simp [l]⟩
+  simp [l, List.ofFn_succ, h0]
+
+/-- Conversely, a ladder sublist of `m` headed by `s` gives the member
+`l.length - 1` of `depthSet m s` (indices `idxOf` of its segments). -/
+lemma mem_depthSet_of_ladder {m : Multisegment} {s : Segment} (l : List Segment)
+    (hsub : l <+ m.segments) (hhead : s ∈ l.head?) (hl : isLadder l) :
+    l.length - 1 ∈ depthSet m s := by
+  have hne : l ≠ [] := by rintro rfl; simp at hhead
+  have hpos : 0 < l.length := List.length_pos_iff.mpr hne
+  have hmem : ∀ x ∈ l, x ∈ m.segments := fun x hx => hsub.subset hx
+  have hpw : l.Pairwise (· ≪ ·) := by simpa [isLadder] using hl
+  refine ⟨⟨l.map m.segments.idxOf, by simp; omega, ?_⟩, ?_, ?_⟩
+  · intro k hk
+    obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hk
+    exact List.idxOf_lt_length_iff.mpr (hmem x hx)
+  · have h0 : l[0] = s := by
+      cases l with
+      | nil => exact absurd rfl hne
+      | cons a t => simpa using hhead
+    simp only [List.getElem_map]
+    rw [List.getElem_idxOf (List.idxOf_lt_length_iff.mpr (hmem _ (List.getElem_mem _)))]
+    exact h0
+  · intro r hr
+    simp only [List.getElem_map]
+    rw [List.getElem_idxOf (List.idxOf_lt_length_iff.mpr (hmem _ (List.getElem_mem _))),
+      List.getElem_idxOf (List.idxOf_lt_length_iff.mpr (hmem _ (List.getElem_mem _)))]
+    exact List.pairwise_iff_getElem.mp hpw r (r + 1) (by omega) (by omega) (by omega)
 
 lemma depth_witness (ms : Multisegment) (s : Segment)
     (hs : s ∈ ms.segments) :
     ∃l : Ladder, l.val.segments <+ ms.segments ∧
       s ∈ l.val.segments.head? ∧
       depth_of_segment ms s hs + 1 = l.val.segments.length := by
-  rw [depth_succ_eq_max ms s hs]
-  obtain ⟨a, ha_mem, ha_len⟩ :=
-    List.exists_of_mem_map (List.max_mem (validLadderLengths_ne_nil ms s hs))
-  simp at ha_mem
-  obtain ⟨h₁, h₂, h₃⟩ := ha_mem
-  exact ⟨⟨⟨a, isLadder_sorted _ h₂⟩, h₂⟩, h₁, h₃, ha_len.symm⟩
+  obtain ⟨l, hsub, hhead, hlad, hlen⟩ :=
+    exists_ladder_of_mem_depthSet (depth_of_segment_mem ms s hs)
+  exact ⟨⟨⟨l, isLadder_sorted _ hlad⟩, hlad⟩, hsub, hhead, hlen.symm⟩
 
 lemma depth_witness' (ms : Multisegment) (s : Segment)
     (hs : s ∈ ms.segments)
     (l : Ladder) (hl : l.val.segments <+ ms.segments)
     (hls : s ∈ l.val.segments.head?) :
     depth_of_segment ms s hs + 1 ≥ l.val.segments.length := by
-  rw [depth_succ_eq_max ms s hs]
-  apply List.le_max_of_mem
-  apply List.mem_map_of_mem
-  apply List.mem_filter_of_mem
-  · simpa using hl
-  · aesop (add simp l.prop)
+  have := le_depth_of_segment hs (mem_depthSet_of_ladder _ hl hls l.prop)
+  omega
 
 lemma ll_ne_depth (ms : Multisegment) (s₁ s₂ : Segment)
   (hs₁ : s₁ ∈ ms.segments) (hs₂ : s₂ ∈ ms.segments) :

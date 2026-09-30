@@ -1,35 +1,25 @@
-
 import LeanProof.Basic_t
 import LeanProof.Basic_u
-import Mathlib.Data.List.Sort
-import Mathlib.Data.Finset.Sort
--- import Mathlib.Data.Set.Finite
-
+import LeanProof.Ladder1_t
+import LeanProof.Ladder1_u
+import Mathlib.Data.Finset.Max
 
 set_option linter.style.setOption false
 set_option linter.flexible false
 set_option linter.style.whitespace false
-set_option linter.hashCommand false
+
+/-- d(Δ) = max `depthSet m s` (finite by `Ladder1_u`, nonempty since `0` is in it). -/
+def depth_of_segment (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) : ℕ :=
+  (depthSet m s).toFinset.max' ⟨0, by simpa using zero_mem_depthSet hs⟩
 
 def isLadder (segments : List Segment) : Bool :=
   segments.Pairwise (· ≪ ·)
 
-
-/- Computes the maximum ladder length by manually checking both conditions
-    independently, requiring zero external theorems or helpers. -/
-def depth_of_segment (m : Multisegment) (s : Segment) (s_in_m : s ∈ m.segments) : ℕ :=
-  ((m.segments.sublists.filter (fun l => isLadder l ∧ s ∈ l.head?)).map (·.length)).max (by
-      have s_in_ladders : [s] ∈ (m.segments.sublists.filter (fun l => isLadder l ∧ s ∈ l.head?)) :=
-      by
-        simp [isLadder, s_in_m]
-      aesop) - 1
-
-
 /-- Segments of `ms` at depth `d`, packaged with their `∈ ms.segments` proofs
 (needed by `depth_of_segment`), sorted outermost-first by the true nesting order —
 `x` comes before `y` iff `y ⊆ x`. The sort is meaningful because a bucket is a nested
-family (any two of its segments are `⊆`-comparable): see `bucket_sink` and
-`bucket_pairwise` in `Ladder_u`. Use `.map (·.val)` for plain segments. -/
+family (any two of its segments are `⊆`-comparable). Use `.map (·.val)` for plain
+segments. -/
 def bucket (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
   (ms.segments.attach.filter fun ⟨s, hs⟩ => depth_of_segment ms s hs = d).insertionSort
     (fun x y => y.val ⊆ x.val)
