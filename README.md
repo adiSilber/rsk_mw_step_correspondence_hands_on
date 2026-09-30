@@ -21,8 +21,8 @@ Two conventions keep the trusted surface honest:
 - **The trusted surface is minimal.** A definition earns a place in a `_t` file
   only if trusted statements or later parts genuinely need it; anything that
   can instead be a `private` def inside a `_u` file is made private there
-  (e.g. `validLadderLengths` is a private proof-side reformulation of
-  `depth_of_segment` inside `Ladder_u`, not a trusted def).
+  (e.g. `depthFinset`, the algorithm computing `depthSet`, is private in
+  `Ladder1_u`, not a trusted def).
 
 The final result is `corollary_3_4` in `LeanProof/Corollary_t.lean`:
 `(K × Id)(MW(m)) = (Id × MW)(K(m))` for `min m < min L(m)` — the RSK step and
@@ -38,10 +38,10 @@ The parts are layered with a strict import discipline:
   parts — including their `_u` files;
 - a part's `_u` file may depend on the `_t` and `_u` files of its **own** part
   and of earlier ones;
-- a part's `_e` file depends only on `_t` files of its own part and earlier
-  ones. (Two deliberate exceptions: `Basic_e` imports `Basic_u` for
-  decidability instances, and `MW_e` imports `MW_u` to demonstrate
-  `leadingChain`.)
+- a part's `_e` file may depend on the `_t` and `_u` files of its **own** part
+  and of earlier ones (e.g. `Basic_e` uses `Basic_u`'s decidability
+  instances, and `MW_e` uses `MW_u` to demonstrate `leadingChain`). Nothing
+  imports an `_e` file, so this adds nothing to the trusted surface.
 
 Every definition in a `_u` file is `private`, so no lemma statement outside
 that file can depend on it — with one sanctioned exception, `MW.leadingChain`
@@ -55,8 +55,10 @@ below.
 
 ```
 Basic          segments (= NonemptyInterval ℤ), multisegments, ≪, ⊆, lex order
-├── Ladder     isLadder, depth_of_segment, bucket, Ladder
-│   └── RSK    bucketRung, maxDepth, ladderRungs, bucketResidual, residual, rsk_step
+├── Ladder1    Indices, depthSet (the paper's depth set, by set comprehension);
+│   │          Ladder1_u proves it finite by computing it (depthFinset)
+│   └── Ladder2   depth_of_segment (= max of depthSet), isLadder, bucket, Ladder
+│       └── RSK   bucketRung, maxDepth, ladderRungs, bucketResidual, residual, rsk_step
 └── MW         chainLink, isChain, extendChain.go, Chain, segmentResidual,
                 makeResidual, mw_step
                 (MW depends on Basic only — RSK and MW are independent)
@@ -76,12 +78,15 @@ Exact file-level imports (within the project):
 | `Basic_t`        | —                                                              |
 | `Basic_u`        | `Basic_t`                                                      |
 | `Basic_e`        | `Basic_t`, `Basic_u`                                           |
-| `Ladder_t`       | `Basic_t`, `Basic_u`                                           |
-| `Ladder_u`       | `Basic_t`, `Basic_u`, `Ladder_t`                               |
-| `Ladder_e`       | `Basic_t`, `Ladder_t`                                          |
-| `RSK_t`          | `Basic_t`, `Basic_u`, `Ladder_t`, `Ladder_u`                   |
+| `Ladder1_t`      | `Basic_t`, `Basic_u`                                           |
+| `Ladder1_u`      | `Basic_t`, `Basic_u`, `Ladder1_t`                              |
+| `Ladder1_e`      | `Basic_t`, `Ladder1_t`, `Ladder1_u`                            |
+| `Ladder2_t`      | `Basic_t`, `Basic_u`, `Ladder1_t`, `Ladder1_u`                 |
+| `Ladder2_u`      | the above + `Ladder2_t`                                        |
+| `Ladder2_e`      | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `Ladder2_u`               |
+| `RSK_t`          | `Basic_t`, `Basic_u`, `Ladder1_t`, `Ladder1_u`, `Ladder2_t`, `Ladder2_u` |
 | `RSK_u`          | the above + `RSK_t`                                            |
-| `RSK_e`          | `Basic_t`, `Ladder_t`, `RSK_t`                                 |
+| `RSK_e`          | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `RSK_t`                   |
 | `MW_t`           | `Basic_t`, `Basic_u`                                           |
 | `MW_u`           | `Basic_t`, `Basic_u`, `MW_t`                                   |
 | `MW_e`           | `Basic_t`, `Basic_u`, `MW_t`, `MW_u`                           |
