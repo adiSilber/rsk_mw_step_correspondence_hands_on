@@ -10,7 +10,7 @@ set_option linter.style.whitespace false
 
 /-- d(Δ) = max `depthSet m s` (finite by `Ladder1_u`, nonempty since `0` is in it). -/
 def depth_of_segment (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) : ℕ :=
-  (depthSet m s).toFinset.max' ⟨0, by simpa using zero_mem_depthSet hs⟩
+  maxOf (depthSet m s).toFinset
 
 def isLadder (segments : List Segment) : Bool :=
   segments.Pairwise (· ≪ ·)

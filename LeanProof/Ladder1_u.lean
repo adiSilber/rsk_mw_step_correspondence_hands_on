@@ -95,9 +95,14 @@ lemma depthSet_finite (m : Multisegment) (s : Segment) : (depthSet m s).Finite :
   Set.toFinite _
 
 /-- `0 ∈ depthSet m s`: the one-index list `[idxOf s]`. -/
+@[grind! .]
 lemma zero_mem_depthSet {m : Multisegment} {s : Segment} (hs : s ∈ m.segments) :
     0 ∈ depthSet m s := by
   have h_lt : m.segments.idxOf s < m.segments.length := List.idxOf_lt_length_iff.mpr hs
   refine ⟨⟨[m.segments.idxOf s], by simp [Indices, h_lt]⟩, ?_,
     fun r hr => absurd hr (Nat.not_lt_zero r)⟩
   exact List.getElem_idxOf h_lt
+
+attribute [grind ., grind →] Set.Aesop.toFinset_nonempty_of_nonempty
+
+attribute [grind ., grind →] Set.nonempty_of_mem
