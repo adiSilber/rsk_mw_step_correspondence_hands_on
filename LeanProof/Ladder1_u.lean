@@ -25,9 +25,6 @@ private lemma mem_indexLists (n k : ℕ) (i : List ℕ) :
     | nil => simp [indexLists]
     | cons x t => simp [indexLists, ih, and_comm, and_left_comm]
 
-instance (j : ℕ) (m : Multisegment) (i : List ℕ) : Decidable (i ∈ Indices j m) := by
-  unfold Indices; infer_instance
-
 /-- `∃ i : Indices j m, P i` can be decided by scanning `indexLists`. -/
 private lemma exists_indices_iff {j : ℕ} {m : Multisegment} (P : Indices j m → Prop) :
     (∃ i, P i) ↔

@@ -54,8 +54,11 @@ below.
 ## Dependency tree
 
 ```
-Basic          segments (= NonemptyInterval ℤ), multisegments, ≪, ⊆, lex order
-├── Ladder1    Indices, depthSet (the paper's depth set, by set comprehension);
+Fundamentals   project-wide macros (e.g. the index-validity rule for `l[i]`);
+               below everything, imported where needed
+Basic          segments (= NonemptyInterval ℤ), multisegments, ≪, ⊆, lex order,
+               Indices (index lists into a multisegment)
+├── Ladder1    depthSet (the paper's depth set, by set comprehension);
 │   │          Ladder1_u proves it finite by computing it (depthFinset)
 │   └── Ladder2   depth_of_segment (= max of depthSet), isLadder, bucket, Ladder
 │       └── RSK   bucketRung, maxDepth, ladderRungs, bucketResidual, residual, rsk_step
@@ -75,10 +78,11 @@ Exact file-level imports (within the project):
 
 | file             | imports                                                        |
 |------------------|----------------------------------------------------------------|
+| `Fundamentals_t` | —                                                              |
 | `Basic_t`        | —                                                              |
 | `Basic_u`        | `Basic_t`                                                      |
 | `Basic_e`        | `Basic_t`, `Basic_u`                                           |
-| `Ladder1_t`      | `Basic_t`, `Basic_u`                                           |
+| `Ladder1_t`      | `Fundamentals_t`, `Basic_t`, `Basic_u`                         |
 | `Ladder1_u`      | `Basic_t`, `Basic_u`, `Ladder1_t`                              |
 | `Ladder1_e`      | `Basic_t`, `Ladder1_t`, `Ladder1_u`                            |
 | `Ladder2_t`      | `Basic_t`, `Basic_u`, `Ladder1_t`, `Ladder1_u`                 |

@@ -51,3 +51,9 @@ instance : ∀(s₁ s₂ : Segment), Decidable (s₁ ⊆ s₂) := by
 
 instance : ∀ (ms₀ ms₁ : Multisegment), Decidable (ms₀ ⊆ ms₁) := by
   unfold subms; infer_instance
+
+-- Lets the index rule of `Fundamentals_t` unfold `Indices`.
+attribute [grind =] Indices
+
+instance (j : ℕ) (m : Multisegment) (i : List ℕ) : Decidable (i ∈ Indices j m) := by
+  unfold Indices; infer_instance

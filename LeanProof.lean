@@ -1,6 +1,7 @@
 -- Root module: importing it (or running `lake build`) elaborates the entire
 -- development, evals included. The legacy prototype `LeanProof/RSK.lean` is
 -- deliberately not imported.
+import LeanProof.Fundamentals_t
 import LeanProof.Basic_t
 import LeanProof.Basic_u
 import LeanProof.Basic_e

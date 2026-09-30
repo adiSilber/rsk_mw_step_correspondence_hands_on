@@ -39,3 +39,13 @@ set_option linter.hashCommand false
   ⊆ ⟨[⟨⟨1, 3⟩, by omega⟩], by simp⟩)  -- true (empty ⊆ anything)
 #eval decide ((⟨[⟨⟨2, 4⟩, by omega⟩], by simp⟩ : Multisegment)
   ⊆ ⟨[⟨⟨1, 3⟩, by omega⟩], by simp⟩)  -- false
+
+-- `Indices j m`: index lists of length j + 1 into m = [(1,3), (1,4), (2,5)].
+def m_three : Multisegment :=
+  ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 4⟩, by omega⟩, ⟨⟨2, 5⟩, by omega⟩], by decide⟩
+
+#eval decide ([0, 2] ∈ Indices 1 m_three)  -- true (length 2 = 1 + 1, entries < 3)
+#eval decide ([0, 2] ∈ Indices 0 m_three)  -- false (length 2 ≠ 0 + 1)
+#eval decide ([0, 3] ∈ Indices 1 m_three)  -- false (index 3 out of range)
+#eval decide ([1, 1] ∈ Indices 1 m_three)  -- true (repeated indices are allowed)
+#eval decide ([0] ∈ Indices 0 ⟨[], by decide⟩)  -- false (empty m: no valid index)

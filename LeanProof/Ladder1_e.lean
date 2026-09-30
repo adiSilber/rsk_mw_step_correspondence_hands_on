@@ -1,6 +1,6 @@
 import LeanProof.Basic_t
 import LeanProof.Ladder1_t
--- For the `Decidable` / `Fintype` instances that make `Indices` and `depthSet` evaluable.
+-- For the `Decidable` / `Fintype` instances that make `depthSet` evaluable.
 import LeanProof.Ladder1_u
 import Mathlib.Data.Finset.Sort
 
@@ -12,19 +12,6 @@ set_option linter.hashCommand false
 -- m = [(1,3), (1,4), (2,5)] — sorted lex; (1,3) and (1,4) share an `a`
 def m_tie : Multisegment :=
   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 4⟩, by omega⟩, ⟨⟨2, 5⟩, by omega⟩], by decide⟩
-
-/-! ### `Indices` -/
-
--- [0, 2] — length 2 = 1 + 1, entries < 3 — true
-#eval decide ([0, 2] ∈ Indices 1 m_tie)
--- [0, 2] has length 2, not 0 + 1 — false
-#eval decide ([0, 2] ∈ Indices 0 m_tie)
--- [0, 3] — index 3 is out of range — false
-#eval decide ([0, 3] ∈ Indices 1 m_tie)
--- [1, 1] — repeated indices are allowed by `Indices` — true
-#eval decide ([1, 1] ∈ Indices 1 m_tie)
--- empty multisegment: no index is valid — false
-#eval decide ([0] ∈ Indices 0 ⟨[], by decide⟩)
 
 /-! ### `depthSet` (shown via its computed `toFinset`) -/
 
