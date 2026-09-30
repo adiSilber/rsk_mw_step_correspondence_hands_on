@@ -24,6 +24,9 @@ elab "⟮" p:term "⟯" : term => do
   let name ← declareTacticSyntax tac
   elabType (← `(autoParam $p $(mkIdent name)))
 
+/-- A list can be used where a set is expected: the set of its members. -/
+instance {α} : Coe (List α) (Set α) := ⟨fun l => {x | x ∈ l}⟩
+
 /-- The maximum of a finite, nonempty set. -/
 def maximum [LinearOrder α] (S : Set α) [Fintype S] (h : ⟮S.Nonempty⟯) : α :=
   S.toFinset.max' (Set.toFinset_nonempty.mpr h)
@@ -32,3 +35,8 @@ def maximum [LinearOrder α] (S : Set α) [Fintype S] (h : ⟮S.Nonempty⟯) : �
 repeats; each comes with its proof of `x ∈ l` (available to `p`). -/
 macro "[" x:ident " ∈ " l:term " | " p:term "]" : term =>
   `(List.filter (fun ⟨$x, _⟩ => decide $p) (List.attach $l))
+
+/-- List comprehension `[f x | x ∈ l]`: `f x` for each `x` of `l`, in order, with repeats;
+the proof of `x ∈ l` is available to `f`. -/
+macro "[" f:term " | " x:ident " ∈ " l:term "]" : term =>
+  `(List.map (fun ⟨$x, _⟩ => $f) (List.attach $l))

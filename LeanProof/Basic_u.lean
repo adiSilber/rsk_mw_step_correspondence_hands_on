@@ -64,6 +64,18 @@ lemma le_maximum {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty)
 instance {α β} [DecidableEq β] (l : List α) (f : α → β) : Fintype {y | ∃ x ∈ l, f x = y} :=
   Fintype.ofFinset (l.map f).toFinset (by simp)
 
+-- From here on `maximum` is used only through the two lemmas above; keeping it opaque
+-- stops the elaborator from unfolding it (and timing out) inside large terms.
+set_option allowUnsafeReducibility true in
+attribute [irreducible] maximum
+
+/-- The set of members of a list is finite: it is computed by the list itself. -/
+instance {α} [DecidableEq α] (l : List α) : Fintype {x | x ∈ l} :=
+  Fintype.ofFinset l.toFinset (by simp)
+
+lemma nonempty_mem_cons {α} (a : α) (l : List α) : {x | x ∈ a :: l}.Nonempty :=
+  ⟨a, List.mem_cons_self⟩
+
 lemma nonempty_image_cons {α β} (s : α) (ss : List α) (f : α → β) :
     {y | ∃ x ∈ s :: ss, f x = y}.Nonempty := ⟨f s, s, List.mem_cons_self, rfl⟩
 
@@ -74,7 +86,8 @@ lemma maximum_a_le_maximum_b (l : List Segment) (h₁ h₂) :
   rw [← hxa]
   exact le_trans x.fst_le_snd (le_maximum _ h₂ ⟨x, hx, rfl⟩)
 
--- Teach `auto_prop` (the tactic behind `⟮p⟯` arguments) the two facts above.
+-- Teach `auto_prop` (the tactic behind `⟮p⟯` arguments) the facts above.
+macro_rules | `(tactic| auto_prop) => `(tactic| exact nonempty_mem_cons _ _)
 macro_rules | `(tactic| auto_prop) => `(tactic| exact nonempty_image_cons _ _ _)
 macro_rules | `(tactic| auto_prop) => `(tactic| exact maximum_a_le_maximum_b _ _ _)
 

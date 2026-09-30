@@ -1584,25 +1584,13 @@ lemma mdag_depth_bound (m : Multisegment) (sₘ s_l : Segment)
 
 /-! ## Layer 5: fiber maxes and the ladder equality -/
 
-/-- `foldl max` over `ℕ` is the seed or attained. -/
-lemma foldlMaxNat_mem_or (l : List ℕ) (i : ℕ) : l.foldl max i = i ∨ l.foldl max i ∈ l := by
-  induction l generalizing i with
-  | nil => exact Or.inl rfl
-  | cons y ys ih =>
-    rw [List.foldl_cons]
-    rcases ih (max i y) with h | h
-    · rw [h]
-      rcases le_total i y with hle | hle
-      · exact Or.inr (by rw [max_eq_right hle]; exact List.mem_cons_self)
-      · exact Or.inl (max_eq_left hle)
-    · exact Or.inr (List.mem_cons_of_mem _ h)
-
 /-- A nonempty multisegment attains its `maxDepth`. -/
 lemma maxDepth_attained (M : Multisegment) (hM : M.segments ≠ []) :
     ∃ x, ∃ hx : x ∈ M.segments, depth_of_segment M x hx = RSK.maxDepth M := by
-  have h0 := foldlMaxNat_mem_or
-    (M.segments.attach.map (fun p => depth_of_segment M p.val p.property)) 0
-  rcases h0 with h | h
+  have h0 : RSK.maxDepth M ∈
+      0 :: M.segments.attach.map (fun p => depth_of_segment M p.val p.property) :=
+    maximum_mem _ (nonempty_mem_cons _ _)
+  rcases List.mem_cons.mp h0 with h | h
   · -- maxDepth = 0: any element has depth ≤ 0
     obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil M.segments hM
     refine ⟨x, hx, ?_⟩

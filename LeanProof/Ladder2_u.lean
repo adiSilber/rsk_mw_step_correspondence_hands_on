@@ -125,13 +125,13 @@ lemma Ladder_sublist_extend (ms : Multisegment)
 lemma depth_of_segment_mem (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) :
     depth_of_segment m s hs ∈ depthSet m s := by
   unfold depth_of_segment
-  exact Set.mem_toFinset.mp (Finset.max'_mem _ _)
+  exact maximum_mem _ _
 
 /-- The depth bounds every element of `depthSet`. -/
 lemma le_depth_of_segment {m : Multisegment} {s : Segment} (hs : s ∈ m.segments) {j : ℕ}
     (hj : j ∈ depthSet m s) : j ≤ depth_of_segment m s hs := by
   unfold depth_of_segment
-  exact Finset.le_max' _ _ (Set.mem_toFinset.mpr hj)
+  exact le_maximum _ _ hj
 
 /-- Along the index list of a member of `depthSet`, segments are pairwise `≪`. -/
 private lemma ll_of_chain {m : Multisegment} {j : ℕ} (i : List ℕ) (hlen : i.length = j + 1)

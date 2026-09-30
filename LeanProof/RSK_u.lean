@@ -22,26 +22,10 @@ Correctness of the definitions in `RSK_t`: the assembled rungs form a ladder
 `RSK_t`) because they bundle proofs; their computational content —
 `ladderRungs` and `residual` — is trusted. -/
 
-/-- `foldl max` from any seed dominates the seed (`ℕ`). -/
-lemma le_foldlMaxNat_init (l : List ℕ) (i : ℕ) : i ≤ l.foldl max i := by
-  induction l generalizing i with
-  | nil => simp
-  | cons x xs ih => rw [List.foldl_cons]; exact le_trans (le_max_left i x) (ih (max i x))
-
-/-- `foldl max` dominates each member (`ℕ`). -/
-lemma le_foldlMaxNat_mem (l : List ℕ) (i x : ℕ) (hx : x ∈ l) : x ≤ l.foldl max i := by
-  induction l generalizing i with
-  | nil => simp at hx
-  | cons y ys ih =>
-    rw [List.foldl_cons]
-    rcases List.mem_cons.mp hx with rfl | hmem
-    · exact le_trans (le_max_right i x) (le_foldlMaxNat_init ys (max i x))
-    · exact ih (max i y) hmem
-
 lemma depth_le_maxDepth (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) :
     depth_of_segment m s hs ≤ maxDepth m := by
   unfold maxDepth
-  exact le_foldlMaxNat_mem _ _ _ (List.mem_map.mpr ⟨⟨s, hs⟩, by simp⟩)
+  exact le_maximum _ _ (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨⟨s, hs⟩, by simp, rfl⟩))
 
 /-- The rung dominates its bucket coordinatewise, and each coordinate is attained. -/
 lemma bucketRung_spec (m : Multisegment) (d : ℕ) (r : Segment)

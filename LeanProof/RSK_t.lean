@@ -35,7 +35,7 @@ def bucketRung (m : Multisegment) (d : ℕ) : Option Segment :=
 
 /-- Maximum depth over all segments of `m`. `0` for an empty multisegment. -/
 def maxDepth (m : Multisegment) : ℕ :=
-  (m.segments.attach.map (fun ⟨s, hs⟩ => depth_of_segment m s hs)).foldl max 0
+  maximum (0 :: [depth_of_segment m s | s ∈ m.segments])
 
 /-- All ladder rungs from bucket `maxDepth` down to bucket `0`. -/
 def ladderRungs (m : Multisegment) : List Segment :=
