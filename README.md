@@ -54,8 +54,9 @@ below.
 ## Dependency tree
 
 ```
-Fundamentals   project-wide macros (e.g. the index-validity rule for `l[i]`);
-               below everything, imported where needed
+Fundamentals   project-wide notation: the index-validity rule for `l[i]`, auto-proved
+               arguments `⟮p⟯`, `maximum` of a finite set, list comprehension
+               `[x ∈ l | p]`; below everything
 Basic          segments (= NonemptyInterval ℤ), multisegments, ≪, ⊆, lex order,
                Indices (index lists into a multisegment)
 ├── Ladder1    depthSet (the paper's depth set, by set comprehension);
@@ -79,7 +80,7 @@ Exact file-level imports (within the project):
 | file             | imports                                                        |
 |------------------|----------------------------------------------------------------|
 | `Fundamentals_t` | —                                                              |
-| `Basic_t`        | —                                                              |
+| `Basic_t`        | `Fundamentals_t`                                               |
 | `Basic_u`        | `Basic_t`                                                      |
 | `Basic_e`        | `Basic_t`, `Basic_u`                                           |
 | `Ladder1_t`      | `Fundamentals_t`, `Basic_t`, `Basic_u`                         |

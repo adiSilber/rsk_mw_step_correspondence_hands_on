@@ -55,14 +55,10 @@ lemma bucketRung_spec (m : Multisegment) (d : ℕ) (r : Segment)
     subst h
     rw [hL]
     refine ⟨fun x hx => ⟨?_, ?_⟩, ?_, ?_⟩
-    · exact List.le_max_of_mem (List.mem_map_of_mem hx)
-    · exact List.le_max_of_mem (List.mem_map_of_mem hx)
-    · obtain ⟨x, hxmem, hxa⟩ := List.exists_of_mem_map
-        (List.max_mem (by simp : (s :: ss).map (·.a) ≠ []))
-      exact ⟨x, hxmem, hxa⟩
-    · obtain ⟨x, hxmem, hxb⟩ := List.exists_of_mem_map
-        (List.max_mem (by simp : (s :: ss).map (·.b) ≠ []))
-      exact ⟨x, hxmem, hxb⟩
+    · exact le_maximum {(x.a) | x ∈ s :: ss} (nonempty_image_cons _ _ _) ⟨x, hx, rfl⟩
+    · exact le_maximum {(x.b) | x ∈ s :: ss} (nonempty_image_cons _ _ _) ⟨x, hx, rfl⟩
+    · exact maximum_mem {(x.a) | x ∈ s :: ss} (nonempty_image_cons _ _ _)
+    · exact maximum_mem {(x.b) | x ∈ s :: ss} (nonempty_image_cons _ _ _)
 
 /-- Consecutive rungs are strictly `≪`: the depth-`(d+1)` rung sits below depth-`d`. -/
 lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)

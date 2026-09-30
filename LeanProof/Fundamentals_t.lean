@@ -3,6 +3,7 @@ import Mathlib.Order.Defs.LinearOrder
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Max
 import Mathlib.Data.Finset.Empty
+import Mathlib.Data.Fintype.Sets
 
 /-! Project-wide macros and notation, shared by many parts. Lowest file in the hierarchy. -/
 
@@ -23,8 +24,9 @@ elab "⟮" p:term "⟯" : term => do
   let name ← declareTacticSyntax tac
   elabType (← `(autoParam $p $(mkIdent name)))
 
-def maxOf [LinearOrder α] (s : Finset α) (h : s.Nonempty := by grind) : α :=
-  Finset.max' s h
+/-- The maximum of a finite, nonempty set. -/
+def maximum [LinearOrder α] (S : Set α) [Fintype S] (h : ⟮S.Nonempty⟯) : α :=
+  S.toFinset.max' (Set.toFinset_nonempty.mpr h)
 
 /-- List comprehension `[x ∈ l | p x]`: the elements of `l` satisfying `p`, in order, with
 repeats; each comes with its proof of `x ∈ l` (available to `p`). -/

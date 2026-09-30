@@ -30,6 +30,10 @@ set_option linter.hashCommand false
 #eval Segment.a ⟨⟨5, 5⟩, by omega⟩  -- 5
 #eval Segment.b ⟨⟨5, 5⟩, by omega⟩  -- 5
 
+-- `Segment.mk a b`: the segment [a, b]; the proof of a ≤ b is found automatically.
+#eval Segment.mk 3 7  -- (3, 7)
+#eval Segment.mk 5 5  -- (5, 5) (singleton)
+
 -- Multisegment inclusion `subms` (segment lists as sublists).
 -- [(1,3)] ⊆ [(1,3),(2,4)] — true; edge cases: the empty multisegment is ⊆ anything,
 -- and inclusion fails when the order is wrong or an element is missing.

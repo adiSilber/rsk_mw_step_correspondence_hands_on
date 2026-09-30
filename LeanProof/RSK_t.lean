@@ -26,20 +26,12 @@ Corollary 2.3) and the `Ladder`-packaged step `rskStep` live in `RSK_u`. -/
 
 /-- The rung of bucket `d`: the largest begin point (carried by the innermost segment)
 paired with the largest end point (carried by the outermost). `none` for an empty
-bucket. The `by`-blocks are proofs, not computation: the two nonemptiness facts, and
-well-formedness — the largest `a` belongs to some segment, whose own `b` already
-bounds it from above. -/
+bucket. (Nonemptiness of the two sets and well-formedness of the segment are proved in
+`Basic_u` and found automatically.) -/
 def bucketRung (m : Multisegment) (d : ℕ) : Option Segment :=
   match (bucket m d).map (·.val) with
   | []      => none
-  | s :: ss =>
-    some ⟨⟨((s :: ss).map (·.a)).max (by simp), ((s :: ss).map (·.b)).max (by simp)⟩, by
-      obtain ⟨x, hxmem, hxa⟩ :=
-        List.exists_of_mem_map (List.max_mem (by simp : (s :: ss).map (·.a) ≠ []))
-      have hxb : x.b ≤ ((s :: ss).map (·.b)).max (by simp) :=
-        List.le_max_of_mem (List.mem_map_of_mem hxmem)
-      have hab : x.a ≤ x.b := x.fst_le_snd
-      omega⟩
+  | s :: ss => some (Segment.mk (maximum {(x.a) | x ∈ s :: ss}) (maximum {(x.b) | x ∈ s :: ss}))
 
 /-- Maximum depth over all segments of `m`. `0` for an empty multisegment. -/
 def maxDepth (m : Multisegment) : ℕ :=

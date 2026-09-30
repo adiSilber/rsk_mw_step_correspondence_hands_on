@@ -5,6 +5,7 @@ import Mathlib.Data.List.Pairwise
 import Mathlib.Logic.Relation
 import Mathlib.Order.Interval.Basic
 import Mathlib.Algebra.Order.Group.Int
+import LeanProof.Fundamentals_t
 
 set_option linter.style.setOption false
 set_option linter.flexible false
@@ -20,6 +21,9 @@ def a (s : Segment) : ℤ := s.fst
 def b (s : Segment) : ℤ := s.snd
 
 end Segment
+
+/-- The segment `[a, b]` (the proof of `a ≤ b` is found automatically). -/
+def Segment.mk (a b : ℤ) (h : ⟮a ≤ b⟯) : Segment := ⟨⟨a, b⟩, h⟩
 
 /-- Lexicographic order on segments: `s₁ ≤ s₂` iff `a₁ < a₂`, or `a₁ = a₂` and `b₁ ≤ b₂`. -/
 instance : LinearOrder Segment :=
