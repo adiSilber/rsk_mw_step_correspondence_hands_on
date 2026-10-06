@@ -52,6 +52,16 @@ instance : ∀(s₁ s₂ : Segment), Decidable (s₁ ⊆ s₂) := by
 instance : ∀ (ms₀ ms₁ : Multisegment), Decidable (ms₀ ⊆ ms₁) := by
   unfold subms; infer_instance
 
+/-! ### What `auto_prop` knows about segments (for `Segment a b`) -/
+
+/-- Every segment satisfies `a ≤ b`; `grind` learns it whenever it meets `s.a` or `s.b`. -/
+lemma Segment.a_le_b (s : Segment) : s.a ≤ s.b := s.fst_le_snd
+grind_pattern Segment.a_le_b => s.a
+grind_pattern Segment.a_le_b => s.b
+
+-- `grind` may unfold `⊆` and `≪` on segments.
+attribute [grind =] subsegment ll
+
 /-! ### `maximum` of `{f x | x ∈ l}` -/
 
 lemma maximum_mem {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) :
@@ -59,6 +69,18 @@ lemma maximum_mem {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty
 
 lemma le_maximum {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) {x : α}
     (hx : x ∈ S) : x ≤ maximum S h := Finset.le_max' _ _ (Set.mem_toFinset.mpr hx)
+
+@[simp] lemma mem_sorted {α} [LinearOrder α] {S : Set α} [Fintype S] {x : α} :
+    x ∈ sorted S ↔ x ∈ S := by
+  simp [sorted]
+
+lemma sorted_eq_nil {α} [LinearOrder α] {S : Set α} [Fintype S] (h : S = ∅) : sorted S = [] := by
+  apply List.eq_nil_iff_forall_not_mem.mpr; intro x hx; simp [h] at hx
+
+/-- The list comprehension `[f x | x ∈ l]` is `l.map f`. -/
+@[simp] lemma comprehension_map {α β} (l : List α) (f : α → β) :
+    List.map (fun ⟨x, _⟩ => f x) l.attach = l.map f := by
+  simp
 
 /-- `{f x | x ∈ l}` is finite: it is computed by `l.map f`. -/
 instance {α β} [DecidableEq β] (l : List α) (f : α → β) : Fintype {y | ∃ x ∈ l, f x = y} :=
@@ -86,7 +108,8 @@ lemma maximum_a_le_maximum_b (l : List Segment) (h₁ h₂) :
   rw [← hxa]
   exact le_trans x.fst_le_snd (le_maximum _ h₂ ⟨x, hx, rfl⟩)
 
--- Teach `auto_prop` (the tactic behind `⟮p⟯` arguments) the facts above.
+-- Teach `auto_prop` (the tactic that finds omitted proof arguments) the facts above.
+macro_rules | `(tactic| auto_prop) => `(tactic| exact List.getElem_mem _)
 macro_rules | `(tactic| auto_prop) => `(tactic| exact nonempty_mem_cons _ _)
 macro_rules | `(tactic| auto_prop) => `(tactic| exact nonempty_image_cons _ _ _)
 macro_rules | `(tactic| auto_prop) => `(tactic| exact maximum_a_le_maximum_b _ _ _)

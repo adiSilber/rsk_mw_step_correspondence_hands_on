@@ -5,6 +5,8 @@ import LeanProof.Ladder1_u
 import LeanProof.Ladder2_t
 import Mathlib.Data.List.Sort
 import Mathlib.Data.Finset.Sort
+import Mathlib.Data.List.Permutation
+import Mathlib.Data.List.GetD
 -- import Mathlib.Data.Set.Finite
 
 
@@ -42,7 +44,7 @@ lemma sorted_Sublist_append (R : α → α → Prop) [hasym : Std.Antisymm R]
     --
     simp; constructor
     · intro xl₁
-      rw [← hasym.antisymm a x] at hxl₀ <;> tauto
+      rw [← hasym.antisymm a x] at hxl₀; tauto
     · grind
   -- back to the main goal
   trans a :: l₂
@@ -249,9 +251,21 @@ lemma bucket_sink (ms : Multisegment) d s₁ s₂
     <;> try tauto
   all_goals { apply ll_ne_depth ms at rl; omega }
 
-/-- Proof-side name for the contents of `bucket` before the sort (the depth-`d` filter). -/
-private def bucketRaw (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
-  ms.segments.attach.filter fun ⟨s, hs⟩ => depth_of_segment ms s hs = d
+/-- Proof-side: the bucket sorted outermost-first by nesting (`y ⊆ x` ⇒ `x` before `y`).
+Public (like `MW.leadingChain`): the RSK proofs reason about this ordered list; it appears in
+no trusted statement. `RSK1_u` shows it lists the fiber in the order of `RSK.enumeration`. -/
+def sortedBucket (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
+  (bucket ms d).insertionSort (fun x y => y.val ⊆ x.val)
+
+@[simp] lemma mem_sortedBucket {ms : Multisegment} {d : ℕ} {x : {s : Segment // s ∈ ms.segments}} :
+    x ∈ sortedBucket ms d ↔ x ∈ bucket ms d := List.mem_insertionSort _
+
+lemma sortedBucket_perm (ms : Multisegment) (d : ℕ) : sortedBucket ms d ~ bucket ms d :=
+  List.perm_insertionSort _ _
+
+/-- Proof-side name for the contents of `bucket` (the depth-`d` filter). -/
+private abbrev bucketRaw (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
+  bucket ms d
 
 /-- The bucket is genuinely sorted by reverse inclusion: each later element is `⊆`
 each earlier one.
@@ -261,17 +275,17 @@ directly. The trick: on the subtype `{x // x ∈ bucketRaw ms d}` the order *is*
 (`bucket_sink`), so we sort the `attach`ed list there and transport the result back
 along `List.map_insertionSort`. -/
 lemma bucket_pairwise (ms : Multisegment) (d : ℕ) :
-    (bucket ms d).Pairwise
+    (sortedBucket ms d).Pairwise
       (fun x y : {s : Segment // s ∈ ms.segments} => y.val ⊆ x.val) := by
   haveI : Std.Total (fun x y : {x // x ∈ bucketRaw ms d} => (y.val.val : Segment) ⊆ x.val.val) :=
     ⟨fun x y => bucket_sink ms d y.val x.val
-      ((List.mem_insertionSort _).mpr y.prop) ((List.mem_insertionSort _).mpr x.prop)⟩
+      y.prop x.prop⟩
   haveI : IsTrans _ (fun x y : {x // x ∈ bucketRaw ms d} => (y.val.val : Segment) ⊆ x.val.val) :=
     ⟨fun x y z hxy hyz => by simp only [subsegment] at *; omega⟩
-  have key : bucket ms d =
+  have key : sortedBucket ms d =
       ((bucketRaw ms d).attach.insertionSort
         (fun x y => (y.val.val : Segment) ⊆ x.val.val)).map Subtype.val := by
-    rw [show bucket ms d
+    rw [show sortedBucket ms d
         = (bucketRaw ms d).insertionSort
             (fun x y : {s : Segment // s ∈ ms.segments} => y.val ⊆ x.val) from rfl,
       List.map_insertionSort _
@@ -284,13 +298,13 @@ lemma bucket_pairwise (ms : Multisegment) (d : ℕ) :
 /-- The bucket, projected to segments, is fully `⊇`-nested: each later element is `⊆`
 each earlier one. (The admissible-enumeration nesting `Δ_{ik1} ⊇ … ⊇ Δ_{ikl}`.) -/
 lemma bucket_nested (ms : Multisegment) (d : ℕ) :
-    ((bucket ms d).map (·.val)).Pairwise (fun s t => subsegment t s) := by
+    ((sortedBucket ms d).map (·.val)).Pairwise (fun s t => subsegment t s) := by
   rw [List.pairwise_map]
   exact bucket_pairwise ms d
 
 /-- The bucket, projected to segments, is `a`-ascending. -/
 lemma bucket_sorted (ms : Multisegment) (d : ℕ) :
-    ((bucket ms d).map (·.val)).Pairwise (·.a ≤ ·.a) :=
+    ((sortedBucket ms d).map (·.val)).Pairwise (·.a ≤ ·.a) :=
   (bucket_nested ms d).imp (fun h => h.1)
 
 /-- Consecutive list elements form a `zip`-with-tail pair. -/
@@ -465,3 +479,182 @@ lemma depth_interp (m : Multisegment) (s1 s2 : Segment) (hs1 : s1 ∈ m.segments
     have hs31 : s3 ⊆ s1 := depth_subset_of_a_lt m s1 s3 hs1 hs3 (by omega) (by omega)
     have h2s3 : s2 ⊆ s3 := depth_subset_of_b_lt m s2 s3 hs2 hs3 (by omega) (by omega)
     exact ⟨s3, hs3, h2s3, hs31, hs3d⟩
+
+/-! ## Admissible enumerations: decidable and finite
+
+An admissible enumeration of `𝔡⁻¹(k)` is a permutation of the list of indices of depth `k`
+(`fiberIdx`), so the set of them is computed by filtering those permutations. -/
+
+/-- Membership in `admissibleEnumerations`, with `l` determined by the length of `i`. -/
+lemma mem_admissibleEnumerations_iff {m : Multisegment} {k : ℕ} {i : List ℕ} :
+    i ∈ admissibleEnumerations m k ↔
+      ∃ h : i ∈ Indices (i.length - 1) m ∧ 0 < i.length,
+        (∀ n : Fin m.segments.length, (↑n ∈ i ↔ depth_of_segment m m.segments[n] = k)) ∧
+        (∀ r (hr : r < i.length - 1), m.segments[i[r + 1]] ⊆ m.segments[i[r]]) := by
+  constructor
+  · rintro ⟨⟨l, hl⟩, h1, h2⟩
+    have hl' : l = i.length - 1 := by have := hl.1; omega
+    subst hl'
+    exact ⟨⟨hl, by have := hl.1; omega⟩, h1, h2⟩
+  · rintro ⟨h, h1, h2⟩
+    exact ⟨⟨i.length - 1, h.1⟩, h1, h2⟩
+
+instance (m : Multisegment) (k : ℕ) (i : List ℕ) :
+    Decidable (i ∈ admissibleEnumerations m k) :=
+  decidable_of_iff _ mem_admissibleEnumerations_iff.symm
+
+/-- The indices of depth `k`, in increasing order. -/
+private def fiberIdx (m : Multisegment) (k : ℕ) : List ℕ :=
+  ((List.finRange m.segments.length).filter
+    (fun j : Fin m.segments.length => depth_of_segment m m.segments[j] = k)).map Fin.val
+
+private lemma mem_fiberIdx {m : Multisegment} {k n : ℕ} :
+    n ∈ fiberIdx m k ↔
+      ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k ∧ j.val = n := by
+  simp [fiberIdx]
+
+private lemma nodup_fiberIdx (m : Multisegment) (k : ℕ) : (fiberIdx m k).Nodup :=
+  ((List.nodup_finRange _).filter _).map Fin.val_injective
+
+/-- An admissible enumeration is a permutation of the indices of depth `k`. -/
+lemma perm_fiberIdx_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
+    (h : i ∈ admissibleEnumerations m k) : i ~ fiberIdx m k := by
+  obtain ⟨⟨l, hlen, hnd, hlt⟩, h1, -⟩ := h
+  refine (List.perm_ext_iff_of_nodup hnd (nodup_fiberIdx m k)).mpr fun n => ?_
+  rw [mem_fiberIdx]
+  constructor
+  · intro hn
+    exact ⟨⟨n, hlt n hn⟩, (h1 ⟨n, hlt n hn⟩).mp hn, rfl⟩
+  · rintro ⟨j, hj, rfl⟩
+    exact (h1 j).mpr hj
+
+instance (m : Multisegment) (k : ℕ) : Fintype (admissibleEnumerations m k) :=
+  Fintype.ofFinset
+    (((fiberIdx m k).permutations.filter
+      (fun i => decide (i ∈ admissibleEnumerations m k))).toFinset)
+    (fun i => by
+      simp only [List.mem_toFinset, List.mem_filter, List.mem_permutations, decide_eq_true_eq]
+      exact ⟨fun h => h.2, fun h => ⟨perm_fiberIdx_of_mem h, h⟩⟩)
+
+private lemma attach_eq_map_finRange {α} (l : List α) :
+    l.attach = (List.finRange l.length).map
+      (fun j : Fin l.length => (⟨l[j], List.getElem_mem _⟩ : {x // x ∈ l})) := by
+  apply List.ext_getElem <;> simp
+
+/-- Proof-side `Δᵢ`: the `i`-th segment of `m`, with a junk value for an invalid `i`. -/
+private def Multisegment.Δ (m : Multisegment) (i : ℕ) : Segment :=
+  m.segments.getD i ⟨⟨0, 0⟩, le_rfl⟩
+
+/-- The segments of depth `k`, in index order, are the bucket. -/
+private lemma fiberIdx_map_Δ (m : Multisegment) (k : ℕ) :
+    (fiberIdx m k).map m.Δ = (bucket m k).map (·.val) := by
+  unfold fiberIdx bucket
+  rw [attach_eq_map_finRange, List.filter_map, List.map_map, List.map_map]
+  apply List.map_congr_left
+  intro j _
+  simp [Multisegment.Δ]
+
+private lemma Δ_eq {m : Multisegment} {n : ℕ} (h : n < m.segments.length) :
+    m.Δ n = m.segments[n] := by
+  simp [Multisegment.Δ, h]
+
+private lemma perm_bucket_of_mem_Δ {m : Multisegment} {k : ℕ} {i : List ℕ}
+    (h : i ∈ admissibleEnumerations m k) : i.map m.Δ ~ (bucket m k).map (·.val) := by
+  rw [← fiberIdx_map_Δ]; exact (perm_fiberIdx_of_mem h).map _
+
+private lemma pairwise_of_mem_Δ {m : Multisegment} {k : ℕ} {i : List ℕ}
+    (h : i ∈ admissibleEnumerations m k) : (i.map m.Δ).Pairwise (fun s t => subsegment t s) := by
+  obtain ⟨⟨l, hlen, _, hlt⟩, _, hchain⟩ := h
+  haveI : IsTrans Segment (fun s t => subsegment t s) :=
+    ⟨fun _ _ _ h₁ h₂ => by simp only [subsegment] at *; omega⟩
+  apply List.IsChain.pairwise
+  rw [List.isChain_iff_getElem]
+  intro r hr
+  simp only [List.length_map] at hr
+  simp only [List.getElem_map]
+  rw [Δ_eq (hlt _ (List.getElem_mem _)), Δ_eq (hlt _ (List.getElem_mem _))]
+  have hm := List.length_map (f := m.Δ) (as := i)
+  exact hchain r (by change r < l; omega)
+
+/-- The indices of an admissible enumeration are valid indices of `m`. -/
+lemma lt_length_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : List ℕ}
+    (h : i ∈ admissibleEnumerations m k) : ∀ j ∈ i, j < m.segments.length := by
+  obtain ⟨⟨l, _, _, hlt⟩, _⟩ := h
+  exact hlt
+
+private lemma pmap_eq_map_Δ {m : Multisegment} {i : List ℕ}
+    (hlt : ∀ j ∈ i, j < m.segments.length) :
+    i.pmap (fun j hj => m.segments[j]) hlt = i.map m.Δ := by
+  apply List.ext_getElem
+  · simp
+  · intro n h₁ h₂
+    simp [Δ_eq (hlt _ (List.getElem_mem (by simpa using h₁)))]
+
+/-- An admissible enumeration lists the segments of the bucket (as a multiset). -/
+lemma perm_bucket_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
+    (h : i ∈ admissibleEnumerations m k) (hlt : ∀ j ∈ i, j < m.segments.length) :
+    i.pmap (fun j hj => m.segments[j]) hlt ~ (bucket m k).map (·.val) := by
+  rw [pmap_eq_map_Δ]; exact perm_bucket_of_mem_Δ h
+
+/-- An admissible enumeration lists its segments outermost-first. -/
+lemma pairwise_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
+    (h : i ∈ admissibleEnumerations m k) (hlt : ∀ j ∈ i, j < m.segments.length) :
+    (i.pmap (fun j hj => m.segments[j]) hlt).Pairwise (fun s t => subsegment t s) := by
+  rw [pmap_eq_map_Δ]; exact pairwise_of_mem_Δ h
+
+/-- If no segment has depth `k`, there is no admissible enumeration of `𝔡⁻¹(k)`. -/
+lemma admissibleEnumerations_eq_empty {m : Multisegment} {k : ℕ}
+    (h : ∀ j : Fin m.segments.length, depth_of_segment m m.segments[j] ≠ k) :
+    admissibleEnumerations m k = ∅ := by
+  ext i
+  simp only [Set.mem_empty_iff_false, iff_false]
+  intro hi
+  obtain ⟨⟨l, hlen, -, hlt⟩, h1, -⟩ := hi
+  have h0 : i[0] ∈ i := List.getElem_mem (by omega)
+  exact h ⟨i[0], hlt _ h0⟩ ((h1 ⟨i[0], hlt _ h0⟩).mp h0)
+
+/-- If some segment has depth `k`, an admissible enumeration of `𝔡⁻¹(k)` exists: the
+indices of depth `k` sorted by nesting. -/
+lemma admissibleEnumerations_nonempty {m : Multisegment} {k : ℕ}
+    (h : ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k) :
+    (admissibleEnumerations m k).Nonempty := by
+  -- the depth-`k` indices are pairwise `⊆`-comparable
+  have hcmp : ∀ x ∈ fiberIdx m k, ∀ y ∈ fiberIdx m k,
+      subsegment (m.Δ x) (m.Δ y) ∨ subsegment (m.Δ y) (m.Δ x) := by
+    intro x hx y hy
+    obtain ⟨jx, hjx, rfl⟩ := mem_fiberIdx.mp hx
+    obtain ⟨jy, hjy, rfl⟩ := mem_fiberIdx.mp hy
+    rw [Δ_eq jx.2, Δ_eq jy.2]
+    exact bucket_sink m k ⟨m.segments[jx], List.getElem_mem _⟩ ⟨m.segments[jy], List.getElem_mem _⟩
+      (by simp [bucket]; exact hjx) (by simp [bucket]; exact hjy)
+  -- so sorting them by nesting gives an admissible enumeration
+  let R : ℕ → ℕ → Prop := fun x y => subsegment (m.Δ y) (m.Δ x)
+  let e := (fiberIdx m k).insertionSort R
+  haveI : Std.Total (fun x y : {x // x ∈ fiberIdx m k} => R x.val y.val) :=
+    ⟨fun x y => (hcmp y.val y.prop x.val x.prop)⟩
+  haveI : IsTrans _ (fun x y : {x // x ∈ fiberIdx m k} => R x.val y.val) :=
+    ⟨fun _ _ _ h₁ h₂ => by simp only [R, subsegment] at *; omega⟩
+  have hsorted : e.Pairwise R := by
+    have key : e = ((fiberIdx m k).attach.insertionSort
+        (fun x y : {x // x ∈ fiberIdx m k} => R x.val y.val)).map Subtype.val := by
+      rw [List.map_insertionSort _ R Subtype.val _ (fun _ _ _ _ => Iff.rfl),
+        List.attach_map_subtype_val]
+    rw [key, List.pairwise_map]
+    exact List.pairwise_insertionSort _ _
+  have hperm : e ~ fiberIdx m k := List.perm_insertionSort _ _
+  have hlt : ∀ n ∈ e, n < m.segments.length := fun n hn => by
+    obtain ⟨j, -, rfl⟩ := mem_fiberIdx.mp (hperm.subset hn); exact j.2
+  obtain ⟨j, hj⟩ := h
+  have hpos : 0 < e.length := by
+    rw [hperm.length_eq]
+    exact List.length_pos_of_mem (mem_fiberIdx.mpr ⟨j, hj, rfl⟩)
+  refine ⟨e, mem_admissibleEnumerations_iff.mpr
+    ⟨⟨⟨by omega, hperm.nodup_iff.mpr (nodup_fiberIdx m k), hlt⟩, hpos⟩, ?_, ?_⟩⟩
+  · intro n
+    rw [hperm.mem_iff, mem_fiberIdx]
+    exact ⟨fun ⟨j', hj', hj'n⟩ => by rw [← Fin.ext hj'n]; exact hj',
+      fun hn => ⟨n, hn, rfl⟩⟩
+  · intro r hr
+    have := List.pairwise_iff_getElem.mp hsorted r (r + 1) (by omega) (by omega) (by omega)
+    simp only [R] at this
+    rwa [Δ_eq (hlt _ (List.getElem_mem _)), Δ_eq (hlt _ (List.getElem_mem _))] at this

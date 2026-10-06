@@ -22,8 +22,8 @@ def b (s : Segment) : ℤ := s.snd
 
 end Segment
 
-/-- The segment `[a, b]` (the proof of `a ≤ b` is found automatically). -/
-def Segment.mk (a b : ℤ) (h : ⟮a ≤ b⟯) : Segment := ⟨⟨a, b⟩, h⟩
+/-- `Segment a b` is the segment `[a, b]`; the proof of `a ≤ b` is found automatically. -/
+macro_rules | `(Segment $a:term $b:term) => `((⟨⟨$a, $b⟩, by auto_prop⟩ : Segment))
 
 /-- Lexicographic order on segments: `s₁ ≤ s₂` iff `a₁ < a₂`, or `a₁ = a₂` and `b₁ ≤ b₂`. -/
 instance : LinearOrder Segment :=
