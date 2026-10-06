@@ -13,6 +13,10 @@ is needed is tagged `grind =` in a `_u` file (e.g. `Indices`, in `Basic_u`). -/
 macro_rules
   | `(tactic| get_elem_tactic_extensible) => `(tactic| grind [List.getElem_mem])
 
+/-- `p → q` keeps the fact `p` available while reading `q`, so that `l[i]` inside `q` needs no
+proof. The resulting proposition is unchanged. -/
+macro_rules | `($p → $q) => `(∀ (_ : $p), $q)
+
 /-- The tactic that finds omitted proof arguments (see the rule below). `grind`, extended by
 `macro_rules` in `_u` files with the facts it should know. -/
 syntax "auto_prop" : tactic
