@@ -53,6 +53,28 @@ function is expected), each missing proof is found by `auto_prop`. -/
 
 end AutoProp
 
+/-- `x ∈ s` reads the container `s` first, so that `x` is converted to its element type
+(e.g. an index `n : Fin k` may be tested for membership in a `List ℕ`). -/
+syntax "mem_coe% " term:max ppSpace term:max : term
+
+open Lean Elab Term Meta in
+elab_rules : term <= expected?
+  | `(mem_coe% $s $x) => do
+    let s ← elabTerm s none
+    let γ ← instantiateMVars (← inferType s)
+    let u ← mkFreshLevelMVar; let v ← mkFreshLevelMVar
+    let α ← mkFreshTypeMVar
+    if !γ.hasExprMVar then
+      -- the container's type is known: fix the element type first, then read `x` against it
+      if let some inst ← observing? (synthInstance (mkApp2 (.const ``Membership [u, v]) α γ)) then
+        let x ← elabTermEnsuringType x (← instantiateMVars α)
+        return mkApp5 (.const ``Membership.mem [u, v]) α γ inst s x
+    -- otherwise: the ordinary reading of `Membership.mem s x`
+    elabAppArgs (.const ``Membership.mem [u, v]) #[] #[.expr s, .stx x] expected?
+      (explicit := false) (ellipsis := false)
+
+macro_rules | `($x ∈ $s) => `(mem_coe% $s $x)
+
 /-- A list can be used where a set is expected: the set of its members. -/
 instance {α} : Coe (List α) (Set α) := ⟨fun l => {x | x ∈ l}⟩
 

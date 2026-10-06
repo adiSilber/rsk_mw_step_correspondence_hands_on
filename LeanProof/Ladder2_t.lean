@@ -31,6 +31,6 @@ def admissibleEnumerations (m : Multisegment) (k : ℕ) : Set (List ℕ) :=
     -- i = i₀, …, i_l, distinct indices into m
     ∃ l : {l : ℕ // (i ∈ Indices l m)},
     -- {i₀, …, i_l} = 𝔡⁻¹(k)
-    (∀ n : Fin m.segments.length, (↑n ∈ i ↔ depth_of_segment m m.segments[n] = k)) ∧
+    (∀ n : Fin m.segments.length, (n ∈ i ↔ depth_of_segment m m.segments[n] = k)) ∧
     -- Δ_{i₀} ⊃ … ⊃ Δ_{i_l}
     (∀ r : ℕ, r < l → m.segments[i[r + 1]] ⊆ m.segments[i[r]]) }
