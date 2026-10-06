@@ -33,4 +33,4 @@ def admissibleEnumerations (m : Multisegment) (k : ℕ) : Set (List ℕ) :=
     -- {i₀, …, i_l} = 𝔡⁻¹(k)
     (∀ n : Fin m.segments.length, (↑n ∈ i ↔ depth_of_segment m m.segments[n] = k)) ∧
     -- Δ_{i₀} ⊃ … ⊃ Δ_{i_l}
-    (∀ r (hr : r < ↑l), m.segments[i[r + 1]] ⊆ m.segments[i[r]]) }
+    (∀ r : ℕ, r < l → m.segments[i[r + 1]] ⊆ m.segments[i[r]]) }
