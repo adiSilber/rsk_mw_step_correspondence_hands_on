@@ -128,4 +128,11 @@ the proof of `x ∈ l` is available to `f`. -/
 macro "[" f:term " | " x:ident " ∈ " l:term "]" : term =>
   `(List.map (fun ⟨$x, _⟩ => $f) (List.attach $l))
 
+/-- The same over a list of pairs: `[f x y | (x, y) ∈ l]`. -/
+macro "[" f:term " | " "(" x:ident ", " y:ident ")" " ∈ " l:term "]" : term =>
+  `(List.map (fun ⟨⟨$x, $y⟩, _⟩ => $f) (List.attach $l))
+
+/-- The consecutive pairs `(l₀, l₁), (l₁, l₂), …` of a list. -/
+abbrev consecutive {α} (l : List α) : List (α × α) := l.zip l.tail
+
 -- todo: write the autogenerate versions of maximum for other set functions

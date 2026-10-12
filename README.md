@@ -58,7 +58,8 @@ below.
 Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i]`
                bounds are found by `auto_prop` (= `grind`, taught facts in `_u` files),
                `maximum`, `first` and `sorted` of a finite set, list comprehensions `[x ∈ l | p]`,
-               `[f x | x ∈ l]`, lists usable as sets, `p → q` keeps `p` in scope for `q`,
+               `[f x | x ∈ l]`, `[f x y | (x, y) ∈ l]`, `consecutive l` (its neighbouring
+               pairs), lists usable as sets, `p → q` keeps `p` in scope for `q`,
                `x ∈ s` converts `x` to the element type of `s`; below everything
 Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, ≪, ⊆,
                lex order, Indices (index lists into a multisegment)

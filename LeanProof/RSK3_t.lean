@@ -36,10 +36,10 @@ def maxDepth (m : Multisegment) (h : m.segments ≠ []) : ℕ :=
 def ladderRungs (m : Multisegment) : List Segment :=
   sorted { r | ∃ k, bucketRung m k = some r }
 
-/-- Residual of `𝔡⁻¹(d)` (paper (2.1a)): consecutive segments `Δ_{i_r} ⊇ Δ_{i_{r+1}}` of our
-enumeration give `[b(Δ_{i_r}), e(Δ_{i_{r+1}})]`. -/
+/-- Paper (2.1a): `Δ'_i = [b(Δ_i), e(Δ_{i^∨})]` for the consecutive pairs `(Δ_i, Δ_{i^∨})` of
+the fiber `𝔡⁻¹(d)` (in the order of our enumeration). -/
 def bucketResidual (m : Multisegment) (d : ℕ) : List Segment :=
-  [Segment p.1.a p.2.b | p ∈ (fiber m d).zip (fiber m d).tail]
+  [Segment s.a t.b | (s, t) ∈ consecutive (fiber m d)]
 
 -- /-- `i^\vee`: the nesting successor of `s` in bucket `d` (the next, more-inner segment in
 -- admissible order); `none` if `s` is the innermost element. -/

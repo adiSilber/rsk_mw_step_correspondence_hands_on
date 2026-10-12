@@ -48,20 +48,20 @@ lemma fiber_eq (m : Multisegment) (k : ℕ) : fiber m k = (sortedBucket m k).map
     simp [enumeration_eq_nil h]
 
 /-- Consecutive segments of the fiber are nested, so `[s.a, t.b]` is a segment. -/
-lemma fiber_zip_a_le_b {m : Multisegment} {k : ℕ} {p : Segment × Segment}
-    (hp : p ∈ (fiber m k).zip (fiber m k).tail) : p.1.a ≤ p.2.b := by
+lemma consecutive_a_le_b {m : Multisegment} {k : ℕ} {s t : Segment}
+    (hp : (s, t) ∈ consecutive (fiber m k)) : s.a ≤ t.b := by
   rw [fiber_eq] at hp
-  obtain ⟨l₁, l₂, hsplit⟩ := zip_tail_split _ p.1 p.2 hp
+  obtain ⟨l₁, l₂, hsplit⟩ := zip_tail_split _ s t hp
   have hnested := bucket_nested m k
   rw [hsplit] at hnested
-  have hts : subsegment p.2 p.1 :=
-    (List.pairwise_cons.mp (List.pairwise_append.mp hnested).2.1).1 p.2 (by simp)
-  have := p.2.fst_le_snd
+  have hts : subsegment t s :=
+    (List.pairwise_cons.mp (List.pairwise_append.mp hnested).2.1).1 t (by simp)
+  have := t.fst_le_snd
   simp only [subsegment, Segment.a, Segment.b] at hts ⊢
   omega
 
--- `auto_prop` uses it for `Segment p.1.a p.2.b` in `bucketResidual`.
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply fiber_zip_a_le_b; assumption))
+-- `auto_prop` uses it for `Segment s.a t.b` in `bucketResidual`.
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply consecutive_a_le_b; assumption))
 
 /-- A rung exists only at the depth of some segment, so below `m.segments.length`. -/
 lemma lt_length_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
