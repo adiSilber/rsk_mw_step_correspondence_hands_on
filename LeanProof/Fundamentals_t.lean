@@ -156,7 +156,5 @@ macro "[" f:term " | " bs:comprehension_binder,+ "]" : term => do
       else `(List.flatMap (fun $pat => $body) (List.attach $l))
   return body
 
-/-- The consecutive pairs `(l₀, l₁), (l₁, l₂), …` of a list. -/
-abbrev consecutive {α} (l : List α) : List (α × α) := l.zip l.tail
 
 -- todo: write the autogenerate versions of maximum for other set functions

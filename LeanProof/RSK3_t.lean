@@ -23,9 +23,8 @@ One step of the RSK / MW algorithm: given a multisegment `m`, produce the
 maximal ladder rungs and the residual multisegment.
 
 Each bucket's rung is the coordinatewise max of its segments (`bucketRung`);
-`ladderRungs` assembles them deepest-first. The residual replaces each
-consecutive nested pair `(s, t)` of a bucket by the derived segment
-`[s.a, t.b]`. The correctness lemmas (`ladderRungs_isLadder`, Lemma 2.2,
+`ladderRungs` is the set of them. The residual replaces each neighbouring pair
+`Δᵢ, Δᵢ₊₁` of a fiber by the derived segment `[Δᵢ.a, Δᵢ₊₁.b]`. The correctness lemmas (`ladderRungs_isLadder`, Lemma 2.2,
 Corollary 2.3) and the `Ladder`-packaged step `rskStep` live in `RSK3_u`. -/
 
 /-- `d(m) = max_{i ∈ I} 𝔡(i)`, the depth of a nonzero multisegment. -/
@@ -36,10 +35,10 @@ def maxDepth (m : Multisegment) (h : m.segments ≠ []) : ℕ :=
 def ladderRungs (m : Multisegment) : Set Segment :=
   { r | ∃ k, bucketRung m k = some r }
 
-/-- Paper (2.1a): `Δ'_i = [b(Δ_i), e(Δ_{i^∨})]` for the consecutive pairs `(Δ_i, Δ_{i^∨})` of
-the fiber `𝔡⁻¹(d)` (in the order of our enumeration). -/
+/-- Paper (2.1a): `Δ'_i = [b(Δ_i), e(Δ_{i^∨})]` where `Δ_{i^∨} = Δ_{i+1}` is
+the next segment of the fiber `𝔡⁻¹(d)` (in the order of our enumeration). -/
 def bucketResidual (m : Multisegment) (d : ℕ) : List Segment :=
-  [Segment s.a t.b | (s, t) ∈ consecutive (fiber m d)]
+  [Segment (fiber m d)[i].a (fiber m d)[i + 1].b | i < (fiber m d).length - 1]
 
 -- /-- `i^\vee`: the nesting successor of `s` in bucket `d` (the next, more-inner segment in
 -- admissible order); `none` if `s` is the innermost element. -/

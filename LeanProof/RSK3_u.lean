@@ -294,6 +294,46 @@ end RSK
 
 namespace RSK
 
+/-- Membership in `bucketResidual`, unfolded: `w = [Δᵢ.a, Δᵢ₊₁.b]` for some position `i`. -/
+lemma mem_bucketResidual_iff {m : Multisegment} {d : ℕ} {w : Segment} :
+    w ∈ bucketResidual m d ↔
+      ∃ i, ∃ _ : i + 1 < (fiber m d).length,
+        w.a = (fiber m d)[i].a ∧ w.b = (fiber m d)[i + 1].b := by
+  unfold bucketResidual
+  simp only [List.mem_map, List.mem_attach, true_and, Subtype.exists, List.mem_range]
+  constructor
+  · rintro ⟨i, hi, rfl⟩
+    exact ⟨i, by omega, rfl, rfl⟩
+  · rintro ⟨i, hi, hwa, hwb⟩
+    exact ⟨i, by omega, seg_ext hwa.symm hwb.symm⟩
+
+/-- Every residual segment of a fiber comes from a split `fiber = l₁ ++ i :: t :: l₂`. -/
+lemma bucketResidual_source {m : Multisegment} {d : ℕ} {w : Segment}
+    (hw : w ∈ bucketResidual m d) :
+    ∃ (i t : Segment) (l₁ l₂ : List Segment),
+      fiber m d = l₁ ++ i :: t :: l₂ ∧ w.a = i.a ∧ w.b = t.b := by
+  obtain ⟨j, hj, hwa, hwb⟩ := mem_bucketResidual_iff.mp hw
+  refine ⟨(fiber m d)[j], (fiber m d)[j + 1], (fiber m d).take j, (fiber m d).drop (j + 2),
+    ?_, hwa, hwb⟩
+  conv_lhs => rw [← List.take_append_drop j (fiber m d)]
+  rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_getElem_cons (by omega)]
+
+/-- Conversely, every split `fiber = l₁ ++ i :: t :: l₂` contributes `[i.a, t.b]`. -/
+lemma mem_bucketResidual_of_split {m : Multisegment} {d : ℕ} {i t : Segment}
+    {l₁ l₂ : List Segment} (hsplit : fiber m d = l₁ ++ i :: t :: l₂) :
+    ∃ w ∈ bucketResidual m d, w.a = i.a ∧ w.b = t.b := by
+  have hlen : l₁.length + 1 < (fiber m d).length := by rw [hsplit]; simp
+  have hi : (fiber m d)[l₁.length] = i := by
+    rw [List.getElem_of_eq hsplit]; simp
+  have ht : (fiber m d)[l₁.length + 1] = t := by
+    rw [List.getElem_of_eq hsplit]; simp
+  refine ⟨Segment (fiber m d)[l₁.length].a (fiber m d)[l₁.length + 1].b,
+    mem_bucketResidual_iff.mpr ⟨l₁.length, hlen, rfl, rfl⟩, ?_, ?_⟩
+  · show (fiber m d)[l₁.length].a = i.a
+    rw [hi]
+  · show (fiber m d)[l₁.length + 1].b = t.b
+    rw [ht]
+
 /-- The residual's segments are the fibers' residuals, concatenated and sorted. -/
 lemma residual_segments (m : Multisegment) (h : m.segments ≠ []) :
     (residual m h).segments =

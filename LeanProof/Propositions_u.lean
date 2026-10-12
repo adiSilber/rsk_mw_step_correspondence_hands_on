@@ -73,12 +73,9 @@ lemma residual_source (m : Multisegment) (hm : m.segments ≠ []) (w : Segment)
     rw [RSK.residual_segments] at hw
     exact (List.perm_insertionSort (· ≤ ·) _).mem_iff.mp hw
   obtain ⟨d, hd, hwd⟩ := List.mem_flatMap.mp hraw
-  simp only [RSK.bucketResidual] at hwd
-  obtain ⟨⟨⟨i, t⟩, hpair⟩, -, hfw⟩ := List.mem_map.mp hwd
-  rw [RSK.fiber_eq] at hpair
-  obtain ⟨l₁, l₂, hsplit⟩ := zip_tail_split _ i t hpair
-  exact ⟨d, i, t, l₁, l₂, Nat.lt_succ_iff.mp (List.mem_range.mp hd), hsplit,
-    by rw [← hfw]; rfl, by rw [← hfw]; rfl⟩
+  obtain ⟨i, t, l₁, l₂, hsplit, hwa, hwb⟩ := RSK.bucketResidual_source hwd
+  rw [RSK.fiber_eq] at hsplit
+  exact ⟨d, i, t, l₁, l₂, Nat.lt_succ_iff.mp (List.mem_range.mp hd), hsplit, hwa, hwb⟩
 
 /-- A residual segment of any in-range bucket lands in the residual. -/
 lemma mem_residual_of_bucket (m : Multisegment) (hm : m.segments ≠ []) {d : ℕ}
@@ -92,12 +89,8 @@ into the bucket residual. -/
 lemma derived_mem_bucketResidual (m : Multisegment) (d : ℕ) (i t : Segment)
     (l₁ l₂ : List Segment) (hsplit : (sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂) :
     ∃ w ∈ RSK.bucketResidual m d, w.a = i.a ∧ w.b = t.b := by
-  have hpair : (i, t) ∈
-      (((sortedBucket m d).map (·.val)).zip ((sortedBucket m d).map (·.val)).tail) := by
-    rw [hsplit]; exact mem_zip_tail_of_split l₁ i t l₂
-  rw [← RSK.fiber_eq] at hpair
-  simp only [RSK.bucketResidual]
-  exact ⟨_, List.mem_map.mpr ⟨⟨(i, t), hpair⟩, List.mem_attach _ _, rfl⟩, rfl, rfl⟩
+  rw [← RSK.fiber_eq] at hsplit
+  exact RSK.mem_bucketResidual_of_split hsplit
 
 /-- Every begin-point in the residual is `≥ min m`. -/
 lemma residual_begin_ge (m : Multisegment) (sₘ : Segment)
