@@ -44,13 +44,14 @@ set_option linter.hashCommand false
 #eval decide ((⟨[⟨⟨2, 4⟩, by omega⟩], by simp⟩ : Multisegment)
   ⊆ ⟨[⟨⟨1, 3⟩, by omega⟩], by simp⟩)  -- false
 
--- `Indices j m`: lists of j + 1 distinct indices into m = [(1,3), (1,4), (2,5)].
+-- `Indices n m`: lists of n distinct indices into m = [(1,3), (1,4), (2,5)].
 def m_three : Multisegment :=
   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 4⟩, by omega⟩, ⟨⟨2, 5⟩, by omega⟩], by decide⟩
 
-#eval decide ([0, 2] ∈ Indices 1 m_three)  -- true (length 2 = 1 + 1, entries < 3)
-#eval decide ([0, 2] ∈ Indices 0 m_three)  -- false (length 2 ≠ 0 + 1)
-#eval decide ([0, 3] ∈ Indices 1 m_three)  -- false (index 3 out of range)
-#eval decide ([1, 1] ∈ Indices 1 m_three)  -- false (index 1 is repeated)
-#eval decide ([2, 0] ∈ Indices 1 m_three)  -- true (any order is allowed)
-#eval decide ([0] ∈ Indices 0 ⟨[], by decide⟩)  -- false (empty m: no valid index)
+#eval decide ([0, 2] ∈ Indices 2 m_three)  -- true (2 indices, entries < 3)
+#eval decide ([0, 2] ∈ Indices 1 m_three)  -- false (2 indices, not 1)
+#eval decide ([0, 3] ∈ Indices 2 m_three)  -- false (index 3 out of range)
+#eval decide ([1, 1] ∈ Indices 2 m_three)  -- false (index 1 is repeated)
+#eval decide ([2, 0] ∈ Indices 2 m_three)  -- true (any order is allowed)
+#eval decide ([] ∈ Indices 0 m_three)  -- true (no indices)
+#eval decide ([0] ∈ Indices 1 ⟨[], by decide⟩)  -- false (empty m: no valid index)

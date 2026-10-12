@@ -42,12 +42,8 @@ lemma isChain_imp_sorted (l : List Segment) (h : isChain l) : l.Pairwise (· ≤
 lemma isChain_snoc (l : List Segment) (hne : l ≠ [])
     (h : isChain l) (x : Segment) (h_link : chainLink (l.getLast hne) x) :
     isChain (l ++ [x]) := by
-  apply List.IsChain.append h (List.IsChain.singleton x)
-  intros a ha b hb
-  rw [List.getLast?_eq_some_getLast hne] at ha
-  simp at ha hb
-  subst ha; subst hb
-  exact h_link
+  -- the link condition is found automatically (from `h_link`)
+  exact List.IsChain.append h (List.IsChain.singleton x)
 
 /-- `extendChain.go` preserves `isChain`. -/
 lemma extendChain.go_isChain

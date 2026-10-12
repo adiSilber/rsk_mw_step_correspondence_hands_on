@@ -82,6 +82,10 @@ instance {α} : Coe (List α) (Set α) := ⟨fun l => {x | x ∈ l}⟩
 def maximum [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
   S.toFinset.max' (Set.toFinset_nonempty.mpr h)
 
+/-- The first element of a finite, nonempty set. -/
+def first [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
+  S.toFinset.min' (Set.toFinset_nonempty.mpr h)
+
 /-- The elements of a finite set, in increasing order. -/
 def sorted [LinearOrder α] (S : Set α) [Fintype S] : List α :=
   S.toFinset.sort (· ≤ ·)

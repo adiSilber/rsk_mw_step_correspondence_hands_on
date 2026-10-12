@@ -44,9 +44,10 @@ The parts are layered with a strict import discipline:
   imports an `_e` file, so this adds nothing to the trusted surface.
 
 Every definition in a `_u` file is `private`, so no lemma statement outside
-that file can depend on it — with one sanctioned exception, `MW.leadingChain`
-(public in `MW_u`; it is the object the proposition layer reasons about, and it
-appears in **no** trusted statement).
+that file can depend on it — with two sanctioned exceptions, `MW.leadingChain`
+(public in `MW_u`) and `sortedBucket` (public in `Ladder2_u`, the bucket sorted by
+nesting; `RSK2_u` proves `RSK.fiber m k` equals it). Both are objects the proposition
+layer reasons about, and they appear in **no** trusted statement.
 
 "Earlier" refers not to a single linear chain but to the dependency **tree**
 below.
@@ -54,15 +55,21 @@ below.
 ## Dependency tree
 
 ```
-Fundamentals   project-wide notation: the index-validity rule for `l[i]`, auto-proved
-               arguments `⟮p⟯`, `maximum` of a finite set, list comprehension
-               `[x ∈ l | p]`; below everything
-Basic          segments (= NonemptyInterval ℤ), multisegments, ≪, ⊆, lex order,
-               Indices (index lists into a multisegment)
+Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i]`
+               bounds are found by `auto_prop` (= `grind`, taught facts in `_u` files),
+               `maximum`, `first` and `sorted` of a finite set, list comprehensions `[x ∈ l | p]`,
+               `[f x | x ∈ l]`, lists usable as sets, `p → q` keeps `p` in scope for `q`,
+               `x ∈ s` converts `x` to the element type of `s`; below everything
+Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, ≪, ⊆,
+               lex order, Indices (index lists into a multisegment)
 ├── Ladder1    depthSet (the paper's depth set, by set comprehension);
 │   │          Ladder1_u proves it finite by computing it (depthFinset)
-│   └── Ladder2   depth_of_segment (= max of depthSet), isLadder, bucket, Ladder
-│       └── RSK   bucketRung, maxDepth, ladderRungs, bucketResidual, residual, rsk_step
+│   └── Ladder2   depth_of_segment (= max of depthSet), isLadder, bucket, Ladder,
+│       │         admissibleEnumerations (Ladder2_u: finite, nonempty for nonempty fibers)
+│       └── RSK1  enumeration (our choice: the first admissible enumeration);
+│           │     RSK1_u proves its entries are valid indices of m
+│           └── RSK2  fiber (the segments in that order), bucketRung
+│               └── RSK3  maxDepth, ladderRungs, bucketResidual, residual, rsk_step
 └── MW         chainLink, isChain, extendChain.go, Chain, segmentResidual,
                 makeResidual, mw_step
                 (MW depends on Basic only — RSK and MW are independent)
@@ -89,13 +96,19 @@ Exact file-level imports (within the project):
 | `Ladder2_t`      | `Basic_t`, `Basic_u`, `Ladder1_t`, `Ladder1_u`                 |
 | `Ladder2_u`      | the above + `Ladder2_t`                                        |
 | `Ladder2_e`      | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `Ladder2_u`               |
-| `RSK_t`          | `Basic_t`, `Basic_u`, `Ladder1_t`, `Ladder1_u`, `Ladder2_t`, `Ladder2_u` |
-| `RSK_u`          | the above + `RSK_t`                                            |
-| `RSK_e`          | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `RSK_t`                   |
+| `RSK1_t`         | `Basic_t`, `Basic_u`, `Ladder1_t`, `Ladder1_u`, `Ladder2_t`, `Ladder2_u` |
+| `RSK1_u`         | the above + `RSK1_t`                                           |
+| `RSK1_e`         | `Basic_t`, `Ladder2_t`, `RSK1_t`, `RSK1_u`                     |
+| `RSK2_t`         | the imports of `RSK1_t` + `RSK1_t`, `RSK1_u`                   |
+| `RSK2_u`         | the above + `RSK2_t`                                           |
+| `RSK2_e`         | `Basic_t`, `Ladder2_t`, `RSK1_t`, `RSK2_t`, `RSK2_u`           |
+| `RSK3_t`          | the imports of `RSK2_t` + `RSK2_t`, `RSK2_u`                   |
+| `RSK3_u`          | the above + `RSK3_t`                                            |
+| `RSK3_e`          | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `RSK3_t`                   |
 | `MW_t`           | `Basic_t`, `Basic_u`                                           |
 | `MW_u`           | `Basic_t`, `Basic_u`, `MW_t`                                   |
 | `MW_e`           | `Basic_t`, `Basic_u`, `MW_t`, `MW_u`                           |
-| `Propositions_t` | `RSK_t`, `RSK_u`, `MW_t`                                       |
+| `Propositions_t` | `RSK3_t`, `RSK3_u`, `MW_t`                                       |
 | `Propositions_u` | everything above it                                            |
 | `Propositions_e` | `Propositions_t`                                               |
 | `Corollary_t`    | `Propositions_t`, `Propositions_u`                             |

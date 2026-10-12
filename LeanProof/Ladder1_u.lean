@@ -25,10 +25,10 @@ private lemma mem_indexLists (n k : ℕ) (i : List ℕ) :
     | nil => simp [indexLists]
     | cons x t => simp [indexLists, ih, and_comm, and_left_comm]
 
-/-- `∃ i : Indices j m, P i` can be decided by scanning `indexLists`. -/
-private lemma exists_indices_iff {j : ℕ} {m : Multisegment} (P : Indices j m → Prop) :
+/-- `∃ i : Indices n m, P i` can be decided by scanning `indexLists`. -/
+private lemma exists_indices_iff {n : ℕ} {m : Multisegment} (P : Indices n m → Prop) :
     (∃ i, P i) ↔
-      ∃ l ∈ indexLists m.segments.length (j + 1), ∃ h : l ∈ Indices j m, P ⟨l, h⟩ :=
+      ∃ l ∈ indexLists m.segments.length n, ∃ h : l ∈ Indices n m, P ⟨l, h⟩ :=
   ⟨fun ⟨⟨l, h⟩, hP⟩ => ⟨l, (mem_indexLists _ _ l).mpr ⟨h.1, h.2.2⟩, h, hP⟩,
     fun ⟨l, _, h, hP⟩ => ⟨⟨l, h⟩, hP⟩⟩
 

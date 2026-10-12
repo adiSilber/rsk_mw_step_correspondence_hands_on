@@ -9,6 +9,6 @@ set_option linter.style.whitespace false
 
 /-- d(Δ) = max{j : ∃ i₀ = Δ, i₁, …, iⱼ ∈ I such that Δ_{iᵣ} ≪ Δ_{iᵣ₊₁}, r = 0, …, j − 1} -/
 def depthSet (m : Multisegment) (s : Segment) : Set ℕ :=
-  { j | ∃ i : Indices j m,
+  { j | ∃ i : Indices (j + 1) m,
         m.segments[i.val[0]] = s ∧
         ∀ r (_ : r < j), m.segments[i.val[r]] ≪ m.segments[i.val[r + 1]] }

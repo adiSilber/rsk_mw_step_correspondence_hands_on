@@ -1,7 +1,7 @@
 import LeanProof.Basic_t
 import LeanProof.Ladder1_t
 import LeanProof.Ladder2_t
-import LeanProof.RSK_t
+import LeanProof.RSK3_t
 
 set_option linter.style.setOption false
 set_option linter.flexible false

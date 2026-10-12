@@ -70,6 +70,9 @@ lemma maximum_mem {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty
 lemma le_maximum {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) {x : α}
     (hx : x ∈ S) : x ≤ maximum S h := Finset.le_max' _ _ (Set.mem_toFinset.mpr hx)
 
+lemma first_mem {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) :
+    first S h ∈ S := Set.mem_toFinset.mp (Finset.min'_mem _ _)
+
 @[simp] lemma mem_sorted {α} [LinearOrder α] {S : Set α} [Fintype S] {x : α} :
     x ∈ sorted S ↔ x ∈ S := by
   simp [sorted]
@@ -90,6 +93,10 @@ instance {α β} [DecidableEq β] (l : List α) (f : α → β) : Fintype {y | �
 -- stops the elaborator from unfolding it (and timing out) inside large terms.
 set_option allowUnsafeReducibility true in
 attribute [irreducible] maximum
+
+-- Likewise `first` is used only through `first_mem`.
+set_option allowUnsafeReducibility true in
+attribute [irreducible] first
 
 /-- The set of members of a list is finite: it is computed by the list itself. -/
 instance {α} [DecidableEq α] (l : List α) : Fintype {x | x ∈ l} :=

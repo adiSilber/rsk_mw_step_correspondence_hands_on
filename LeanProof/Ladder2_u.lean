@@ -488,16 +488,16 @@ An admissible enumeration of `𝔡⁻¹(k)` is a permutation of the list of indi
 /-- Membership in `admissibleEnumerations`, with `l` determined by the length of `i`. -/
 lemma mem_admissibleEnumerations_iff {m : Multisegment} {k : ℕ} {i : List ℕ} :
     i ∈ admissibleEnumerations m k ↔
-      ∃ h : i ∈ Indices (i.length - 1) m ∧ 0 < i.length,
+      ∃ h : i ∈ Indices i.length m,
         (∀ n : Fin m.segments.length, (↑n ∈ i ↔ depth_of_segment m m.segments[n] = k)) ∧
         (∀ r (hr : r < i.length - 1), m.segments[i[r + 1]] ⊆ m.segments[i[r]]) := by
   constructor
   · rintro ⟨⟨l, hl⟩, h1, h2⟩
-    have hl' : l = i.length - 1 := by have := hl.1; omega
+    have hl' : l = i.length := hl.1.symm
     subst hl'
-    exact ⟨⟨hl, by have := hl.1; omega⟩, h1, h2⟩
+    exact ⟨hl, h1, fun r hr => h2 r (by change r + 1 < i.length; omega)⟩
   · rintro ⟨h, h1, h2⟩
-    exact ⟨⟨i.length - 1, h.1⟩, h1, h2⟩
+    exact ⟨⟨i.length, h⟩, h1, fun r hr => h2 r (by change r + 1 < i.length at hr; omega)⟩
 
 instance (m : Multisegment) (k : ℕ) (i : List ℕ) :
     Decidable (i ∈ admissibleEnumerations m k) :=
@@ -574,7 +574,7 @@ private lemma pairwise_of_mem_Δ {m : Multisegment} {k : ℕ} {i : List ℕ}
   simp only [List.getElem_map]
   rw [Δ_eq (hlt _ (List.getElem_mem _)), Δ_eq (hlt _ (List.getElem_mem _))]
   have hm := List.length_map (f := m.Δ) (as := i)
-  exact hchain r (by change r < l; omega)
+  exact hchain r (by change r + 1 < l; omega)
 
 /-- The indices of an admissible enumeration are valid indices of `m`. -/
 lemma lt_length_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : List ℕ}
@@ -602,20 +602,23 @@ lemma pairwise_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
     (i.pmap (fun j hj => m.segments[j]) hlt).Pairwise (fun s t => subsegment t s) := by
   rw [pmap_eq_map_Δ]; exact pairwise_of_mem_Δ h
 
-/-- If no segment has depth `k`, there is no admissible enumeration of `𝔡⁻¹(k)`. -/
-lemma admissibleEnumerations_eq_empty {m : Multisegment} {k : ℕ}
+/-- If no segment has depth `k`, the only admissible enumeration of `𝔡⁻¹(k) = ∅` is `[]`. -/
+lemma eq_nil_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : List ℕ}
+    (h : ∀ j : Fin m.segments.length, depth_of_segment m m.segments[j] ≠ k)
+    (hi : i ∈ admissibleEnumerations m k) : i = [] := by
+  obtain ⟨⟨l, -, -, hlt⟩, h1, -⟩ := hi
+  apply List.eq_nil_iff_forall_not_mem.mpr
+  intro j hj
+  exact h ⟨j, hlt _ hj⟩ ((h1 ⟨j, hlt _ hj⟩).mp hj)
+
+private lemma nil_mem_admissibleEnumerations {m : Multisegment} {k : ℕ}
     (h : ∀ j : Fin m.segments.length, depth_of_segment m m.segments[j] ≠ k) :
-    admissibleEnumerations m k = ∅ := by
-  ext i
-  simp only [Set.mem_empty_iff_false, iff_false]
-  intro hi
-  obtain ⟨⟨l, hlen, -, hlt⟩, h1, -⟩ := hi
-  have h0 : i[0] ∈ i := List.getElem_mem (by omega)
-  exact h ⟨i[0], hlt _ h0⟩ ((h1 ⟨i[0], hlt _ h0⟩).mp h0)
+    [] ∈ admissibleEnumerations m k :=
+  ⟨⟨0, by simp [Indices]⟩, fun n => by simpa using h n, fun r hr => absurd hr (by simp)⟩
 
 /-- If some segment has depth `k`, an admissible enumeration of `𝔡⁻¹(k)` exists: the
 indices of depth `k` sorted by nesting. -/
-lemma admissibleEnumerations_nonempty {m : Multisegment} {k : ℕ}
+private lemma admissibleEnumerations_nonempty_of_exists {m : Multisegment} {k : ℕ}
     (h : ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k) :
     (admissibleEnumerations m k).Nonempty := by
   -- the depth-`k` indices are pairwise `⊆`-comparable
@@ -644,12 +647,8 @@ lemma admissibleEnumerations_nonempty {m : Multisegment} {k : ℕ}
   have hperm : e ~ fiberIdx m k := List.perm_insertionSort _ _
   have hlt : ∀ n ∈ e, n < m.segments.length := fun n hn => by
     obtain ⟨j, -, rfl⟩ := mem_fiberIdx.mp (hperm.subset hn); exact j.2
-  obtain ⟨j, hj⟩ := h
-  have hpos : 0 < e.length := by
-    rw [hperm.length_eq]
-    exact List.length_pos_of_mem (mem_fiberIdx.mpr ⟨j, hj, rfl⟩)
   refine ⟨e, mem_admissibleEnumerations_iff.mpr
-    ⟨⟨⟨by omega, hperm.nodup_iff.mpr (nodup_fiberIdx m k), hlt⟩, hpos⟩, ?_, ?_⟩⟩
+    ⟨⟨rfl, hperm.nodup_iff.mpr (nodup_fiberIdx m k), hlt⟩, ?_, ?_⟩⟩
   · intro n
     rw [hperm.mem_iff, mem_fiberIdx]
     exact ⟨fun ⟨j', hj', hj'n⟩ => by rw [← Fin.ext hj'n]; exact hj',
@@ -658,3 +657,14 @@ lemma admissibleEnumerations_nonempty {m : Multisegment} {k : ℕ}
     have := List.pairwise_iff_getElem.mp hsorted r (r + 1) (by omega) (by omega) (by omega)
     simp only [R] at this
     rwa [Δ_eq (hlt _ (List.getElem_mem _)), Δ_eq (hlt _ (List.getElem_mem _))] at this
+
+/-- Every fiber has an admissible enumeration (`[]` for an empty fiber). -/
+lemma admissibleEnumerations_nonempty (m : Multisegment) (k : ℕ) :
+    (admissibleEnumerations m k).Nonempty := by
+  by_cases h : ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k
+  · exact admissibleEnumerations_nonempty_of_exists h
+  · push_neg at h
+    exact ⟨[], nil_mem_admissibleEnumerations h⟩
+
+-- `first (admissibleEnumerations m k)` needs the set nonempty: `auto_prop` learns it.
+macro_rules | `(tactic| auto_prop) => `(tactic| exact admissibleEnumerations_nonempty _ _)

@@ -1,5 +1,5 @@
-import LeanProof.RSK_t
-import LeanProof.RSK_u
+import LeanProof.RSK3_t
+import LeanProof.RSK3_u
 import LeanProof.MW_t
 
 def min_m_lt_min_lm (m : Multisegment) (h : m.segments ≠ []) : Prop :=

@@ -4,6 +4,10 @@ import LeanProof.Ladder1_t
 import LeanProof.Ladder1_u
 import LeanProof.Ladder2_t
 import LeanProof.Ladder2_u
+import LeanProof.RSK1_t
+import LeanProof.RSK1_u
+import LeanProof.RSK2_t
+import LeanProof.RSK2_u
 import Mathlib.Data.List.Sort
 
 set_option linter.style.setOption false
@@ -22,41 +26,20 @@ Each bucket's rung is the coordinatewise max of its segments (`bucketRung`);
 `ladderRungs` assembles them deepest-first. The residual replaces each
 consecutive nested pair `(s, t)` of a bucket by the derived segment
 `[s.a, t.b]`. The correctness lemmas (`ladderRungs_isLadder`, Lemma 2.2,
-Corollary 2.3) and the `Ladder`-packaged step `rskStep` live in `RSK_u`. -/
-
-/-- The rung of bucket `d`: the largest begin point (carried by the innermost segment)
-paired with the largest end point (carried by the outermost). `none` for an empty
-bucket. (Nonemptiness of the two sets and well-formedness of the segment are proved in
-`Basic_u` and found automatically.) -/
-def bucketRung (m : Multisegment) (d : ℕ) : Option Segment :=
-  match (bucket m d).map (·.val) with
-  | []      => none
-  | s :: ss => some (Segment.mk (maximum {(x.a) | x ∈ s :: ss}) (maximum {(x.b) | x ∈ s :: ss}))
+Corollary 2.3) and the `Ladder`-packaged step `rskStep` live in `RSK3_u`. -/
 
 /-- Maximum depth over all segments of `m`. `0` for an empty multisegment. -/
 def maxDepth (m : Multisegment) : ℕ :=
   maximum (0 :: [depth_of_segment m s | s ∈ m.segments])
 
-/-- All ladder rungs from bucket `maxDepth` down to bucket `0`. -/
+/-- `𝔩(m)`: the rungs of all fibers, in increasing order (= deepest first). -/
 def ladderRungs (m : Multisegment) : List Segment :=
-  (List.range (maxDepth m + 1)).reverse.filterMap (fun k => bucketRung m k)
+  sorted { r | ∃ k, bucketRung m k = some r }
 
-/-- Residual of bucket `d`: the sliding-window pairs `(sₖ, sₖ₊₁)` of the bucket
-(already sorted outermost-first), each replaced by the derived segment `[sₖ.a, sₖ₊₁.b]`.
-The pairs are `attach`ed so the well-formedness proof can use where they came from:
-consecutive bucket elements are nested (`bucket_nested`), so `s.a ≤ t.a ≤ t.b`. -/
+/-- Residual of `𝔡⁻¹(d)` (paper (2.1a)): consecutive segments `Δ_{i_r} ⊇ Δ_{i_{r+1}}` of our
+enumeration give `[b(Δ_{i_r}), e(Δ_{i_{r+1}})]`. -/
 def bucketResidual (m : Multisegment) (d : ℕ) : List Segment :=
-  let segs := (bucket m d).map (·.val)
-  (segs.zip segs.tail).attach.map fun ⟨(s, t), hmem⟩ =>
-    ⟨⟨s.a, t.b⟩, by
-      obtain ⟨l₁, l₂, hsplit⟩ := zip_tail_split segs s t hmem
-      have hnested : segs.Pairwise (fun s t => subsegment t s) := bucket_nested m d
-      rw [hsplit] at hnested
-      have hts : subsegment t s :=
-        (List.pairwise_cons.mp (List.pairwise_append.mp hnested).2.1).1 t (by simp)
-      have htab : t.a ≤ t.b := t.fst_le_snd
-      obtain ⟨h1, h2⟩ := hts
-      omega⟩
+  [Segment p.1.a p.2.b | p ∈ (fiber m d).zip (fiber m d).tail]
 
 -- /-- `i^\vee`: the nesting successor of `s` in bucket `d` (the next, more-inner segment in
 -- admissible order); `none` if `s` is the innermost element. -/

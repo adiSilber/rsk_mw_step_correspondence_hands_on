@@ -4,7 +4,7 @@ import LeanProof.Ladder1_t
 import LeanProof.Ladder1_u
 import LeanProof.Ladder2_t
 import LeanProof.Ladder2_u
-import LeanProof.RSK_t
+import LeanProof.RSK3_t
 import Mathlib.Data.List.Sort
 
 set_option linter.style.setOption false
@@ -16,10 +16,10 @@ namespace RSK
 
 /-! # RSK algorithm — single step (proofs)
 
-Correctness of the definitions in `RSK_t`: the assembled rungs form a ladder
+Correctness of the definitions in `RSK3_t`: the assembled rungs form a ladder
 (`ladderRungs_isLadder`), the paper's Lemma 2.2 and Corollary 2.3, and the
 `Ladder`-packaged step `rskStep`. The packaged definitions live here (not in
-`RSK_t`) because they bundle proofs; their computational content —
+`RSK3_t`) because they bundle proofs; their computational content —
 `ladderRungs` and `residual` — is trusted. -/
 
 lemma depth_le_maxDepth (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) :
@@ -30,12 +30,12 @@ lemma depth_le_maxDepth (m : Multisegment) (s : Segment) (hs : s ∈ m.segments)
 /-- The rung dominates its bucket coordinatewise, and each coordinate is attained. -/
 lemma bucketRung_spec (m : Multisegment) (d : ℕ) (r : Segment)
     (h : bucketRung m d = some r) :
-    (∀ x ∈ (bucket m d).map (·.val), x.a ≤ r.a ∧ x.b ≤ r.b) ∧
-    (∃ x ∈ (bucket m d).map (·.val), x.a = r.a) ∧
-    (∃ x ∈ (bucket m d).map (·.val), x.b = r.b) := by
-  rcases hL : (bucket m d).map (·.val) with _ | ⟨s, ss⟩
-  · simp [bucketRung, hL] at h
-  · simp only [bucketRung, hL, Option.some.injEq] at h
+    (∀ x ∈ (sortedBucket m d).map (·.val), x.a ≤ r.a ∧ x.b ≤ r.b) ∧
+    (∃ x ∈ (sortedBucket m d).map (·.val), x.a = r.a) ∧
+    (∃ x ∈ (sortedBucket m d).map (·.val), x.b = r.b) := by
+  rcases hL : (sortedBucket m d).map (·.val) with _ | ⟨s, ss⟩
+  · simp [bucketRung, fiber_eq, hL] at h
+  · simp only [bucketRung, fiber_eq, hL, Option.some.injEq] at h
     subst h
     rw [hL]
     refine ⟨fun x hx => ⟨?_, ?_⟩, ?_, ?_⟩
@@ -51,7 +51,7 @@ lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)
     r_succ ≪ r_d := by
   obtain ⟨dom_d, _, _⟩ := bucketRung_spec m d r_d hr_d
   obtain ⟨_, ⟨sa, hsa_mem, hsa⟩, ⟨sb, hsb_mem, hsb⟩⟩ := bucketRung_spec m (d + 1) r_succ hr_succ
-  have key : ∀ x ∈ (bucket m (d + 1)).map (·.val), x ≪ r_d := by
+  have key : ∀ x ∈ (sortedBucket m (d + 1)).map (·.val), x ≪ r_d := by
     intro x hx
     obtain ⟨xs, hxs_bk, rfl⟩ := List.mem_map.mp hx
     have hxd : depth_of_segment m xs.val xs.property = d + 1 := by simpa [bucket] using hxs_bk
@@ -62,17 +62,17 @@ lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)
 
 /-- A nonempty bucket yields a rung. -/
 lemma bucketRung_some_of_mem (m : Multisegment) (d : ℕ) (x : Segment)
-    (hx : x ∈ (bucket m d).map (·.val)) : ∃ r, bucketRung m d = some r := by
-  rcases hL : (bucket m d).map (·.val) with _ | ⟨s, ss⟩
+    (hx : x ∈ (sortedBucket m d).map (·.val)) : ∃ r, bucketRung m d = some r := by
+  rcases hL : (sortedBucket m d).map (·.val) with _ | ⟨s, ss⟩
   · rw [hL] at hx; simp at hx
-  · exact ⟨_, by simp only [bucketRung, hL]; rfl⟩
+  · exact ⟨_, by simp only [bucketRung, fiber_eq, hL]; rfl⟩
 
 /-- One step down: a depth-`(d+1)` rung implies a depth-`d` rung strictly above it.
 The bucket below is nonempty because the head of bucket `d+1` has a predecessor at depth `d`. -/
 lemma bucketRung_pred (m : Multisegment) (d : ℕ) (r : Segment)
     (hr : bucketRung m (d + 1) = some r) : ∃ r_d, bucketRung m d = some r_d ∧ r ≪ r_d := by
-  rcases hL : (bucket m (d + 1)).map (·.val) with _ | ⟨s, _⟩
-  · simp [bucketRung, hL] at hr
+  rcases hL : (sortedBucket m (d + 1)).map (·.val) with _ | ⟨s, _⟩
+  · simp [bucketRung, fiber_eq, hL] at hr
   obtain ⟨xs, hxs_bk, _⟩ := List.mem_map.mp (hL ▸ List.mem_cons_self : s ∈ _)
   have hxs_d : depth_of_segment m xs.val xs.property = d + 1 := by simpa [bucket] using hxs_bk
   obtain ⟨t, ht_in, ht_d, _⟩ := exists_pred_at_depth m d xs.val xs.property hxs_d
@@ -99,13 +99,9 @@ lemma range_reverse_succ (n : ℕ) :
     (List.range (n + 1)).reverse = n :: (List.range n).reverse := by
   rw [List.range_succ, List.reverse_append, List.reverse_singleton]; rfl
 
-/-- The rungs assembled by `ladderRungs` form a ladder (pairwise `≪`). -/
-lemma ladderRungs_isLadder (m : Multisegment) : isLadder (ladderRungs m) := by
-  unfold isLadder ladderRungs
-  rw [decide_eq_true_eq]
-  suffices H : ∀ n, ((List.range n).reverse.filterMap (bucketRung m)).Pairwise (· ≪ ·) from
-    H (maxDepth m + 1)
-  intro n
+/-- The rungs listed deepest-first are pairwise `≪`. -/
+lemma pairwise_rungs (m : Multisegment) (n : ℕ) :
+    ((List.range n).reverse.filterMap (bucketRung m)).Pairwise (· ≪ ·) := by
   induction n with
   | zero => simp
   | succ n ih =>
@@ -120,6 +116,39 @@ lemma ladderRungs_isLadder (m : Multisegment) : isLadder (ladderRungs m) := by
       rw [hd'_eq, Option.some.injEq] at hr'; subst hr'
       exact hr_lt
 
+/-- A rung exists only at depths `≤ maxDepth`. -/
+lemma le_maxDepth_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
+    (h : bucketRung m k = some r) : k ≤ maxDepth m := by
+  obtain ⟨-, ⟨x, hx, -⟩, -⟩ := bucketRung_spec m k r h
+  obtain ⟨⟨y, hy⟩, hybk, rfl⟩ := List.mem_map.mp hx
+  have hd : depth_of_segment m y hy = k := by simpa [bucket] using hybk
+  rw [← hd]; exact depth_le_maxDepth m y hy
+
+/-- `ladderRungs` lists the rungs deepest-first: it is the rungs of depth `maxDepth`, …, `0`. -/
+lemma ladderRungs_eq (m : Multisegment) :
+    ladderRungs m = (List.range (maxDepth m + 1)).reverse.filterMap (bucketRung m) := by
+  have hlt : ((List.range (maxDepth m + 1)).reverse.filterMap (bucketRung m)).Pairwise (· < ·) :=
+    (pairwise_rungs m _).imp fun {x y} h =>
+      lt_of_le_of_ne ((Segment.le_def x y).mpr (Or.inl h.1)) (fun he => by
+        subst he; exact lt_irrefl _ h.1)
+  unfold ladderRungs sorted
+  apply List.Perm.eq_of_pairwise (le := (· < ·))
+  · intro a b _ _ h₁ h₂; exact absurd h₂ (lt_asymm h₁)
+  · exact (Finset.sortedLT_sort _).pairwise
+  · exact hlt
+  · refine (List.perm_ext_iff_of_nodup (Finset.sort_nodup _ _)
+      (hlt.imp ne_of_lt)).mpr fun r => ?_
+    rw [Finset.mem_sort, Set.mem_toFinset, List.mem_filterMap]
+    simp only [Set.mem_setOf_eq, List.mem_reverse, List.mem_range]
+    exact ⟨fun ⟨k, hk⟩ => ⟨k, Nat.lt_succ_of_le (le_maxDepth_of_bucketRung hk), hk⟩,
+      fun ⟨k, _, hk⟩ => ⟨k, hk⟩⟩
+
+/-- The rungs assembled by `ladderRungs` form a ladder (pairwise `≪`). -/
+lemma ladderRungs_isLadder (m : Multisegment) : isLadder (ladderRungs m) := by
+  unfold isLadder
+  rw [decide_eq_true_eq, ladderRungs_eq]
+  exact pairwise_rungs m _
+
 -- /-- The extracted maximal ladder, packaged from `ladderRungs` and its proof. -/
 -- def extractFullLadder (m : Multisegment) : Ladder :=
 --   let l := ladderRungs m
@@ -132,20 +161,20 @@ lemma ladderRungs_isLadder (m : Multisegment) : isLadder (ladderRungs m) := by
 
 /-- A bucket element lies in `m` at depth `d`. -/
 lemma mem_bucket_depth (m : Multisegment) (d : ℕ) (x : Segment)
-    (hx : x ∈ (bucket m d).map (·.val)) :
+    (hx : x ∈ (sortedBucket m d).map (·.val)) :
     ∃ (hxm : x ∈ m.segments), depth_of_segment m x hxm = d := by
   obtain ⟨⟨y, hy⟩, hybk, rfl⟩ := List.mem_map.mp hx
   exact ⟨hy, by simp [bucket] at hybk; exact hybk⟩
 
 /-- A depth-`d` segment of `m` lies in bucket `d`. -/
 lemma mem_bucket_of_depth (m : Multisegment) (d : ℕ) (x : Segment) (hxm : x ∈ m.segments)
-    (hd : depth_of_segment m x hxm = d) : x ∈ (bucket m d).map (·.val) :=
+    (hd : depth_of_segment m x hxm = d) : x ∈ (sortedBucket m d).map (·.val) :=
   List.mem_map.mpr ⟨⟨x, hxm⟩, by simp [bucket, hd], rfl⟩
 
 /-- Consecutive bucket elements are nested. -/
 lemma bucket_split_pair_subset (m : Multisegment) (d : ℕ) (s t : Segment)
     (l₁ l₂ : List Segment)
-    (hsplit : (bucket m d).map (·.val) = l₁ ++ s :: t :: l₂) : t ⊆ s := by
+    (hsplit : (sortedBucket m d).map (·.val) = l₁ ++ s :: t :: l₂) : t ⊆ s := by
   have hnested := bucket_nested m d
   rw [hsplit] at hnested
   have hp := (List.pairwise_append.mp hnested).2.1
@@ -156,8 +185,8 @@ lemma bucket_split_pair_subset (m : Multisegment) (d : ℕ) (s t : Segment)
 element is nested strictly between `s` and its successor `t`. -/
 lemma bucket_split_immediate_nest (m : Multisegment) (d : ℕ) (s t : Segment)
     (l₁ l₂ : List Segment)
-    (hsplit : (bucket m d).map (·.val) = l₁ ++ s :: t :: l₂)
-    (u : Segment) (hu : u ∈ (bucket m d).map (·.val))
+    (hsplit : (sortedBucket m d).map (·.val) = l₁ ++ s :: t :: l₂)
+    (u : Segment) (hu : u ∈ (sortedBucket m d).map (·.val))
     (hus : u ≠ s) (hut : u ≠ t) : ¬ (u ⊆ s ∧ t ⊆ u) := by
   have hnested := bucket_nested m d
   rw [hsplit] at hu hnested
@@ -182,23 +211,23 @@ lemma bucket_split_immediate_nest (m : Multisegment) (d : ℕ) (s t : Segment)
 /-- Lemma 2.2(1), with an explicit consecutive split instead of `bucketSucc`. -/
 lemma depth_lt_between_split (m : Multisegment) (d : ℕ) (i t : Segment)
     (l₁ l₂ : List Segment)
-    (hsplit : (bucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hsplit : (sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
     (j : Segment) (hj : j ∈ m.segments) (htj : t ⊆ j) (hji : j ⊆ i)
     (hjnei : j ≠ i) (hjnet : j ≠ t) :
     depth_of_segment m j hj < d := by
-  have hi_bk : i ∈ (bucket m d).map (·.val) := by rw [hsplit]; simp
-  have ht_bk : t ∈ (bucket m d).map (·.val) := by rw [hsplit]; simp
+  have hi_bk : i ∈ (sortedBucket m d).map (·.val) := by rw [hsplit]; simp
+  have ht_bk : t ∈ (sortedBucket m d).map (·.val) := by rw [hsplit]; simp
   obtain ⟨hi_m, hi_d⟩ := mem_bucket_depth m d i hi_bk
   obtain ⟨ht_m, ht_d⟩ := mem_bucket_depth m d t ht_bk
   by_contra hge
   push_neg at hge
   rcases eq_or_lt_of_le hge with heq | hlt
-  · have hjbk : j ∈ (bucket m d).map (·.val) := mem_bucket_of_depth m d j hj heq.symm
+  · have hjbk : j ∈ (sortedBucket m d).map (·.val) := mem_bucket_of_depth m d j hj heq.symm
     exact bucket_split_immediate_nest m d i t l₁ l₂ hsplit j hjbk hjnei hjnet ⟨hji, htj⟩
   · obtain ⟨j', hj', hj'd, h1, h2⟩ := exists_lower_ll _ m j hj rfl d hlt
     obtain ⟨hjia, hjib⟩ := hji
     obtain ⟨htja, htjb⟩ := htj
-    have hj'bk : j' ∈ (bucket m d).map (·.val) := mem_bucket_of_depth m d j' hj' hj'd
+    have hj'bk : j' ∈ (sortedBucket m d).map (·.val) := mem_bucket_of_depth m d j' hj' hj'd
     have hj'i : j' ⊆ i := depth_subset_of_a_lt m i j' hi_m hj' (by omega) (by omega)
     have htj' : t ⊆ j' := depth_subset_of_b_lt m t j' ht_m hj' (by omega) (by omega)
     have hne_i : j' ≠ i := by rintro rfl; omega
@@ -208,11 +237,11 @@ lemma depth_lt_between_split (m : Multisegment) (d : ℕ) (i t : Segment)
 /-- Lemma 2.2(2), with an explicit consecutive split instead of `bucketSucc`. -/
 lemma lemma_2_2_2_split (m : Multisegment) (d : ℕ) (i t : Segment)
     (l₁ l₂ : List Segment)
-    (hsplit : (bucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hsplit : (sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
     (j : Segment) (hj : j ∈ m.segments) (ha : i.a < j.a) (hb : t.b < j.b) :
     depth_of_segment m j hj < d := by
-  have hi_bk : i ∈ (bucket m d).map (·.val) := by rw [hsplit]; simp
-  have ht_bk : t ∈ (bucket m d).map (·.val) := by rw [hsplit]; simp
+  have hi_bk : i ∈ (sortedBucket m d).map (·.val) := by rw [hsplit]; simp
+  have ht_bk : t ∈ (sortedBucket m d).map (·.val) := by rw [hsplit]; simp
   obtain ⟨hi_m, hi_d⟩ := mem_bucket_depth m d i hi_bk
   obtain ⟨ht_m, ht_d⟩ := mem_bucket_depth m d t ht_bk
   by_contra hnot
@@ -232,9 +261,6 @@ lemma ladderRungs_ne_nil (m : Multisegment) (h : m.segments ≠ []) :
   obtain ⟨r, hr⟩ := bucketRung_some_of_mem m (depth_of_segment m s hs) s
     (mem_bucket_of_depth m _ s hs rfl)
   apply List.ne_nil_of_mem (a := r)
-  unfold ladderRungs
-  exact List.mem_filterMap.mpr ⟨depth_of_segment m s hs,
-    by rw [List.mem_reverse, List.mem_range]; exact Nat.lt_succ_of_le (depth_le_maxDepth m s hs),
-    hr⟩
+  exact mem_sorted.mpr ⟨_, hr⟩
 
 end RSK

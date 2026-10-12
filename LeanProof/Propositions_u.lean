@@ -4,8 +4,8 @@ import LeanProof.Ladder1_t
 import LeanProof.Ladder1_u
 import LeanProof.Ladder2_t
 import LeanProof.Ladder2_u
-import LeanProof.RSK_t
-import LeanProof.RSK_u
+import LeanProof.RSK3_t
+import LeanProof.RSK3_u
 import LeanProof.MW_t
 import LeanProof.MW_u
 import LeanProof.Propositions_t
@@ -68,13 +68,14 @@ lemma head_begin_le (m : Multisegment) (sₘ : Segment)
 with `w = ⟨i.a, t.b⟩`. -/
 lemma residual_source (m : Multisegment) (w : Segment) (hw : w ∈ (RSK.residual m).segments) :
     ∃ (d : ℕ) (i t : Segment) (l₁ l₂ : List Segment),
-      d ≤ RSK.maxDepth m ∧ (bucket m d).map (·.val) = l₁ ++ i :: t :: l₂ ∧
+      d ≤ RSK.maxDepth m ∧ (sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂ ∧
       w.a = i.a ∧ w.b = t.b := by
   have hraw : w ∈ (List.range (RSK.maxDepth m + 1)).flatMap (fun d => RSK.bucketResidual m d) :=
     (List.perm_insertionSort (· ≤ ·) _).mem_iff.mp hw
   obtain ⟨d, hd, hwd⟩ := List.mem_flatMap.mp hraw
   simp only [RSK.bucketResidual] at hwd
   obtain ⟨⟨⟨i, t⟩, hpair⟩, -, hfw⟩ := List.mem_map.mp hwd
+  rw [RSK.fiber_eq] at hpair
   obtain ⟨l₁, l₂, hsplit⟩ := zip_tail_split _ i t hpair
   exact ⟨d, i, t, l₁, l₂, Nat.lt_succ_iff.mp (List.mem_range.mp hd), hsplit,
     by rw [← hfw]; rfl, by rw [← hfw]; rfl⟩
@@ -89,10 +90,12 @@ lemma mem_residual_of_bucket (m : Multisegment) {d : ℕ} (hd : d ≤ RSK.maxDep
 /-- Every position-adjacent bucket pair emits its derived segment `⟨i.a, t.b⟩`
 into the bucket residual. -/
 lemma derived_mem_bucketResidual (m : Multisegment) (d : ℕ) (i t : Segment)
-    (l₁ l₂ : List Segment) (hsplit : (bucket m d).map (·.val) = l₁ ++ i :: t :: l₂) :
+    (l₁ l₂ : List Segment) (hsplit : (sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂) :
     ∃ w ∈ RSK.bucketResidual m d, w.a = i.a ∧ w.b = t.b := by
-  have hpair : (i, t) ∈ (((bucket m d).map (·.val)).zip ((bucket m d).map (·.val)).tail) := by
+  have hpair : (i, t) ∈
+      (((sortedBucket m d).map (·.val)).zip ((sortedBucket m d).map (·.val)).tail) := by
     rw [hsplit]; exact mem_zip_tail_of_split l₁ i t l₂
+  rw [← RSK.fiber_eq] at hpair
   simp only [RSK.bucketResidual]
   exact ⟨_, List.mem_map.mpr ⟨⟨(i, t), hpair⟩, List.mem_attach _ _, rfl⟩, rfl, rfl⟩
 
@@ -101,7 +104,7 @@ lemma residual_begin_ge (m : Multisegment) (sₘ : Segment)
     (hsₘ : m.segments.head? = some sₘ) (s : Segment)
     (hs : s ∈ (RSK.residual m).segments) : sₘ.a ≤ s.a := by
   obtain ⟨d, i, t, l₁, l₂, hd, hsplit, hsa, hsb⟩ := residual_source m s hs
-  have hi_bk : i ∈ (bucket m d).map (·.val) := by rw [hsplit]; simp
+  have hi_bk : i ∈ (sortedBucket m d).map (·.val) := by rw [hsplit]; simp
   obtain ⟨hi_m, -⟩ := RSK.mem_bucket_depth m d i hi_bk
   have := head_begin_le m sₘ hsₘ i hi_m
   omega
@@ -112,10 +115,9 @@ lemma residual_begin_ge (m : Multisegment) (sₘ : Segment)
 head first). -/
 lemma ladderHead_le_rung (m : Multisegment) (s_l : Segment)
     (hs_l : (RSK.ladderRungs m).head? = some s_l)
-    (d : ℕ) (hd : d ≤ RSK.maxDepth m) (r : Segment) (hr : RSK.bucketRung m d = some r) :
+    (d : ℕ) (_hd : d ≤ RSK.maxDepth m) (r : Segment) (hr : RSK.bucketRung m d = some r) :
     s_l.a ≤ r.a := by
-  have hr_mem : r ∈ RSK.ladderRungs m :=
-    List.mem_filterMap.mpr ⟨d, List.mem_reverse.mpr (List.mem_range.mpr (by omega)), hr⟩
+  have hr_mem : r ∈ RSK.ladderRungs m := mem_sorted.mpr ⟨d, hr⟩
   have hlad : (RSK.ladderRungs m).Pairwise (· ≪ ·) := by
     simpa [isLadder] using RSK.ladderRungs_isLadder m
   have hcons := head?_eq_cons hs_l
@@ -129,10 +131,11 @@ lemma ladderHead_le_rung (m : Multisegment) (s_l : Segment)
 /-- A bucket holding a minimal segment `p` and another with strictly larger begin is
 `s0 :: s1 :: rest` (it is `a`-sorted), with the head's begin `≤ p.a`. -/
 lemma bucket_sorted_cons (m : Multisegment) (d : ℕ) {p x : Segment}
-    (hp : p ∈ (bucket m d).map (·.val)) (hx : x ∈ (bucket m d).map (·.val)) (hlt : p.a < x.a) :
-    ∃ s0 s1 rest, (bucket m d).map (·.val) = s0 :: s1 :: rest ∧ s0.a ≤ p.a := by
+    (hp : p ∈ (sortedBucket m d).map (·.val)) (hx : x ∈ (sortedBucket m d).map (·.val))
+    (hlt : p.a < x.a) :
+    ∃ s0 s1 rest, (sortedBucket m d).map (·.val) = s0 :: s1 :: rest ∧ s0.a ≤ p.a := by
   have hsorted := bucket_sorted m d
-  rcases hE : (bucket m d).map (·.val) with _ | ⟨s0, _ | ⟨s1, rest⟩⟩
+  rcases hE : (sortedBucket m d).map (·.val) with _ | ⟨s0, _ | ⟨s1, rest⟩⟩
   · rw [hE] at hp; simp at hp
   · rw [hE] at hp hx; simp only [List.mem_singleton] at hp hx; rw [hp, hx] at hlt; omega
   · rw [hE] at hsorted hp
@@ -152,7 +155,7 @@ lemma residual_attains_min (m : Multisegment)
   have hsₘ_mem : sₘ ∈ m.segments := by rw [head?_eq_cons hsₘ]; exact List.mem_cons_self
   have hd₀le : depth_of_segment m sₘ hsₘ_mem ≤ RSK.maxDepth m :=
     RSK.depth_le_maxDepth m sₘ hsₘ_mem
-  have hbk : sₘ ∈ (bucket m (depth_of_segment m sₘ hsₘ_mem)).map (·.val) :=
+  have hbk : sₘ ∈ (sortedBucket m (depth_of_segment m sₘ hsₘ_mem)).map (·.val) :=
     RSK.mem_bucket_of_depth m _ sₘ hsₘ_mem rfl
   obtain ⟨r, hr⟩ := RSK.bucketRung_some_of_mem m _ sₘ hbk
   obtain ⟨-, ⟨xmax, hxmax, hxeq⟩, -⟩ := RSK.bucketRung_spec m _ r hr
@@ -254,7 +257,7 @@ lemma chain_seg_lt_rung (m : Multisegment) (sₘ s_l : Segment)
     chain_depth_drop m (MW.leadingChain m).val.segments
       (MW.leadingChain m).property
       (fun x hx => MW.leadingChain_subset m x hx) j sₘ σ hsₘm hσm h0 hj
-  have hsₘbk : sₘ ∈ (bucket m (depth_of_segment m sₘ hsₘm)).map (·.val) :=
+  have hsₘbk : sₘ ∈ (sortedBucket m (depth_of_segment m sₘ hsₘm)).map (·.val) :=
     RSK.mem_bucket_of_depth m _ sₘ hsₘm rfl
   obtain ⟨r0, hr0⟩ := RSK.bucketRung_some_of_mem m _ sₘ hsₘbk
   have hslr : s_l.a ≤ r0.a :=
@@ -322,9 +325,9 @@ lemma chain_seg_boundary (m : Multisegment) (sₘ s_l : Segment)
     (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (σ : Segment) (hσ : σ ∈ (MW.leadingChain m).val.segments)
     (hσm : σ ∈ m.segments) :
-    ∃ l₁ i t l₂, (bucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂
+    ∃ l₁ i t l₂, (sortedBucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂
       ∧ i.a = σ.a ∧ σ.a < t.a := by
-  have hσbk : σ ∈ (bucket m (depth_of_segment m σ hσm)).map (·.val) :=
+  have hσbk : σ ∈ (sortedBucket m (depth_of_segment m σ hσm)).map (·.val) :=
     RSK.mem_bucket_of_depth m _ σ hσm rfl
   obtain ⟨r, hr⟩ := RSK.bucketRung_some_of_mem m _ σ hσbk
   have hlt : σ.a < r.a := chain_seg_lt_rung m sₘ s_l hsₘ hs_l hmin σ hσ hσm r hr
@@ -337,15 +340,15 @@ pairs `(i, t)` at depth `d` and `(i', t')` at depth `d' < d`, if `i'.a ≤ t.a` 
 lemma succ_end_mono (m : Multisegment) (i i' t t' : Segment)
     (hi : i ∈ m.segments) (hi' : i' ∈ m.segments)
     (l1 l2 : List Segment)
-    (hsp : (bucket m (depth_of_segment m i hi)).map (·.val) = l1 ++ i :: t :: l2)
+    (hsp : (sortedBucket m (depth_of_segment m i hi)).map (·.val) = l1 ++ i :: t :: l2)
     (l1' l2' : List Segment)
-    (hsp' : (bucket m (depth_of_segment m i' hi')).map (·.val) = l1' ++ i' :: t' :: l2')
+    (hsp' : (sortedBucket m (depth_of_segment m i' hi')).map (·.val) = l1' ++ i' :: t' :: l2')
     (hdd : depth_of_segment m i' hi' < depth_of_segment m i hi)
     (hai : i'.a ≤ t.a) :
     t.b < t'.b := by
-  have ht_bk : t ∈ (bucket m (depth_of_segment m i hi)).map (·.val) := by rw [hsp]; simp
+  have ht_bk : t ∈ (sortedBucket m (depth_of_segment m i hi)).map (·.val) := by rw [hsp]; simp
   obtain ⟨htm, htd⟩ := RSK.mem_bucket_depth m (depth_of_segment m i hi) t ht_bk
-  have ht'_bk : t' ∈ (bucket m (depth_of_segment m i' hi')).map (·.val) := by rw [hsp']; simp
+  have ht'_bk : t' ∈ (sortedBucket m (depth_of_segment m i' hi')).map (·.val) := by rw [hsp']; simp
   obtain ⟨ht'm, ht'd⟩ := RSK.mem_bucket_depth m (depth_of_segment m i' hi') t' ht'_bk
   have h_t_sub_i' : t ⊆ i' :=
     depth_subset_of_a_le m i' t hi' htm hai (by rw [htd]; exact hdd)
@@ -378,7 +381,7 @@ lemma forward_chain (m : Multisegment) (sₘ s_l : Segment)
     ∃ c : List Segment, MW.isChain c ∧ c.length = l.length ∧
       (∀ w ∈ c, w ∈ (RSK.residual m).segments) ∧
       (∀ σ0 ∈ l.head?, ∃ (hσ0m : σ0 ∈ m.segments) (i t : Segment) (l₁ l₂ : List Segment),
-        (bucket m (depth_of_segment m σ0 hσ0m)).map (·.val) = l₁ ++ i :: t :: l₂ ∧
+        (sortedBucket m (depth_of_segment m σ0 hσ0m)).map (·.val) = l₁ ++ i :: t :: l₂ ∧
         i.a = σ0.a ∧ σ0.a < t.a ∧
         ∃ w0 ∈ c.head?, w0.a = σ0.a ∧ w0.b = t.b) := by
   intro l
@@ -419,17 +422,17 @@ lemma forward_chain (m : Multisegment) (sₘ s_l : Segment)
         have hlink_σ : MW.chainLink σ σ' := by
           rw [MW.isChain, List.isChain_cons] at hchain
           exact hchain.1 σ' (by rw [hl']; simp)
-        have hi_bk : i ∈ (bucket m (depth_of_segment m σ hσm)).map (·.val) := by
+        have hi_bk : i ∈ (sortedBucket m (depth_of_segment m σ hσm)).map (·.val) := by
           rw [hsplit]; simp
         obtain ⟨hi_m, hi_d⟩ := RSK.mem_bucket_depth m _ i hi_bk
-        have hi'_bk : i' ∈ (bucket m (depth_of_segment m σ' hσ'm)).map (·.val) := by
+        have hi'_bk : i' ∈ (sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val) := by
           rw [hsplit']; simp
         obtain ⟨hi'_m, hi'_d⟩ := RSK.mem_bucket_depth m _ i' hi'_bk
         have hdd : depth_of_segment m σ' hσ'm < depth_of_segment m σ hσm :=
           ll_ne_depth m σ σ' hσm hσ'm hlink_σ.1
-        have hsp : (bucket m (depth_of_segment m i hi_m)).map (·.val)
+        have hsp : (sortedBucket m (depth_of_segment m i hi_m)).map (·.val)
             = l₁ ++ i :: t :: l₂ := by rw [hi_d]; exact hsplit
-        have hsp' : (bucket m (depth_of_segment m i' hi'_m)).map (·.val)
+        have hsp' : (sortedBucket m (depth_of_segment m i' hi'_m)).map (·.val)
             = l₁' ++ i' :: t' :: l₂' := by rw [hi'_d]; exact hsplit'
         have hdd' : depth_of_segment m i' hi'_m < depth_of_segment m i hi_m := by
           rw [hi_d, hi'_d]; exact hdd
@@ -473,11 +476,11 @@ lemma cond_rsk_residual_nonempty
     List.flatMap_eq_nil_iff.mp hraw _ hd0_range
   -- the head's bucket, being residual-free, is the singleton [head]
   have hbk : m.segments.head h ∈
-      (bucket m (depth_of_segment m (m.segments.head h) hs_mem)).map (·.val) :=
+      (sortedBucket m (depth_of_segment m (m.segments.head h) hs_mem)).map (·.val) :=
     RSK.mem_bucket_of_depth m _ _ hs_mem rfl
-  have hsegs : (bucket m (depth_of_segment m (m.segments.head h) hs_mem)).map (·.val)
+  have hsegs : (sortedBucket m (depth_of_segment m (m.segments.head h) hs_mem)).map (·.val)
       = [m.segments.head h] := by
-    rcases hL : (bucket m (depth_of_segment m (m.segments.head h) hs_mem)).map (·.val)
+    rcases hL : (sortedBucket m (depth_of_segment m (m.segments.head h) hs_mem)).map (·.val)
       with _ | ⟨s, rest⟩
     · rw [hL] at hbk; simp at hbk
     · rcases rest with _ | ⟨t, rest'⟩
@@ -490,7 +493,7 @@ lemma cond_rsk_residual_nonempty
         intro hc
         have hlen := congrArg List.length hc
         have hlen2 := congrArg List.length hL
-        simp at hlen hlen2
+        simp [RSK.fiber_eq] at hlen hlen2
         omega
   -- its rung exists and attains the head's begin point
   obtain ⟨r, hr⟩ := RSK.bucketRung_some_of_mem m _ _ hbk
@@ -499,9 +502,7 @@ lemma cond_rsk_residual_nonempty
   simp only [List.mem_singleton] at hx_mem
   subst hx_mem
   -- so the head's begin is a rung's begin
-  have hr_mem : r ∈ RSK.ladderRungs m := by
-    unfold RSK.ladderRungs
-    exact List.mem_filterMap.mpr ⟨_, by rwa [List.mem_reverse], hr⟩
+  have hr_mem : r ∈ RSK.ladderRungs m := mem_sorted.mpr ⟨_, hr⟩
   -- but the first rung begins weakly before every rung — contradiction with `h_min`
   have hne_lr : RSK.ladderRungs m ≠ [] := List.ne_nil_of_mem hr_mem
   have h_min' : (m.segments.head h).a < ((RSK.ladderRungs m).head hne_lr).a := h_min
@@ -556,7 +557,7 @@ source depth `d' < d` (Corollary 2.3). -/
 lemma pullback_go (m : Multisegment) :
     ∀ (l : List Segment) (w x : Segment) (d : ℕ),
       (∃ (i t : Segment) (l₁ l₂ : List Segment),
-        (bucket m d).map (·.val) = l₁ ++ i :: t :: l₂ ∧ w.a = i.a ∧ w.b = t.b) →
+        (sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂ ∧ w.a = i.a ∧ w.b = t.b) →
       ∀ (hx : x ∈ m.segments), x.a = w.a → w.b ≤ x.b → d ≤ depth_of_segment m x hx →
       MW.isChain (w :: l) → (∀ u ∈ w :: l, u ∈ (RSK.residual m).segments) →
       ∃ c : List Segment, MW.isChain (x :: c) ∧ c.length = l.length ∧
@@ -577,7 +578,7 @@ lemma pullback_go (m : Multisegment) :
       exact hchain.1 w' (by simp)
     have ht'i' : t' ⊆ i' := RSK.bucket_split_pair_subset m d' i' t' l₁' l₂' hsplit'
     obtain ⟨ht'i'a, ht'i'b⟩ := ht'i'
-    have hi'_bk : i' ∈ (bucket m d').map (·.val) := by rw [hsplit']; simp
+    have hi'_bk : i' ∈ (sortedBucket m d').map (·.val) := by rw [hsplit']; simp
     obtain ⟨hi'_m, hi'_d⟩ := RSK.mem_bucket_depth m d' i' hi'_bk
     have hwlt_a : w.a < w'.a := hlink.1.1
     have hwlt_b : w.b < w'.b := hlink.1.2
@@ -645,7 +646,7 @@ lemma reverse_len (m : Multisegment) (sₘ s_l : Segment)
   · have hw0_res : w0 ∈ (RSK.residual m).segments :=
       MW.leadingChain_subset (RSK.residual m) w0 (by rw [hLC']; simp)
     obtain ⟨d0, i0, t0, l₁0, l₂0, hd0le, hsplit0, hw0a, hw0b⟩ := residual_source m w0 hw0_res
-    have hi0_bk : i0 ∈ (bucket m d0).map (·.val) := by rw [hsplit0]; simp
+    have hi0_bk : i0 ∈ (sortedBucket m d0).map (·.val) := by rw [hsplit0]; simp
     obtain ⟨hi0_m, hi0_d⟩ := RSK.mem_bucket_depth m d0 i0 hi0_bk
     obtain ⟨ht0a, ht0b⟩ := RSK.bucket_split_pair_subset m d0 i0 t0 l₁0 l₂0 hsplit0
     have hchainLC : MW.isChain (w0 :: rest) := by
@@ -1048,7 +1049,7 @@ lemma chain_seg_nondegenerate (m : Multisegment) (sₘ s_l : Segment)
   by_contra hcon
   push_neg at hcon
   have hab : σ.a ≤ σ.b := σ.fst_le_snd
-  have ht_bk : t ∈ (bucket m (depth_of_segment m σ hσm)).map (·.val) := by rw [hsplit]; simp
+  have ht_bk : t ∈ (sortedBucket m (depth_of_segment m σ hσm)).map (·.val) := by rw [hsplit]; simp
   obtain ⟨htm, htd⟩ := RSK.mem_bucket_depth m _ t ht_bk
   have hll : σ ≪ t := ⟨hta, by have h9 : t.a ≤ t.b := t.fst_le_snd; omega⟩
   have := ll_ne_depth m σ t hσm htm hll
@@ -1702,7 +1703,7 @@ lemma mdag_fiber_bounds (m : Multisegment) (sₘ s_l : Segment)
       have hσ₃lt : σ₃.a < r₃.a :=
         chain_seg_lt_rung m sₘ s_l hsₘ hs_l hmin σ₃ hσ₃C hσ₃m r₃ hr₃
       obtain ⟨hdom, -, -⟩ := RSK.bucketRung_spec m _ r₃ hr₃
-      have hσ₃in : σ₃ ∈ (bucket m (depth_of_segment m σ₃ hσ₃m)).map (·.val) :=
+      have hσ₃in : σ₃ ∈ (sortedBucket m (depth_of_segment m σ₃ hσ₃m)).map (·.val) :=
         RSK.mem_bucket_of_depth m _ σ₃ hσ₃m rfl
       obtain ⟨-, hσ₃b⟩ := hdom σ₃ hσ₃in
       have hma := rung_a_mono m d _ ht₃d r_d r₃ hr_d hr₃
@@ -1712,7 +1713,7 @@ lemma mdag_fiber_bounds (m : Multisegment) (sₘ s_l : Segment)
       have hdepmax := RSK.depth_le_maxDepth m y hym
       obtain ⟨r₁, hr₁⟩ := rung_exists m hmax _ hdepmax
       obtain ⟨hdom, -, -⟩ := RSK.bucketRung_spec m _ r₁ hr₁
-      have hyin : y ∈ (bucket m (depth_of_segment m y hym)).map (·.val) :=
+      have hyin : y ∈ (sortedBucket m (depth_of_segment m y hym)).map (·.val) :=
         RSK.mem_bucket_of_depth m _ y hym rfl
       obtain ⟨hyra, hyrb⟩ := hdom y hyin
       have hma := rung_a_mono m d _ hge r_d r₁ hr_d hr₁
@@ -1726,7 +1727,7 @@ lemma mdag_fiber_bounds (m : Multisegment) (sₘ s_l : Segment)
     have hτlt : τ.a < r_t.a :=
       chain_seg_lt_rung m sₘ s_l hsₘ hs_l hmin τ hτC hτm r_t hr_t
     obtain ⟨hdom, -, -⟩ := RSK.bucketRung_spec m _ r_t hr_t
-    have hτin : τ ∈ (bucket m (depth_of_segment m τ hτm)).map (·.val) :=
+    have hτin : τ ∈ (sortedBucket m (depth_of_segment m τ hτm)).map (·.val) :=
       RSK.mem_bucket_of_depth m _ τ hτm rfl
     obtain ⟨-, hτb⟩ := hdom τ hτin
     have hma := rung_a_mono m d _ hd_le r_d r_t hr_d hr_t
@@ -1802,7 +1803,7 @@ lemma mdag_fiber_attains (m : Multisegment) (sₘ s_l : Segment)
         obtain ⟨σw, hσwC, hσwm, hyaw, hybw, hdw⟩ := hbound.2 heq
         -- the witness sits in the same fiber, so its end is bounded by the rung's
         obtain ⟨hdomd, -, -⟩ := RSK.bucketRung_spec m d r_d hr_d
-        have hσwin : σw ∈ (bucket m d).map (·.val) :=
+        have hσwin : σw ∈ (sortedBucket m d).map (·.val) :=
           RSK.mem_bucket_of_depth m d σw hσwm (by omega)
         obtain ⟨-, hσwb⟩ := hdomd σw hσwin
         omega
@@ -1851,9 +1852,9 @@ lemma mdag_rung_eq (m : Multisegment) (sₘ s_l : Segment)
   obtain ⟨r_d, hr_d⟩ := rung_exists m hmax d hd
   obtain ⟨⟨yA, hyA', hyAd, hyAa⟩, ⟨yB, hyB', hyBd, hyBb⟩⟩ :=
     mdag_fiber_attains m sₘ s_l hsₘ hs_l hmin hmax d r_d hr_d
-  have hyAin : yA ∈ ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map
+  have hyAin : yA ∈ ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map
       (·.val)) := RSK.mem_bucket_of_depth _ d yA hyA' hyAd
-  have hyBin : yB ∈ ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map
+  have hyBin : yB ∈ ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map
       (·.val)) := RSK.mem_bucket_of_depth _ d yB hyB' hyBd
   obtain ⟨r', hr'⟩ := RSK.bucketRung_some_of_mem _ d yA hyAin
   obtain ⟨hdom', ⟨xa, hxain, hxaa⟩, ⟨xb, hxbin, hxbb⟩⟩ := RSK.bucketRung_spec _ d r' hr'
@@ -1885,7 +1886,7 @@ lemma mdag_ladder_eq (m : Multisegment) (sₘ s_l : Segment)
   have hσ₀nd := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σ₀ hσ₀
   have hmax' : (MW.makeResidual m (MW.leadingChain m).val.segments).segments ≠ [] :=
     List.ne_nil_of_mem (starred_mem_mdag m (MW.leadingChain m).val.segments σ₀ hσ₀ hσ₀nd)
-  unfold RSK.ladderRungs
+  rw [RSK.ladderRungs_eq, RSK.ladderRungs_eq]
   rw [mdag_maxDepth_eq m sₘ s_l hsₘ hs_l hmin hmax hmax']
   apply List.filterMap_congr
   intro d hd
@@ -2097,11 +2098,11 @@ lemma boundary_unique (L : List Segment) (hsorted : L.Pairwise (·.a ≤ ·.a))
 
 /-- Fiber elements are `⊆`-comparable (value form). -/
 lemma bucket_val_comparable (M : Multisegment) (d : ℕ) (x y : Segment)
-    (hx : x ∈ (bucket M d).map (·.val)) (hy : y ∈ (bucket M d).map (·.val)) :
+    (hx : x ∈ (sortedBucket M d).map (·.val)) (hy : y ∈ (sortedBucket M d).map (·.val)) :
     x ⊆ y ∨ y ⊆ x := by
   obtain ⟨⟨x', hx'⟩, hxbk, rfl⟩ := List.mem_map.mp hx
   obtain ⟨⟨y', hy'⟩, hybk, rfl⟩ := List.mem_map.mp hy
-  exact bucket_sink M d _ _ hxbk hybk
+  exact bucket_sink M d _ _ (mem_sortedBucket.mp hxbk) (mem_sortedBucket.mp hybk)
 
 /-- **Minimality at the chain head** (paper Prop. `main2`(2), case (a)): every residual
 segment beginning at `min m` ends at or after the head's boundary partner. -/
@@ -2109,7 +2110,7 @@ lemma residual_min_end_base (m : Multisegment) (sₘ : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (σ0 : Segment) (hσ0 : (MW.leadingChain m).val.segments.head? = some σ0)
     (hσ0m : σ0 ∈ m.segments) (i t : Segment) (l₁ l₂ : List Segment)
-    (hsplit : (bucket m (depth_of_segment m σ0 hσ0m)).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hsplit : (sortedBucket m (depth_of_segment m σ0 hσ0m)).map (·.val) = l₁ ++ i :: t :: l₂)
     (hia : i.a = σ0.a) (hta : σ0.a < t.a)
     (z : Segment) (hz : z ∈ (RSK.residual m).segments) (hza : z.a = σ0.a) :
     t.b ≤ z.b := by
@@ -2122,9 +2123,9 @@ lemma residual_min_end_base (m : Multisegment) (sₘ : Segment)
   by_contra hcon
   push_neg at hcon
   obtain ⟨d_z, i_z, t_z, u_z, v_z, hdz_le, hsplit_z, hzia, hzib⟩ := residual_source m z hz
-  have hiz_bk : i_z ∈ (bucket m d_z).map (·.val) := by rw [hsplit_z]; simp
+  have hiz_bk : i_z ∈ (sortedBucket m d_z).map (·.val) := by rw [hsplit_z]; simp
   obtain ⟨hiz_m, hiz_d⟩ := RSK.mem_bucket_depth m d_z i_z hiz_bk
-  have htz_bk : t_z ∈ (bucket m d_z).map (·.val) := by rw [hsplit_z]; simp
+  have htz_bk : t_z ∈ (sortedBucket m d_z).map (·.val) := by rw [hsplit_z]; simp
   obtain ⟨htz_m, htz_d⟩ := RSK.mem_bucket_depth m d_z t_z htz_bk
   have htztz := RSK.bucket_split_pair_subset m d_z i_z t_z u_z v_z hsplit_z
   obtain ⟨htz_a, htz_b⟩ := htztz
@@ -2135,9 +2136,9 @@ lemma residual_min_end_base (m : Multisegment) (sₘ : Segment)
     rw [hσ0sₘ]
     exact h2
   -- t ⊆ σ0 within the head fiber
-  have ht_bk : t ∈ (bucket m (depth_of_segment m σ0 hσ0m)).map (·.val) := by
+  have ht_bk : t ∈ (sortedBucket m (depth_of_segment m σ0 hσ0m)).map (·.val) := by
     rw [hsplit]; simp
-  have hσ0_bk : σ0 ∈ (bucket m (depth_of_segment m σ0 hσ0m)).map (·.val) :=
+  have hσ0_bk : σ0 ∈ (sortedBucket m (depth_of_segment m σ0 hσ0m)).map (·.val) :=
     RSK.mem_bucket_of_depth m _ σ0 hσ0m rfl
   have htσ0 : t.b ≤ σ0.b := by
     rcases bucket_val_comparable m _ t σ0 ht_bk hσ0_bk with h | h
@@ -2200,10 +2201,10 @@ lemma residual_min_end_step (m : Multisegment)
     (hsplitC : (MW.leadingChain m).val.segments = u ++ σj :: σj1 :: v)
     (hσjm : σj ∈ m.segments) (hσj1m : σj1 ∈ m.segments)
     (i_j t_j : Segment) (l₁ l₂ : List Segment)
-    (hsplit_j : (bucket m (depth_of_segment m σj hσjm)).map (·.val) = l₁ ++ i_j :: t_j :: l₂)
+    (hsplit_j : (sortedBucket m (depth_of_segment m σj hσjm)).map (·.val) = l₁ ++ i_j :: t_j :: l₂)
     (hia_j : i_j.a = σj.a) (_ : σj.a < t_j.a)
     (i' t' : Segment) (l₁' l₂' : List Segment)
-    (hsplit' : (bucket m (depth_of_segment m σj1 hσj1m)).map (·.val) = l₁' ++ i' :: t' :: l₂')
+    (hsplit' : (sortedBucket m (depth_of_segment m σj1 hσj1m)).map (·.val) = l₁' ++ i' :: t' :: l₂')
     (_ : i'.a = σj1.a) (hta' : σj1.a < t'.a)
     (z : Segment) (hz : z ∈ (RSK.residual m).segments)
     (hza : z.a = σj1.a) (hzb : t_j.b < z.b) :
@@ -2213,9 +2214,9 @@ lemma residual_min_end_step (m : Multisegment)
   by_contra hcon
   push_neg at hcon
   obtain ⟨d_z, i_z, t_z, u_z, v_z, hdz_le, hsplit_z, hzia, hzib⟩ := residual_source m z hz
-  have hiz_bk : i_z ∈ (bucket m d_z).map (·.val) := by rw [hsplit_z]; simp
+  have hiz_bk : i_z ∈ (sortedBucket m d_z).map (·.val) := by rw [hsplit_z]; simp
   obtain ⟨hiz_m, hiz_d⟩ := RSK.mem_bucket_depth m d_z i_z hiz_bk
-  have htz_bk : t_z ∈ (bucket m d_z).map (·.val) := by rw [hsplit_z]; simp
+  have htz_bk : t_z ∈ (sortedBucket m d_z).map (·.val) := by rw [hsplit_z]; simp
   obtain ⟨htz_m, htz_d⟩ := RSK.mem_bucket_depth m d_z t_z htz_bk
   obtain ⟨htzi_a, htzi_b⟩ := RSK.bucket_split_pair_subset m d_z i_z t_z u_z v_z hsplit_z
   -- the source fiber sits strictly below σⱼ's fiber
@@ -2247,7 +2248,7 @@ lemma residual_min_end_step (m : Multisegment)
     leadingChain_min_end m u v σj σj1 hsplitC mt hmt_m hmt_link
   have hcoord := depth_le_of_coord_le m σj1 mt hσj1m hmt_m
     (by obtain ⟨-, h⟩ := hmt_link; omega) hgreedy
-  have ht'_bk : t' ∈ (bucket m (depth_of_segment m σj1 hσj1m)).map (·.val) := by
+  have ht'_bk : t' ∈ (sortedBucket m (depth_of_segment m σj1 hσj1m)).map (·.val) := by
     rw [hsplit']; simp
   obtain ⟨ht'_m, ht'_d⟩ := RSK.mem_bucket_depth m _ t' ht'_bk
   have hfinal := RSK.lemma_2_2_2_split m d_z i_z t_z u_z v_z hsplit_z t' ht'_m
@@ -2264,7 +2265,7 @@ lemma leadingChain_residual_entries (m : Multisegment) (sₘ s_l : Segment)
     (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a) :
     ∀ (j : ℕ) (σ : Segment), (MW.leadingChain m).val.segments[j]? = some σ →
     ∃ (hσm : σ ∈ m.segments) (i t : Segment) (l₁ l₂ : List Segment),
-      (bucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂ ∧
+      (sortedBucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂ ∧
       i.a = σ.a ∧ σ.a < t.a ∧
       ∃ w, (MW.leadingChain (RSK.residual m)).val.segments[j]? = some w ∧
         w.a = σ.a ∧ w.b = t.b := by
@@ -2345,10 +2346,10 @@ lemma leadingChain_residual_entries (m : Multisegment) (sₘ s_l : Segment)
     have hw'a : w'.a = σ1.a := by omega
     refine ⟨w', hw', hw'a, ?_⟩
     -- end-monotonicity of the boundary partners: tⱼ.b < t'.b
-    have hi_j_bk : i_j ∈ (bucket m (depth_of_segment m σj hσjm)).map (·.val) := by
+    have hi_j_bk : i_j ∈ (sortedBucket m (depth_of_segment m σj hσjm)).map (·.val) := by
       rw [hsplit_j]; simp
     obtain ⟨hi_j_m, hd_j⟩ := RSK.mem_bucket_depth m _ i_j hi_j_bk
-    have hi'_bk : i' ∈ (bucket m (depth_of_segment m σ1 hσ1m)).map (·.val) := by
+    have hi'_bk : i' ∈ (sortedBucket m (depth_of_segment m σ1 hσ1m)).map (·.val) := by
       rw [hsplit']; simp
     obtain ⟨hi'_m, hd'⟩ := RSK.mem_bucket_depth m _ i' hi'_bk
     have hddσ := ll_ne_depth m σj σ1 hσjm hσ1m hll
@@ -2411,11 +2412,11 @@ lemma derivedPairs_cons_cons (x y : Segment) (l : List Segment) :
 
 /-- The bucket residual's coordinate pairs are the derived pairs of the bucket. -/
 lemma bucketResidual_pairs (m : Multisegment) (d : ℕ) :
-    (RSK.bucketResidual m d).map segPair = derivedPairs ((bucket m d).map (·.val)) := by
+    (RSK.bucketResidual m d).map segPair = derivedPairs ((sortedBucket m d).map (·.val)) := by
   apply List.ext_getElem
-  · simp [RSK.bucketResidual, derivedPairs]
+  · simp [RSK.bucketResidual, derivedPairs, RSK.fiber_eq]
   · intro i h1 h2
-    simp [RSK.bucketResidual, derivedPairs, segPair]
+    simp [RSK.bucketResidual, derivedPairs, segPair, RSK.fiber_eq]
     exact ⟨rfl, rfl⟩
 
 /-- Indicator: `w` is the top (maximal-end) element of its begin-group in `L`. -/
@@ -2711,12 +2712,12 @@ lemma derivedPairs_count (w : ℤ × ℤ) : ∀ (L : List Segment),
 /-- Count of a value in a bucket: its full multiplicity if it lives at that depth. -/
 lemma count_bucket_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
     (hx : x ∈ M.segments) (hd : depth_of_segment M x hx = d) :
-    ((bucket M d).map (·.val)).count x = M.segments.count x := by
-  have hperm : ((bucket M d).map (·.val)).Perm
+    ((sortedBucket M d).map (·.val)).count x = M.segments.count x := by
+  have hperm : ((sortedBucket M d).map (·.val)).Perm
       ((M.segments.attach.filter fun z =>
         depth_of_segment M z.val z.property = d).map (·.val)) := by
     apply List.Perm.map
-    unfold bucket
+    unfold sortedBucket bucket
     exact List.perm_insertionSort _ _
   rw [hperm.count_eq]
   rw [show x = (⟨x, hx⟩ : {s : Segment // s ∈ M.segments}).val from rfl,
@@ -2727,7 +2728,7 @@ lemma count_bucket_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
 /-- Count of a value in a bucket at the wrong depth (or absent from `M`): zero. -/
 lemma count_bucket_of_ne (M : Multisegment) (d : ℕ) (x : Segment)
     (h : ¬ ∃ hx : x ∈ M.segments, depth_of_segment M x hx = d) :
-    ((bucket M d).map (·.val)).count x = 0 := by
+    ((sortedBucket M d).map (·.val)).count x = 0 := by
   rw [List.count_eq_zero]
   intro hmem
   exact h (RSK.mem_bucket_depth M d x hmem)
@@ -2929,8 +2930,8 @@ lemma fiber_succ_end_le (m : Multisegment) (σ : Segment) (hσm : σ ∈ m.segme
 in both coordinates. -/
 lemma boundary_next_facts (m : Multisegment) (d : ℕ) (i t : Segment)
     (l₁ l₂ : List Segment)
-    (hsplit : (bucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
-    (y : Segment) (hy : y ∈ (bucket m d).map (·.val)) (hya : i.a < y.a) :
+    (hsplit : (sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
+    (y : Segment) (hy : y ∈ (sortedBucket m d).map (·.val)) (hya : i.a < y.a) :
     t.a ≤ y.a ∧ y.b ≤ t.b := by
   have hsorted := bucket_sorted m d
   have hnested := bucket_nested m d
@@ -3054,7 +3055,7 @@ lemma count_mdag_full (m : Multisegment) (x : Segment) :
 /-- Bucket count when every copy of the value sits at depth `d`. -/
 lemma bucket_count_eq_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
     (h : ∀ hxm : x ∈ M.segments, depth_of_segment M x hxm = d) :
-    ((bucket M d).map (·.val)).count x = M.segments.count x := by
+    ((sortedBucket M d).map (·.val)).count x = M.segments.count x := by
   by_cases hmem : x ∈ M.segments
   · exact count_bucket_of_depth M d x hmem (h hmem)
   · rw [count_bucket_of_ne M d x (by rintro ⟨hxm, -⟩; exact hmem hxm),
@@ -3063,7 +3064,7 @@ lemma bucket_count_eq_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
 /-- Bucket count when the value never sits at depth `d`. -/
 lemma bucket_count_eq_zero_of_depth_ne (M : Multisegment) (d : ℕ) (x : Segment)
     (h : ∀ hxm : x ∈ M.segments, depth_of_segment M x hxm ≠ d) :
-    ((bucket M d).map (·.val)).count x = 0 :=
+    ((sortedBucket M d).map (·.val)).count x = 0 :=
   count_bucket_of_ne M d x (by rintro ⟨hxm, hd⟩; exact h hxm hd)
 
 /-- In a begins-increasing list, splits at a common element coincide. -/
@@ -3147,15 +3148,15 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
     (hsplit : (MW.leadingChain m).val.segments = u ++ σ :: σ' :: v)
     (hσm : σ ∈ m.segments) (hσ'm : σ' ∈ m.segments)
     (x : Segment) :
-    ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+    ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val)).count x
       + (if x = σ then 1 else 0)
       + (if x.a = σ.a ∧ x.b < σ.b
-         then ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x else 0)
-    = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+         then ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x else 0)
+    = ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
       + (if x.a = σ.a + 1 ∧ x.b = σ.b then 1 else 0)
       + (if x.a = σ'.a ∧ x.b < σ'.b
-         then ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x else 0) := by
+         then ((sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x else 0) := by
   classical
   have hσC : σ ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
   have hσ'C : σ' ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
@@ -3183,10 +3184,10 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
         · obtain ⟨-, h2⟩ := h; omega
         · obtain ⟨h1, -⟩ := h; omega
       rw [if_pos hσC, if_neg hst] at hcount
-      have hBm : ((bucket m (depth_of_segment m x hσm)).map (·.val)).count x
+      have hBm : ((sortedBucket m (depth_of_segment m x hσm)).map (·.val)).count x
           = m.segments.count x :=
         bucket_count_eq_of_depth m _ x (fun _ => rfl)
-      have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
           (depth_of_segment m x hσm)).map (·.val)).count x
           = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
         apply bucket_count_eq_of_depth
@@ -3215,7 +3216,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
             survivor_mem_mdag m _ x hxm hxnotC
           have hdep := special_moves_up m sₘ s_l hsₘ hs_l hmin x hxm hx'
             σ hσC hσm hx1 hx3 (by rw [hxd])
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
             apply bucket_count_eq_zero_of_depth_ne
             intro hx'2
@@ -3224,7 +3225,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                 = depth_of_segment (MW.makeResidual m
                 (MW.leadingChain m).val.segments) x hx' := rfl
             omega
-          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+          have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
               = m.segments.count x :=
             bucket_count_eq_of_depth m _ x (fun hxm2 => by
               have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
@@ -3235,7 +3236,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
             if_neg (by rintro ⟨h, -⟩; omega)]
           omega
         · -- L3: same-begin shorter value off the fiber
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
             apply bucket_count_eq_zero_of_depth_ne
             intro hx'
@@ -3249,7 +3250,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
             · rw [mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC (hCsub c hcC)
                 hcnd x hxa hxb hx']
               exact chain_mem_depth_ne m c σ hcC hσC (by omega) (hCsub c hcC) hσm
-          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+          have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
             bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hx4 ⟨hxm, h⟩)
           rw [hB, hBm, if_neg (fun h => by
               have := congrArg Segment.b h; simp only [] at this; omega),
@@ -3278,14 +3279,14 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
         by_cases hf : ∃ hxm : x ∈ m.segments,
             depth_of_segment m x hxm = depth_of_segment m σ hσm
         · obtain ⟨hxm, hxd⟩ := hf
-          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+          have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
               = m.segments.count x :=
             bucket_count_eq_of_depth m _ x (fun hxm2 => by
               have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
               omega)
           have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments :=
             survivor_mem_mdag m _ x hxm hxnotC
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x
               = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
             apply bucket_count_eq_of_depth
@@ -3297,9 +3298,9 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
             if_neg (by rintro ⟨-, h⟩; omega), if_neg (by rintro ⟨h, -⟩; omega),
             if_neg (by rintro ⟨h, -⟩; omega)]
           omega
-        · have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+        · have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
             bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hf ⟨hxm, h⟩)
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
             apply bucket_count_eq_zero_of_depth_ne
             intro hx'
@@ -3326,15 +3327,15 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
         have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments := by
           rw [← List.count_pos_iff]
           omega
-        have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
             (depth_of_segment m σ hσm)).map (·.val)).count x
             = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
           apply bucket_count_eq_of_depth
           intro hx'2
           exact mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin σ hσC hσm hnd x
             (by omega) (by omega) hx'2
-        have hsum : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
-            + ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x
+        have hsum : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+            + ((sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x
             = m.segments.count x := by
           by_cases hxm : x ∈ m.segments
           · have hge := depth_mdag_ge_notC m sₘ s_l hsₘ hs_l hmin x hxm hxnotC hx'
@@ -3348,24 +3349,24 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
               have hww := begin_unique_of_pairwise_lt _ hBlt σw hσwC σ' hσ'C (by omega)
               have hwd' : depth_of_segment m x hxm = depth_of_segment m σ' hσ'm :=
                 hwd.trans (depth_congr m σw σ' hww hσwm hσ'm)
-              have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+              have hB1 : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
                   = 0 :=
                 bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
                   have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
                   omega)
-              have hB2 : ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x
+              have hB2 : ((sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x
                   = m.segments.count x :=
                 bucket_count_eq_of_depth m _ x (fun hxm2 => by
                   have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
                   omega)
               omega
             · have hxd : depth_of_segment m x hxm = depth_of_segment m σ hσm := by omega
-              have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+              have hB1 : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
                   = m.segments.count x :=
                 bucket_count_eq_of_depth m _ x (fun hxm2 => by
                   have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
                   omega)
-              have hB2 : ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x
+              have hB2 : ((sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x
                   = 0 :=
                 bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
                   have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
@@ -3392,7 +3393,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
             · obtain ⟨-, h2⟩ := h; omega
             · obtain ⟨h1, -⟩ := h; omega
           rw [if_pos hσ'C, if_neg hst] at hcount
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
             apply bucket_count_eq_zero_of_depth_ne
             intro hx'
@@ -3402,7 +3403,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
               have := begin_unique_of_pairwise_lt _ hBlt σw hσwC x hσ'C (by omega)
               rw [this] at hwb
               omega
-          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+          have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
             bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
               have : depth_of_segment m x hxm2 = depth_of_segment m x hσ'm := rfl
               omega)
@@ -3436,7 +3437,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                   σ' hσ'C hσ'm hxσ'a hx8 (by rw [he])
                 have hgap := special_witness_gap m sₘ s_l hsₘ hs_l hmin x hxm
                   σ' hσ'm hxσ'a hx8 (by rw [he]) u v σ hsplit hσm
-                have hB : ((bucket (MW.makeResidual m
+                have hB : ((sortedBucket (MW.makeResidual m
                     (MW.leadingChain m).val.segments)
                     (depth_of_segment m σ hσm)).map (·.val)).count x
                     = (MW.makeResidual m
@@ -3448,12 +3449,12 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                       = depth_of_segment (MW.makeResidual m
                       (MW.leadingChain m).val.segments) x hx' := rfl
                   omega
-                have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+                have hB1 : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
                     = 0 :=
                   bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
                     have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
                     omega)
-                have hB2 : ((bucket m
+                have hB2 : ((sortedBucket m
                     (depth_of_segment m σ' hσ'm)).map (·.val)).count x
                     = m.segments.count x :=
                   bucket_count_eq_of_depth m _ x (fun hxm2 => by
@@ -3476,13 +3477,13 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                     (MW.leadingChain m).val.segments).segments :=
                   survivor_mem_mdag m _ x hxm hxnotC
                 have hdep := mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx' hcert
-                have hB2 : ((bucket m
+                have hB2 : ((sortedBucket m
                     (depth_of_segment m σ' hσ'm)).map (·.val)).count x = 0 :=
                   bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
                     have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
                     omega)
                 by_cases hed : depth_of_segment m x hxm = depth_of_segment m σ hσm
-                · have hB : ((bucket (MW.makeResidual m
+                · have hB : ((sortedBucket (MW.makeResidual m
                       (MW.leadingChain m).val.segments)
                       (depth_of_segment m σ hσm)).map (·.val)).count x
                       = (MW.makeResidual m
@@ -3494,7 +3495,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                         = depth_of_segment (MW.makeResidual m
                         (MW.leadingChain m).val.segments) x hx' := rfl
                     omega
-                  have hB1 : ((bucket m
+                  have hB1 : ((sortedBucket m
                       (depth_of_segment m σ hσm)).map (·.val)).count x
                       = m.segments.count x :=
                     bucket_count_eq_of_depth m _ x (fun hxm2 => by
@@ -3505,7 +3506,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                     if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨-, h⟩; omega),
                     if_pos ⟨hxσ'a, hx8⟩, hB2]
                   omega
-                · have hB : ((bucket (MW.makeResidual m
+                · have hB : ((sortedBucket (MW.makeResidual m
                       (MW.leadingChain m).val.segments)
                       (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
                     apply bucket_count_eq_zero_of_depth_ne
@@ -3515,7 +3516,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                         = depth_of_segment (MW.makeResidual m
                         (MW.leadingChain m).val.segments) x hx' := rfl
                     omega
-                  have hB1 : ((bucket m
+                  have hB1 : ((sortedBucket m
                       (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
                     bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
                       have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
@@ -3526,7 +3527,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                     if_pos ⟨hxσ'a, hx8⟩, hB2]
             · -- x is not in m at all
               have hzero : m.segments.count x = 0 := List.count_eq_zero.mpr hxm
-              have hB : ((bucket (MW.makeResidual m
+              have hB : ((sortedBucket (MW.makeResidual m
                   (MW.leadingChain m).val.segments)
                   (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
                 apply bucket_count_eq_zero_of_depth_ne
@@ -3556,7 +3557,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
               have hx' : x ∈ (MW.makeResidual m
                   (MW.leadingChain m).val.segments).segments :=
                 survivor_mem_mdag m _ x hxm hxnotC
-              have hB : ((bucket (MW.makeResidual m
+              have hB : ((sortedBucket (MW.makeResidual m
                   (MW.leadingChain m).val.segments)
                   (depth_of_segment m σ hσm)).map (·.val)).count x
                   = (MW.makeResidual m
@@ -3565,7 +3566,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                 intro hx'2
                 rw [mdag_depth_survivor m sₘ s_l hsₘ hs_l hmin x hxm hx'2 (hcert hxm)]
                 exact hxd
-              have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+              have hB1 : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
                   = m.segments.count x :=
                 bucket_count_eq_of_depth m _ x (fun hxm2 => by
                   have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
@@ -3575,10 +3576,10 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                 if_neg (by rintro ⟨-, h⟩; omega), if_neg (by rintro ⟨-, h⟩; omega),
                 if_neg (by rintro ⟨-, h⟩; omega)]
               omega
-            · have hB1 : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+            · have hB1 : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
                   = 0 :=
                 bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hf ⟨hxm, h⟩)
-              have hB : ((bucket (MW.makeResidual m
+              have hB : ((sortedBucket (MW.makeResidual m
                   (MW.leadingChain m).val.segments)
                   (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
                 apply bucket_count_eq_zero_of_depth_ne
@@ -3596,9 +3597,9 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
           have := congrArg Segment.a h; simp only [] at this; omega),
         if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨h, -⟩; omega),
         if_neg (by rintro ⟨h, -⟩; omega)]
-      have hgoal : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      have hgoal : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
           (depth_of_segment m σ hσm)).map (·.val)).count x
-          = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
+          = ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
         by_cases hxC : x ∈ (MW.leadingChain m).val.segments
         · -- another chain value: wrong fiber on both sides
           have hxm := hCsub x hxC
@@ -3629,7 +3630,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
               omega
             have hdd := mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC hcm hcnd
               x hxa hxb hx'
-            have hB : ((bucket (MW.makeResidual m
+            have hB : ((sortedBucket (MW.makeResidual m
                 (MW.leadingChain m).val.segments)
                 (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
               apply bucket_count_eq_zero_of_depth_ne
@@ -3661,7 +3662,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                 have hwne : σw.a ≠ σ.a := by omega
                 have hdw : depth_of_segment m σw hσwm ≠ depth_of_segment m σ hσm :=
                   chain_mem_depth_ne m σw σ hσwC hσC hwne hσwm hσm
-                have hB1 : ((bucket m
+                have hB1 : ((sortedBucket m
                     (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
                   bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
                     have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
@@ -3729,7 +3730,7 @@ lemma fiber_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
                       = depth_of_segment (MW.makeResidual m
                       (MW.leadingChain m).val.segments) x hx' := rfl
                   omega
-            · have hB : ((bucket (MW.makeResidual m
+            · have hB : ((sortedBucket (MW.makeResidual m
                   (MW.leadingChain m).val.segments)
                   (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
                 apply bucket_count_eq_zero_of_depth_ne
@@ -3748,12 +3749,12 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
     (u : List Segment) (σ : Segment)
     (hsplit : (MW.leadingChain m).val.segments = u ++ [σ])
     (hσm : σ ∈ m.segments) (x : Segment) :
-    ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+    ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val)).count x
       + (if x = σ then 1 else 0)
       + (if x.a = σ.a ∧ x.b < σ.b
-         then ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x else 0)
-    = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+         then ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x else 0)
+    = ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
       + (if x.a = σ.a + 1 ∧ x.b = σ.b then 1 else 0) := by
   classical
   have hσC : σ ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
@@ -3788,10 +3789,10 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
         · omega
         · obtain ⟨-, h2⟩ := h; omega
       rw [if_pos hσC, if_neg hst] at hcount
-      have hBm : ((bucket m (depth_of_segment m x hσm)).map (·.val)).count x
+      have hBm : ((sortedBucket m (depth_of_segment m x hσm)).map (·.val)).count x
           = m.segments.count x :=
         bucket_count_eq_of_depth m _ x (fun _ => rfl)
-      have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
           (depth_of_segment m x hσm)).map (·.val)).count x
           = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
         apply bucket_count_eq_of_depth
@@ -3819,7 +3820,7 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
             survivor_mem_mdag m _ x hxm hxnotC
           have hdep := special_moves_up m sₘ s_l hsₘ hs_l hmin x hxm hx'
             σ hσC hσm hx1 hx3 (by rw [hxd])
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
             apply bucket_count_eq_zero_of_depth_ne
             intro hx'2
@@ -3828,7 +3829,7 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
                 = depth_of_segment (MW.makeResidual m
                 (MW.leadingChain m).val.segments) x hx' := rfl
             omega
-          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+          have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
               = m.segments.count x :=
             bucket_count_eq_of_depth m _ x (fun hxm2 => by
               have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
@@ -3837,7 +3838,7 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
               have := congrArg Segment.b h; simp only [] at this; omega),
             if_pos ⟨hx1, hx3⟩, if_neg (by rintro ⟨h, -⟩; omega)]
           omega
-        · have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        · have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
             apply bucket_count_eq_zero_of_depth_ne
             intro hx'
@@ -3851,7 +3852,7 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
             · rw [mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC (hCsub c hcC)
                 hcnd x hxa hxb hx']
               exact chain_mem_depth_ne m c σ hcC hσC (by omega) (hCsub c hcC) hσm
-          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+          have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
             bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hx4 ⟨hxm, h⟩)
           rw [hB, hBm, if_neg (fun h => by
               have := congrArg Segment.b h; simp only [] at this; omega),
@@ -3877,14 +3878,14 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
         by_cases hf : ∃ hxm : x ∈ m.segments,
             depth_of_segment m x hxm = depth_of_segment m σ hσm
         · obtain ⟨hxm, hxd⟩ := hf
-          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+          have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
               = m.segments.count x :=
             bucket_count_eq_of_depth m _ x (fun hxm2 => by
               have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
               omega)
           have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments :=
             survivor_mem_mdag m _ x hxm hxnotC
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x
               = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
             apply bucket_count_eq_of_depth
@@ -3895,9 +3896,9 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
               have := congrArg Segment.b h; simp only [] at this; omega),
             if_neg (by rintro ⟨-, h⟩; omega), if_neg (by rintro ⟨h, -⟩; omega)]
           omega
-        · have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+        · have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
             bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hf ⟨hxm, h⟩)
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
             apply bucket_count_eq_zero_of_depth_ne
             intro hx'
@@ -3920,14 +3921,14 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
         have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments := by
           rw [← List.count_pos_iff]
           omega
-        have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
             (depth_of_segment m σ hσm)).map (·.val)).count x
             = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
           apply bucket_count_eq_of_depth
           intro hx'2
           exact mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin σ hσC hσm hnd x
             (by omega) (by omega) hx'2
-        have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+        have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
             = m.segments.count x := by
           apply bucket_count_eq_of_depth
           intro hxm
@@ -3964,14 +3965,14 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
         by_cases hf : ∃ hxm : x ∈ m.segments,
             depth_of_segment m x hxm = depth_of_segment m σ hσm
         · obtain ⟨hxm, hxd⟩ := hf
-          have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x
+          have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x
               = m.segments.count x :=
             bucket_count_eq_of_depth m _ x (fun hxm2 => by
               have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
               omega)
           have hx' : x ∈ (MW.makeResidual m (MW.leadingChain m).val.segments).segments :=
             survivor_mem_mdag m _ x hxm hxnotC
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x
               = (MW.makeResidual m (MW.leadingChain m).val.segments).segments.count x := by
             apply bucket_count_eq_of_depth
@@ -3982,9 +3983,9 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
               have := congrArg Segment.a h; simp only [] at this; omega),
             if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨-, h⟩; omega)]
           omega
-        · have hBm : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
+        · have hBm : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
             bucket_count_eq_zero_of_depth_ne m _ x (fun hxm h => hf ⟨hxm, h⟩)
-          have hB : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+          have hB : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
             apply bucket_count_eq_zero_of_depth_ne
             intro hx'
@@ -3999,9 +4000,9 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
       rw [if_neg (fun h => by
           have := congrArg Segment.a h; simp only [] at this; omega),
         if_neg (by rintro ⟨h, -⟩; omega), if_neg (by rintro ⟨h, -⟩; omega)]
-      have hgoal : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      have hgoal : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
           (depth_of_segment m σ hσm)).map (·.val)).count x
-          = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
+          = ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
         by_cases hxC : x ∈ (MW.leadingChain m).val.segments
         · have hxm := hCsub x hxC
           have hend : depth_of_segment m x hxm ≠ depth_of_segment m σ hσm :=
@@ -4030,7 +4031,7 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
               omega
             have hdd := mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC hcm hcnd
               x hxa hxb hx'
-            have hB : ((bucket (MW.makeResidual m
+            have hB : ((sortedBucket (MW.makeResidual m
                 (MW.leadingChain m).val.segments)
                 (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
               apply bucket_count_eq_zero_of_depth_ne
@@ -4059,7 +4060,7 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
                 have hwne : σw.a ≠ σ.a := by omega
                 have hdw : depth_of_segment m σw hσwm ≠ depth_of_segment m σ hσm :=
                   chain_mem_depth_ne m σw σ hσwC hσC hwne hσwm hσm
-                have hB1 : ((bucket m
+                have hB1 : ((sortedBucket m
                     (depth_of_segment m σ hσm)).map (·.val)).count x = 0 :=
                   bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
                     have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
@@ -4121,7 +4122,7 @@ lemma fiber_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
                       = depth_of_segment (MW.makeResidual m
                       (MW.leadingChain m).val.segments) x hx' := rfl
                   omega
-            · have hB : ((bucket (MW.makeResidual m
+            · have hB : ((sortedBucket (MW.makeResidual m
                   (MW.leadingChain m).val.segments)
                   (depth_of_segment m σ hσm)).map (·.val)).count x = 0 := by
                 apply bucket_count_eq_zero_of_depth_ne
@@ -4327,18 +4328,11 @@ lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
     have htrm : transInd Fm w = if w.2 = t.b then 1 else 0 := by
       apply transInd_eq_group Fm w ⟨σ, hσmem, hw1.symm⟩ t.a t.b (by omega)
         ⟨t, htmem, rfl, rfl⟩
-      · intro y hy hya
-        exact (hnextt y hy (by omega)).1
-      · intro z hz hza
-        exact (hnextt z hz (by omega)).2
     by_cases hsurv : ∃ y ∈ Fd, y.a = σ.a
     · obtain ⟨y₀, hy₀, hy₀a⟩ := hsurv
       have htrd : transInd Fd w = if w.2 = σ.b then 1 else 0 := by
         apply transInd_eq_group Fd w ⟨y₀, hy₀, by omega⟩ (σ.a + 1) σ.b (by omega)
           ⟨yB, hyB, hyBa, hyBb⟩
-        · intro y hy hya
-          omega
-        · exact hB2
       have htd : topInd Fd w = if w.2 = E then 1 else 0 := by
         apply topInd_eq_group Fd w E ?_ ?_
         · rcases eq_or_lt_of_le hEσ with heq | hlt
@@ -4372,8 +4366,6 @@ lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
     · -- source begin σ.a + 1
       have htd : topInd Fd w = if w.2 = σ.b then 1 else 0 := by
         apply topInd_eq_group Fd w σ.b ⟨yB, hyB, by omega, hyBb⟩
-        intro z hz hza
-        exact hB2 z hz (by omega)
       by_cases hY : ∃ y ∈ Fm, y.a = σ.a + 1
       · obtain ⟨y₀, hy₀, hy₀a⟩ := hY
         have hta' : t.a = σ.a + 1 := by
@@ -4381,8 +4373,6 @@ lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
           omega
         have htm : topInd Fm w = if w.2 = t.b then 1 else 0 := by
           apply topInd_eq_group Fm w t.b ⟨t, htmem, by omega, rfl⟩
-          intro z hz hza
-          exact (hnextt z hz (by omega)).2
         by_cases hZ : ∃ y ∈ Fm, σ.a + 1 < y.a
         · obtain ⟨a₂, E₂, ha₂, ⟨z₂, hz₂, hz₂a, hz₂b⟩, hmin₂, hmax₂⟩ :=
             exists_next_data Fm (σ.a + 1) hZ
@@ -4390,18 +4380,9 @@ lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
           have htrm : transInd Fm w = if w.2 = E₂ then 1 else 0 := by
             apply transInd_eq_group Fm w ⟨y₀, hy₀, by omega⟩ a₂ E₂ (by omega)
               ⟨z₂, hz₂, hz₂a, hz₂b⟩
-            · intro y hy hya
-              exact hmin₂ y hy (by omega)
-            · exact hmax₂
           have htrd : transInd Fd w = if w.2 = E₂ then 1 else 0 := by
             apply transInd_eq_group Fd w ⟨yB, hyB, by omega⟩ a₂ E₂ (by omega)
               ⟨z₂, hz₂d, hz₂a, hz₂b⟩
-            · intro y hy hya
-              have hym : y ∈ Fm := (hD1 y (by omega) (by omega)).mp hy
-              exact hmin₂ y hym (by omega)
-            · intro z hz hza
-              have hzm : z ∈ Fm := (hD1 z (by omega) (by omega)).mp hz
-              exact hmax₂ z hzm hza
           rw [htm, htd, htrm, htrd]
           simp only [pair_eq_iff]
           split_ifs <;> omega
@@ -4409,9 +4390,6 @@ lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
             transInd_eq_zero_of_no_next Fm w (fun y hy h => hZ ⟨y, hy, by omega⟩)
           have htrd : transInd Fd w = 0 := by
             apply transInd_eq_zero_of_no_next Fd w
-            intro y hy h
-            have hym : y ∈ Fm := (hD1 y (by omega) (by omega)).mp hy
-            exact hZ ⟨y, hym, by omega⟩
           rw [htm, htd, htrm, htrd]
           simp only [pair_eq_iff]
           split_ifs <;> omega
@@ -4427,12 +4405,6 @@ lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
         have htrd : transInd Fd w = if w.2 = t.b then 1 else 0 := by
           apply transInd_eq_group Fd w ⟨yB, hyB, by omega⟩ t.a t.b (by omega)
             ⟨t, (hD1 t (by omega) (by omega)).mpr htmem, rfl, rfl⟩
-          · intro y hy hya
-            have hym : y ∈ Fm := (hD1 y (by omega) (by omega)).mp hy
-            exact (hnextt y hym (by omega)).1
-          · intro z hz hza
-            have hzm : z ∈ Fm := (hD1 z (by omega) (by omega)).mp hz
-            exact (hnextt z hzm (by omega)).2
         rw [htm, htd, htrm, htrd]
         simp only [pair_eq_iff]
         split_ifs <;> omega
@@ -4564,7 +4536,7 @@ the fibers. -/
 lemma count_residual_pairs (M : Multisegment) (w : ℤ × ℤ) :
     ((RSK.residual M).segments.map segPair).count w =
       ((List.range (RSK.maxDepth M + 1)).map
-        (fun d => (derivedPairs ((bucket M d).map (·.val))).count w)).sum := by
+        (fun d => (derivedPairs ((sortedBucket M d).map (·.val))).count w)).sum := by
   simp only [RSK.residual]
   rw [((List.perm_insertionSort (· ≤ ·) _).map segPair).count_eq]
   have hmapflat : ∀ (l : List ℕ),
@@ -4591,8 +4563,8 @@ lemma fiber_count_nonchain (m : Multisegment) (sₘ s_l : Segment)
     (hd : ∀ c ∈ (MW.leadingChain m).val.segments, ∀ hcm : c ∈ m.segments,
       depth_of_segment m c hcm ≠ d)
     (x : Segment) :
-    ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map (·.val)).count x
-      = ((bucket m d).map (·.val)).count x := by
+    ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map (·.val)).count x
+      = ((sortedBucket m d).map (·.val)).count x := by
   classical
   have hcount := count_mdag_full m x
   have hBlt := leadingChain_begins_lt m
@@ -4626,7 +4598,7 @@ lemma fiber_count_nonchain (m : Multisegment) (sₘ s_l : Segment)
         omega
       have hdd := mdag_depth_starred' m sₘ s_l hsₘ hs_l hmin c hcC hcm hcnd
         x hxa hxb hx'
-      have hB : ((bucket (MW.makeResidual m
+      have hB : ((sortedBucket (MW.makeResidual m
           (MW.leadingChain m).val.segments) d).map (·.val)).count x = 0 := by
         apply bucket_count_eq_zero_of_depth_ne
         intro hx'2
@@ -4651,7 +4623,7 @@ lemma fiber_count_nonchain (m : Multisegment) (sₘ s_l : Segment)
         · -- special: off this fiber on both sides
           obtain ⟨σw, hσwC, hσwm, hwa, hwb, hwd⟩ := hsp
           have hdw : depth_of_segment m σw hσwm ≠ d := hd σw hσwC hσwm
-          have hB1 : ((bucket m d).map (·.val)).count x = 0 :=
+          have hB1 : ((sortedBucket m d).map (·.val)).count x = 0 :=
             bucket_count_eq_zero_of_depth_ne m _ x (fun hxm2 h => by
               have : depth_of_segment m x hxm2 = depth_of_segment m x hxm := rfl
               omega)
@@ -4703,7 +4675,7 @@ lemma fiber_count_nonchain (m : Multisegment) (sₘ s_l : Segment)
                 = depth_of_segment (MW.makeResidual m
                 (MW.leadingChain m).val.segments) x hx' := rfl
             omega
-      · have hB : ((bucket (MW.makeResidual m
+      · have hB : ((sortedBucket (MW.makeResidual m
             (MW.leadingChain m).val.segments) d).map (·.val)).count x = 0 := by
           apply bucket_count_eq_zero_of_depth_ne
           intro hx'
@@ -4719,8 +4691,8 @@ lemma fiber_list_nonchain_eq (m : Multisegment) (sₘ s_l : Segment)
     (d : ℕ)
     (hd : ∀ c ∈ (MW.leadingChain m).val.segments, ∀ hcm : c ∈ m.segments,
       depth_of_segment m c hcm ≠ d) :
-    ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map (·.val))
-      = ((bucket m d).map (·.val)) := by
+    ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments) d).map (·.val))
+      = ((sortedBucket m d).map (·.val)) := by
   classical
   refine (List.perm_iff_count.mpr
       (fun x => fiber_count_nonchain m sₘ s_l hsₘ hs_l hmin d hd x)).eq_of_pairwise
@@ -4772,30 +4744,30 @@ lemma derived_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
     (hsplit : (MW.leadingChain m).val.segments = u ++ σ :: σ' :: v)
     (hσm : σ ∈ m.segments) (hσ'm : σ' ∈ m.segments)
     (i t : Segment) (l₁ l₂ : List Segment)
-    (hbsplit : (bucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hbsplit : (sortedBucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂)
     (hia : i.a = σ.a) (hta : σ.a < t.a)
     (w : ℤ × ℤ) :
-    (derivedPairs ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+    (derivedPairs ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val))).count w
       + (if w = ((σ.a : ℤ), (t.b : ℤ)) then 1 else 0)
       + (if w.1 = σ.a ∧ w.2 < σ.b
-         then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+         then (((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
          else 0)
-    = (derivedPairs ((bucket m (depth_of_segment m σ hσm)).map (·.val))).count w
+    = (derivedPairs ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val))).count w
       + (if w = ((σ.a + 1 : ℤ), (t.b : ℤ)) then 1 else 0)
       + (if w.1 = σ'.a ∧ w.2 < σ'.b
-         then (((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map segPair).count w
+         then (((sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map segPair).count w
          else 0) := by
   classical
   have hσC : σ ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
   obtain ⟨⟨hlla, hllb⟩, hsucc⟩ := leadingChain_consecutive_link m u v σ σ' hsplit
   have hnd : σ.a < σ.b := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σ hσC
   have htb : t.a ≤ t.b := t.fst_le_snd
-  have hFdsort : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+  have hFdsort : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
       (depth_of_segment m σ hσm)).map (·.val)).Pairwise
       (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) :=
     (bucket_nested _ _).imp (fun h => ⟨h.1, h.2⟩)
-  have hFmsort : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).Pairwise
+  have hFmsort : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).Pairwise
       (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) :=
     (bucket_nested m _).imp (fun h => ⟨h.1, h.2⟩)
   by_cases hwf : w.1 ≤ w.2
@@ -4807,28 +4779,28 @@ lemma derived_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
     have hE1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
       hσm hσ'm x
     -- convert E1 to pair counts
-    have hcd : (((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+    have hcd : (((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
-        = ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        = ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val)).count x := by
       rw [← hxw, count_map_segPair_eq]
-    have hcm : (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
-        = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
+    have hcm : (((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        = ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
       rw [← hxw, count_map_segPair_eq]
-    have hcm' : (((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map segPair).count w
-        = ((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x := by
+    have hcm' : (((sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map segPair).count w
+        = ((sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val)).count x := by
       rw [← hxw, count_map_segPair_eq]
     -- E1 at pair level
-    have hE1p : (((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+    have hE1p : (((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
         + (if w = ((σ.a : ℤ), (σ.b : ℤ)) then 1 else 0)
         + (if w.1 = σ.a ∧ w.2 < σ.b
-           then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+           then (((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
            else 0)
-        = (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        = (((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
         + (if w = ((σ.a + 1 : ℤ), (σ.b : ℤ)) then 1 else 0)
         + (if w.1 = σ'.a ∧ w.2 < σ'.b
-           then (((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map segPair).count w
+           then (((sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map segPair).count w
            else 0) := by
       rw [hcd, hcm, hcm']
       have e1 : (w = ((σ.a : ℤ), (σ.b : ℤ))) ↔ (x = σ) := by
@@ -4860,8 +4832,8 @@ lemma derived_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
     have hcharM := derivedPairs_count w _ hFmsort
     -- indicator transport hypotheses
     have hIND := indicator_transport
-      ((bucket m (depth_of_segment m σ hσm)).map (·.val))
-      ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val))
+      ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val))
       σ t
       (RSK.mem_bucket_of_depth m _ σ hσm rfl) hta (by rw [hbsplit]; simp)
@@ -4870,7 +4842,7 @@ lemma derived_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
     · omega
     · -- A1: the new σ-group sits inside the old one, ending at or after σ
       intro y hy hya
-      have hyc : 0 < ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      have hyc : 0 < ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
           (depth_of_segment m σ hσm)).map (·.val)).count y := List.count_pos_iff.mpr hy
       have hy1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
         hσm hσ'm y
@@ -4889,7 +4861,7 @@ lemma derived_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
           exact ⟨List.count_pos_iff.mp (by omega), by omega⟩
     · -- A2: old strictly-longer group members survive
       intro y hy hya hyb
-      have hyc : 0 < ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count y :=
+      have hyc : 0 < ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count y :=
         List.count_pos_iff.mpr hy
       have hy1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
         hσm hσ'm y
@@ -4925,7 +4897,7 @@ lemma derived_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
       exact List.count_pos_iff.mp (by omega)
     · -- B2: the new successor group ends at or before σ
       intro y hy hya
-      have hyc : 0 < ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      have hyc : 0 < ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
           (depth_of_segment m σ hσm)).map (·.val)).count y := List.count_pos_iff.mpr hy
       have hy1 := fiber_count_chain_step m sₘ s_l hsₘ hs_l hmin u v σ σ' hsplit
         hσm hσ'm y
@@ -4941,15 +4913,15 @@ lemma derived_count_chain_step (m : Multisegment) (sₘ s_l : Segment)
         rw [if_neg hn3] at hy1
         by_cases hyJ : y.a = σ'.a ∧ y.b < σ'.b
         · rw [if_pos hyJ] at hy1
-          by_cases hym0 : 0 < ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count y
+          by_cases hym0 : 0 < ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count y
           · obtain ⟨hym, hyd⟩ := RSK.mem_bucket_depth m _ y (List.count_pos_iff.mp hym0)
             exact fiber_succ_end_le m σ hσm y hym hya hyd
-          · have hyJ0 : 0 < ((bucket m
+          · have hyJ0 : 0 < ((sortedBucket m
                 (depth_of_segment m σ' hσ'm)).map (·.val)).count y := by omega
             obtain ⟨hym, -⟩ := RSK.mem_bucket_depth m _ y (List.count_pos_iff.mp hyJ0)
             exact special_end_le_pred m u v σ σ' hsplit y hym hyJ.1 hyJ.2
         · rw [if_neg hyJ] at hy1
-          have hym0 : 0 < ((bucket m
+          have hym0 : 0 < ((sortedBucket m
               (depth_of_segment m σ hσm)).map (·.val)).count y := by omega
           obtain ⟨hym, hyd⟩ := RSK.mem_bucket_depth m _ y (List.count_pos_iff.mp hym0)
           exact fiber_succ_end_le m σ hσm y hym hya hyd
@@ -4999,26 +4971,26 @@ lemma derived_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
     (hsplit : (MW.leadingChain m).val.segments = u ++ [σ])
     (hσm : σ ∈ m.segments)
     (i t : Segment) (l₁ l₂ : List Segment)
-    (hbsplit : (bucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hbsplit : (sortedBucket m (depth_of_segment m σ hσm)).map (·.val) = l₁ ++ i :: t :: l₂)
     (hia : i.a = σ.a) (hta : σ.a < t.a)
     (w : ℤ × ℤ) :
-    (derivedPairs ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+    (derivedPairs ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val))).count w
       + (if w = ((σ.a : ℤ), (t.b : ℤ)) then 1 else 0)
       + (if w.1 = σ.a ∧ w.2 < σ.b
-         then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+         then (((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
          else 0)
-    = (derivedPairs ((bucket m (depth_of_segment m σ hσm)).map (·.val))).count w
+    = (derivedPairs ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val))).count w
       + (if w = ((σ.a + 1 : ℤ), (t.b : ℤ)) then 1 else 0) := by
   classical
   have hσC : σ ∈ (MW.leadingChain m).val.segments := by rw [hsplit]; simp
   have hnd : σ.a < σ.b := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σ hσC
   have htb : t.a ≤ t.b := t.fst_le_snd
-  have hFdsort : ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+  have hFdsort : ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
       (depth_of_segment m σ hσm)).map (·.val)).Pairwise
       (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) :=
     (bucket_nested _ _).imp (fun h => ⟨h.1, h.2⟩)
-  have hFmsort : ((bucket m (depth_of_segment m σ hσm)).map (·.val)).Pairwise
+  have hFmsort : ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).Pairwise
       (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) :=
     (bucket_nested m _).imp (fun h => ⟨h.1, h.2⟩)
   by_cases hwf : w.1 ≤ w.2
@@ -5027,21 +4999,21 @@ lemma derived_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
     have hxb : x.b = w.2 := rfl
     have hxw : segPair x = w := rfl
     have hE1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm x
-    have hcd : (((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+    have hcd : (((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
-        = ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+        = ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val)).count x := by
       rw [← hxw, count_map_segPair_eq]
-    have hcm : (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
-        = ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
+    have hcm : (((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        = ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count x := by
       rw [← hxw, count_map_segPair_eq]
-    have hE1p : (((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+    have hE1p : (((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
         + (if w = ((σ.a : ℤ), (σ.b : ℤ)) then 1 else 0)
         + (if w.1 = σ.a ∧ w.2 < σ.b
-           then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+           then (((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
            else 0)
-        = (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
+        = (((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).map segPair).count w
         + (if w = ((σ.a + 1 : ℤ), (σ.b : ℤ)) then 1 else 0) := by
       rw [hcd, hcm]
       have e1 : (w = ((σ.a : ℤ), (σ.b : ℤ))) ↔ (x = σ) := by
@@ -5067,8 +5039,8 @@ lemma derived_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
     have hcharD := derivedPairs_count w _ hFdsort
     have hcharM := derivedPairs_count w _ hFmsort
     have hIND := indicator_transport
-      ((bucket m (depth_of_segment m σ hσm)).map (·.val))
-      ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val))
+      ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
         (depth_of_segment m σ hσm)).map (·.val))
       σ t
       (RSK.mem_bucket_of_depth m _ σ hσm rfl) hta (by rw [hbsplit]; simp)
@@ -5077,7 +5049,7 @@ lemma derived_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
     · omega
     · -- A1
       intro y hy hya
-      have hyc : 0 < ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      have hyc : 0 < ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
           (depth_of_segment m σ hσm)).map (·.val)).count y := List.count_pos_iff.mpr hy
       have hy1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm y
       have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨h1, -⟩; omega
@@ -5094,7 +5066,7 @@ lemma derived_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
           exact ⟨List.count_pos_iff.mp (by omega), by omega⟩
     · -- A2
       intro y hy hya hyb
-      have hyc : 0 < ((bucket m (depth_of_segment m σ hσm)).map (·.val)).count y :=
+      have hyc : 0 < ((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).count y :=
         List.count_pos_iff.mpr hy
       have hy1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm y
       have hn1 : y ≠ σ := fun h => by
@@ -5126,7 +5098,7 @@ lemma derived_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
       exact List.count_pos_iff.mp (by omega)
     · -- B2
       intro y hy hya
-      have hyc : 0 < ((bucket (MW.makeResidual m (MW.leadingChain m).val.segments)
+      have hyc : 0 < ((sortedBucket (MW.makeResidual m (MW.leadingChain m).val.segments)
           (depth_of_segment m σ hσm)).map (·.val)).count y := List.count_pos_iff.mpr hy
       have hy1 := fiber_count_chain_last m sₘ s_l hsₘ hs_l hmin u σ hsplit hσm y
       have hn1 : y ≠ σ := fun h => by
@@ -5139,7 +5111,7 @@ lemma derived_count_chain_last (m : Multisegment) (sₘ s_l : Segment)
       · omega
       · have hn3 : ¬(y.a = σ.a + 1 ∧ y.b = σ.b) := by rintro ⟨-, h⟩; omega
         rw [if_neg hn3] at hy1
-        have hym0 : 0 < ((bucket m
+        have hym0 : 0 < ((sortedBucket m
             (depth_of_segment m σ hσm)).map (·.val)).count y := by omega
         obtain ⟨hym, hyd⟩ := RSK.mem_bucket_depth m _ y (List.count_pos_iff.mp hym0)
         exact fiber_succ_end_le m σ hσm y hym hya hyd
@@ -5189,12 +5161,12 @@ lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
     (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (w : ℤ × ℤ) :
     ((List.range (RSK.maxDepth m + 1)).map
-        (fun d => (derivedPairs ((bucket (MW.makeResidual m
+        (fun d => (derivedPairs ((sortedBucket (MW.makeResidual m
           (MW.leadingChain m).val.segments) d).map (·.val))).count w)).sum
       + ((MW.leadingChain (RSK.residual m)).val.segments.map
           (fun c => if w = segPair c then 1 else 0)).sum
     = ((List.range (RSK.maxDepth m + 1)).map
-        (fun d => (derivedPairs ((bucket m d).map (·.val))).count w)).sum
+        (fun d => (derivedPairs ((sortedBucket m d).map (·.val))).count w)).sum
       + ((MW.leadingChain (RSK.residual m)).val.segments.map
           (fun c => if w = ((c.a + 1 : ℤ), (c.b : ℤ)) then 1 else 0)).sum := by
   classical
@@ -5209,17 +5181,17 @@ lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
       ∀ (R : List ℕ), R.Nodup →
       (∀ c ∈ cs, ∀ hcm : c ∈ m.segments, depth_of_segment m c hcm ∈ R) →
       (∀ d ∈ R, ∀ c ∈ pre, ∀ hcm : c ∈ m.segments, depth_of_segment m c hcm ≠ d) →
-      (R.map (fun d => (derivedPairs ((bucket (MW.makeResidual m
+      (R.map (fun d => (derivedPairs ((sortedBucket (MW.makeResidual m
           (MW.leadingChain m).val.segments) d).map (·.val))).count w)).sum
         + (cs'.map (fun c => if w = segPair c then 1 else 0)).sum
         + (cs.head?.elim 0 (fun σ =>
             if hm : σ ∈ m.segments then
               (if w.1 = σ.a ∧ w.2 < σ.b
-               then (((bucket m (depth_of_segment m σ hm)).map (·.val)).map
+               then (((sortedBucket m (depth_of_segment m σ hm)).map (·.val)).map
                  segPair).count w
                else 0)
             else 0))
-      = (R.map (fun d => (derivedPairs ((bucket m d).map (·.val))).count w)).sum
+      = (R.map (fun d => (derivedPairs ((sortedBucket m d).map (·.val))).count w)).sum
         + (cs'.map (fun c => if w = ((c.a + 1 : ℤ), (c.b : ℤ)) then 1 else 0)).sum := by
     intro cs
     induction cs with
@@ -5235,9 +5207,9 @@ lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
       subst hcs'
       simp only [List.map_nil, List.sum_nil, List.head?_nil, Option.elim]
       have hcong : ∀ d ∈ R,
-          (derivedPairs ((bucket (MW.makeResidual m
+          (derivedPairs ((sortedBucket (MW.makeResidual m
             (MW.leadingChain m).val.segments) d).map (·.val))).count w
-          = (derivedPairs ((bucket m d).map (·.val))).count w := by
+          = (derivedPairs ((sortedBucket m d).map (·.val))).count w := by
         intro d hd
         rw [fiber_list_nonchain_eq m sₘ s_l hsₘ hs_l hmin d ?_]
         intro c hc hcm
@@ -5291,33 +5263,33 @@ lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
       have hJσ : ((σ :: rest).head?.elim 0 (fun τ =>
           if hm : τ ∈ m.segments then
             (if w.1 = τ.a ∧ w.2 < τ.b
-             then (((bucket m (depth_of_segment m τ hm)).map (·.val)).map
+             then (((sortedBucket m (depth_of_segment m τ hm)).map (·.val)).map
                segPair).count w
              else 0)
           else 0))
           = (if w.1 = σ.a ∧ w.2 < σ.b
-             then (((bucket m (depth_of_segment m σ hσm)).map (·.val)).map
+             then (((sortedBucket m (depth_of_segment m σ hσm)).map (·.val)).map
                segPair).count w
              else 0) := by
         simp only [List.head?_cons, Option.elim]
         rw [dif_pos hσm]
       -- sums split off the σ-fiber
-      have hsumdag : (R.map (fun d => (derivedPairs ((bucket (MW.makeResidual m
+      have hsumdag : (R.map (fun d => (derivedPairs ((sortedBucket (MW.makeResidual m
           (MW.leadingChain m).val.segments) d).map (·.val))).count w)).sum
-          = (derivedPairs ((bucket (MW.makeResidual m
+          = (derivedPairs ((sortedBucket (MW.makeResidual m
               (MW.leadingChain m).val.segments)
               (depth_of_segment m σ hσm)).map (·.val))).count w
             + ((R.erase (depth_of_segment m σ hσm)).map
-                (fun d => (derivedPairs ((bucket (MW.makeResidual m
+                (fun d => (derivedPairs ((sortedBucket (MW.makeResidual m
                   (MW.leadingChain m).val.segments) d).map (·.val))).count w)).sum := by
         rw [sum_perm_nat (hperm.map _)]
         simp
       have hsumm : (R.map (fun d =>
-          (derivedPairs ((bucket m d).map (·.val))).count w)).sum
-          = (derivedPairs ((bucket m
+          (derivedPairs ((sortedBucket m d).map (·.val))).count w)).sum
+          = (derivedPairs ((sortedBucket m
               (depth_of_segment m σ hσm)).map (·.val))).count w
             + ((R.erase (depth_of_segment m σ hσm)).map (fun d =>
-                (derivedPairs ((bucket m d).map (·.val))).count w)).sum := by
+                (derivedPairs ((sortedBucket m d).map (·.val))).count w)).sum := by
         rw [sum_perm_nat (hperm.map _)]
         simp
       cases rest with
@@ -5360,12 +5332,12 @@ lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
         · have hJσ' : ((σ' :: rest2).head?.elim 0 (fun τ =>
               if hm : τ ∈ m.segments then
                 (if w.1 = τ.a ∧ w.2 < τ.b
-                 then (((bucket m (depth_of_segment m τ hm)).map (·.val)).map
+                 then (((sortedBucket m (depth_of_segment m τ hm)).map (·.val)).map
                    segPair).count w
                  else 0)
               else 0))
               = (if w.1 = σ'.a ∧ w.2 < σ'.b
-                 then (((bucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map
+                 then (((sortedBucket m (depth_of_segment m σ' hσ'm)).map (·.val)).map
                    segPair).count w
                  else 0) := by
             simp only [List.head?_cons, Option.elim]
@@ -5411,7 +5383,7 @@ lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
   have hJ0 : ((MW.leadingChain m).val.segments.head?.elim 0 (fun σ =>
       if hm : σ ∈ m.segments then
         (if w.1 = σ.a ∧ w.2 < σ.b
-         then (((bucket m (depth_of_segment m σ hm)).map (·.val)).map segPair).count w
+         then (((sortedBucket m (depth_of_segment m σ hm)).map (·.val)).map segPair).count w
          else 0)
       else 0)) = 0 := by
     rw [MW.leadingChain_head m sₘ hsₘ]
