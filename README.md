@@ -57,8 +57,8 @@ below.
 ```
 Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i]`
                bounds are found by `auto_prop` (= `grind`, taught facts in `_u` files),
-               `maximum`, `first` and `sorted` of a finite set, list comprehensions `[x ∈ l | p]`,
-               `[f x | x ∈ l]`, `[f x y | (x, y) ∈ l]`, `consecutive l` (its neighbouring
+               `maximum`, `first` and `sorted` of a finite set, list comprehensions `[x ∈ l | p]`
+               and `[f | x ∈ l, (y, z) ∈ l', k ≤ n, …]`, `consecutive l` (its neighbouring
                pairs), lists usable as sets, `p → q` keeps `p` in scope for `q`,
                `x ∈ s` converts `x` to the element type of `s`; below everything
 Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, ≪, ⊆,
@@ -106,7 +106,7 @@ Exact file-level imports (within the project):
 | `RSK2_e`         | `Basic_t`, `Ladder2_t`, `RSK1_t`, `RSK2_t`, `RSK2_u`           |
 | `RSK3_t`          | the imports of `RSK2_t` + `RSK2_t`, `RSK2_u`                   |
 | `RSK3_u`          | the above + `RSK3_t`                                            |
-| `RSK3_e`          | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `RSK3_t`                   |
+| `RSK3_e`          | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `RSK3_t`, `RSK3_u`          |
 | `MW_t`           | `Basic_t`, `Basic_u`                                           |
 | `MW_u`           | `Basic_t`, `Basic_u`, `MW_t`                                   |
 | `MW_e`           | `Basic_t`, `Basic_u`, `MW_t`, `MW_u`                           |

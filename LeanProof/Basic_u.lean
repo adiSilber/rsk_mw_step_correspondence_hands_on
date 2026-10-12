@@ -110,6 +110,13 @@ lemma first_mem {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) 
 lemma sorted_eq_nil {α} [LinearOrder α] {S : Set α} [Fintype S] (h : S = ∅) : sorted S = [] := by
   apply List.eq_nil_iff_forall_not_mem.mpr; intro x hx; simp [h] at hx
 
+/-- Finite sets with the same sorted list are equal. -/
+lemma eq_of_sorted_eq {α} [LinearOrder α] {S T : Set α} [Fintype S] [Fintype T]
+    (h : sorted S = sorted T) : S = T := by
+  ext x
+  have := congrArg (x ∈ ·) h
+  simpa using this
+
 /-- The list comprehension `[f x | x ∈ l]` is `l.map f`. -/
 @[simp] lemma comprehension_map {α β} (l : List α) (f : α → β) :
     List.map (fun ⟨x, _⟩ => f x) l.attach = l.map f := by

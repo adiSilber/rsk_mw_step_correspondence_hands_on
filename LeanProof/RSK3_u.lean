@@ -131,14 +131,25 @@ lemma le_maxDepth_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
   rw [hd] at this
   exact this
 
-/-- `ladderRungs` lists the rungs deepest-first: it is the rungs of depth `maxDepth`, …, `0`. -/
+/-- `r ∈ 𝔩(m)` iff `r` is the rung of some fiber. -/
+lemma mem_ladderRungs {m : Multisegment} {r : Segment} :
+    r ∈ ladderRungs m ↔ ∃ k, bucketRung m k = some r := Iff.rfl
+
+instance (m : Multisegment) : Fintype (ladderRungs m) :=
+  inferInstanceAs (Fintype { r | ∃ k, bucketRung m k = some r })
+
+instance (m : Multisegment) (h : m.segments ≠ []) : Fintype (rsk_step m h).1 :=
+  inferInstanceAs (Fintype (ladderRungs m))
+
+/-- The proofs work with the rungs as a list, sorted: deepest-first, it is the rungs of depth
+`maxDepth`, …, `0`. -/
 lemma ladderRungs_eq (m : Multisegment) (hm : m.segments ≠ []) :
-    ladderRungs m = (List.range (maxDepth m + 1)).reverse.filterMap (bucketRung m) := by
+    sorted (ladderRungs m) = (List.range (maxDepth m + 1)).reverse.filterMap (bucketRung m) := by
   have hlt : ((List.range (maxDepth m + 1)).reverse.filterMap (bucketRung m)).Pairwise (· < ·) :=
     (pairwise_rungs m _).imp fun {x y} h =>
       lt_of_le_of_ne ((Segment.le_def x y).mpr (Or.inl h.1)) (fun he => by
         subst he; exact lt_irrefl _ h.1)
-  unfold ladderRungs sorted
+  unfold sorted ladderRungs
   apply List.Perm.eq_of_pairwise (le := (· < ·))
   · intro a b _ _ h₁ h₂; exact absurd h₂ (lt_asymm h₁)
   · exact (Finset.sortedLT_sort _).pairwise
@@ -150,16 +161,16 @@ lemma ladderRungs_eq (m : Multisegment) (hm : m.segments ≠ []) :
     exact ⟨fun ⟨k, hk⟩ => ⟨k, Nat.lt_succ_of_le (le_maxDepth_of_bucketRung hk), hk⟩,
       fun ⟨k, _, hk⟩ => ⟨k, hk⟩⟩
 
-/-- The rungs assembled by `ladderRungs` form a ladder (pairwise `≪`). -/
-lemma ladderRungs_isLadder (m : Multisegment) : isLadder (ladderRungs m) := by
+/-- The rungs, sorted, form a ladder (pairwise `≪`). -/
+lemma ladderRungs_isLadder (m : Multisegment) : isLadder (sorted (ladderRungs m)) := by
   unfold isLadder
   rw [decide_eq_true_eq]
   by_cases hm : m.segments = []
   · -- no segments, no rungs
-    have : ladderRungs m = [] := by
+    have : sorted (ladderRungs m) = [] := by
       apply List.eq_nil_iff_forall_not_mem.mpr
       intro r hr
-      obtain ⟨k, hk⟩ := mem_sorted.mp hr
+      obtain ⟨k, hk⟩ := mem_ladderRungs.mp (mem_sorted.mp hr)
       exact ne_nil_of_bucketRung hk hm
     rw [this]; simp
   · rw [ladderRungs_eq m hm]
@@ -167,7 +178,7 @@ lemma ladderRungs_isLadder (m : Multisegment) : isLadder (ladderRungs m) := by
 
 -- /-- The extracted maximal ladder, packaged from `ladderRungs` and its proof. -/
 -- def extractFullLadder (m : Multisegment) : Ladder :=
---   let l := ladderRungs m
+--   let l := sorted (ladderRungs m)
 --   have hl : isLadder l := ladderRungs_isLadder m
 --   ⟨⟨l, isLadder_sorted _ hl⟩, hl⟩
 
@@ -272,11 +283,22 @@ lemma lemma_2_2_2_split (m : Multisegment) (d : ℕ) (i t : Segment)
 /-- A nonempty multisegment has at least one ladder rung: the bucket of any segment's
 own depth is nonempty and lies within `maxDepth`. -/
 lemma ladderRungs_ne_nil (m : Multisegment) (h : m.segments ≠ []) :
-    ladderRungs m ≠ [] := by
+    sorted (ladderRungs m) ≠ [] := by
   obtain ⟨s, hs⟩ := List.exists_mem_of_ne_nil m.segments h
   obtain ⟨r, hr⟩ := bucketRung_some_of_mem m (depth_of_segment m s hs) s
     (mem_bucket_of_depth m _ s hs rfl)
   apply List.ne_nil_of_mem (a := r)
-  exact mem_sorted.mpr ⟨_, hr⟩
+  exact mem_sorted.mpr (mem_ladderRungs.mpr ⟨_, hr⟩)
+
+end RSK
+
+namespace RSK
+
+/-- The residual's segments are the fibers' residuals, concatenated and sorted. -/
+lemma residual_segments (m : Multisegment) (h : m.segments ≠ []) :
+    (residual m h).segments =
+      ((List.range (maxDepth m + 1)).flatMap (fun d => bucketResidual m d)).insertionSort
+        (· ≤ ·) := by
+  simp [residual, multisegment]
 
 end RSK

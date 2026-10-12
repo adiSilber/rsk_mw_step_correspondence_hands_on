@@ -55,3 +55,4 @@ def m_three : Multisegment :=
 #eval decide ([2, 0] ∈ Indices 2 m_three)  -- true (any order is allowed)
 #eval decide ([] ∈ Indices 0 m_three)  -- true (no indices)
 #eval decide ([0] ∈ Indices 1 ⟨[], by decide⟩)  -- false (empty m: no valid index)
+

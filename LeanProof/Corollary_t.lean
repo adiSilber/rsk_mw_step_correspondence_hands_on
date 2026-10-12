@@ -14,11 +14,11 @@ lemma deltaCirc_eq_of_residual
   intro Δ Δ'
   have hne' := cond_rsk_residual_nonempty m hm h_min
   have hsₘ : m.segments.head? = some (m.segments.head hm) := List.head?_eq_some_head hm
-  have hs_l : (RSK.ladderRungs m).head? =
-      some ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)) :=
+  have hs_l : (sorted (RSK.ladderRungs m)).head? =
+      some ((sorted (RSK.ladderRungs m)).head (RSK.ladderRungs_ne_nil m hm)) :=
     List.head?_eq_some_head _
   have hmin : (m.segments.head hm).a
-      < ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
+      < ((sorted (RSK.ladderRungs m)).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
   have hs_m' : (RSK.residual m).segments.head? =
       some ((RSK.residual m).segments.head hne') := List.head?_eq_some_head hne'
   apply mw_step_fst_eq m (RSK.residual m) hm hne'
@@ -36,14 +36,15 @@ lemma mw_preserves_ladder
     l = l' := by
   intro l l'
   have hsₘ : m.segments.head? = some (m.segments.head hm) := List.head?_eq_some_head hm
-  have hs_l : (RSK.ladderRungs m).head? =
-      some ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)) :=
+  have hs_l : (sorted (RSK.ladderRungs m)).head? =
+      some ((sorted (RSK.ladderRungs m)).head (RSK.ladderRungs_ne_nil m hm)) :=
     List.head?_eq_some_head _
   have hmin : (m.segments.head hm).a
-      < ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
+      < ((sorted (RSK.ladderRungs m)).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
   have h := (mdag_ladder_eq m _ _ hsₘ hs_l hmin hm).symm
   rw [← mw_step_snd_eq m hm] at h
-  exact h
+  show RSK.ladderRungs m = RSK.ladderRungs _
+  exact eq_of_sorted_eq h
 
 /-- **(m†)′ = (m′)†** (paper Cor. `main`, third component): under `min m < min L(m)`,
 the two orders of taking the remainders agree —
@@ -58,11 +59,11 @@ lemma mw_residual_commute
   intro m' m''
   have hne' := cond_rsk_residual_nonempty m hm h_min
   have hsₘ : m.segments.head? = some (m.segments.head hm) := List.head?_eq_some_head hm
-  have hs_l : (RSK.ladderRungs m).head? =
-      some ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)) :=
+  have hs_l : (sorted (RSK.ladderRungs m)).head? =
+      some ((sorted (RSK.ladderRungs m)).head (RSK.ladderRungs_ne_nil m hm)) :=
     List.head?_eq_some_head _
   have hmin : (m.segments.head hm).a
-      < ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
+      < ((sorted (RSK.ladderRungs m)).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
   have h1 : (RSK.rsk_step (MW.mw_step m hm).2).2
       = RSK.residual (MW.makeResidual m (MW.leadingChain m).val.segments) := by
     -- `simp` (not `rw`) because the nonemptiness proof depends on the term being rewritten
@@ -85,11 +86,11 @@ Assembled from `mw_preserves_ladder`, `mw_residual_commute` and
 `deltaCirc_eq_of_residual`. -/
 theorem corollary_3_4
     (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
-    let KId_MW : List Segment × Multisegment × Segment :=
+    let KId_MW : Set Segment × Multisegment × Segment :=
       ((RSK.rsk_step (MW.mw_step m hm).2).1,
        (RSK.rsk_step (MW.mw_step m hm).2).2,
        (MW.mw_step m hm).1)
-    let IdMW_K : List Segment × Multisegment × Segment :=
+    let IdMW_K : Set Segment × Multisegment × Segment :=
       ((RSK.rsk_step m).1,
        (MW.mw_step (RSK.rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).2,
        (MW.mw_step (RSK.rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).1)

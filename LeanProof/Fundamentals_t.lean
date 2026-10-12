@@ -123,14 +123,38 @@ repeats; each comes with its proof of `x ∈ l` (available to `p`). -/
 macro "[" x:ident " ∈ " l:term " | " p:term "]" : term =>
   `(List.filter (fun ⟨$x, _⟩ => decide $p) (List.attach $l))
 
-/-- List comprehension `[f x | x ∈ l]`: `f x` for each `x` of `l`, in order, with repeats;
-the proof of `x ∈ l` is available to `f`. -/
-macro "[" f:term " | " x:ident " ∈ " l:term "]" : term =>
-  `(List.map (fun ⟨$x, _⟩ => $f) (List.attach $l))
+/-- List comprehension `[f | b₁, …, bₙ]`: the values of `f` for each choice of the binders,
+in order, with repeats. A binder is `x ∈ l`, `(x, y) ∈ l`, `k ≤ n` or `k < n`; inside `f`
+(and in later binders) the fact `x ∈ l` is available, so that `l'[x]`-like terms need no
+proof. -/
+declare_syntax_cat comprehension_binder
+syntax (name := memBinder) ident " ∈ " term : comprehension_binder
+syntax (name := pairBinder) "(" ident ", " ident ")" " ∈ " term : comprehension_binder
+syntax (name := leBinder) ident " ≤ " term : comprehension_binder
+syntax (name := ltBinder) ident " < " term : comprehension_binder
 
-/-- The same over a list of pairs: `[f x y | (x, y) ∈ l]`. -/
-macro "[" f:term " | " "(" x:ident ", " y:ident ")" " ∈ " l:term "]" : term =>
-  `(List.map (fun ⟨⟨$x, $y⟩, _⟩ => $f) (List.attach $l))
+open Lean in
+/-- A binder as a pattern (carrying the membership fact) and the list it ranges over. -/
+def comprehensionBinder (b : Syntax) : MacroM (Term × Term) := do
+  if b.isOfKind ``memBinder then
+    return (← `(⟨$(⟨b[0]⟩):term, _⟩), ⟨b[2]⟩)
+  if b.isOfKind ``pairBinder then
+    return (← `(⟨⟨$(⟨b[1]⟩):term, $(⟨b[3]⟩):term⟩, _⟩), ⟨b[6]⟩)
+  if b.isOfKind ``leBinder then
+    return (← `(⟨$(⟨b[0]⟩):term, _⟩), ← `(List.range ($(⟨b[2]⟩) + 1)))
+  if b.isOfKind ``ltBinder then
+    return (← `(⟨$(⟨b[0]⟩):term, _⟩), ← `(List.range $(⟨b[2]⟩)))
+  Macro.throwUnsupported
+
+open Lean in
+macro "[" f:term " | " bs:comprehension_binder,+ "]" : term => do
+  let bs := bs.getElems
+  let mut body : Term := f
+  for i in [0:bs.size] do
+    let (pat, l) ← comprehensionBinder bs[bs.size - 1 - i]!
+    body ← if i == 0 then `(List.map (fun $pat => $body) (List.attach $l))
+      else `(List.flatMap (fun $pat => $body) (List.attach $l))
+  return body
 
 /-- The consecutive pairs `(l₀, l₁), (l₁, l₂), …` of a list. -/
 abbrev consecutive {α} (l : List α) : List (α × α) := l.zip l.tail

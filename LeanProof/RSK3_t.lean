@@ -32,9 +32,9 @@ Corollary 2.3) and the `Ladder`-packaged step `rskStep` live in `RSK3_u`. -/
 def maxDepth (m : Multisegment) (h : m.segments ≠ []) : ℕ :=
   maximum [depth_of_segment m s | s ∈ m.segments]
 
-/-- `𝔩(m)`: the rungs of all fibers, in increasing order (= deepest first). -/
-def ladderRungs (m : Multisegment) : List Segment :=
-  sorted { r | ∃ k, bucketRung m k = some r }
+/-- `𝔩(m)`: the rungs of all fibers. -/
+def ladderRungs (m : Multisegment) : Set Segment :=
+  { r | ∃ k, bucketRung m k = some r }
 
 /-- Paper (2.1a): `Δ'_i = [b(Δ_i), e(Δ_{i^∨})]` for the consecutive pairs `(Δ_i, Δ_{i^∨})` of
 the fiber `𝔡⁻¹(d)` (in the order of our enumeration). -/
@@ -47,14 +47,18 @@ def bucketResidual (m : Multisegment) (d : ℕ) : List Segment :=
 --   let l := (bucket m d).map (·.val)
 --   ((l.zip l.tail).find? (fun p => decide (p.1 = s))).map (·.2)
 
-/-- The changed (residual) multisegment: every bucket's residual, re-sorted. -/
+/-- The multisegment `Σ Δ` with the given segments (in any order): the list, sorted. (Here and
+not in `Basic_t`: that the sort is sorted needs `≤` to be total, proved in `Basic_u`.) -/
+def multisegment (l : List Segment) : Multisegment :=
+  ⟨l.insertionSort (· ≤ ·), List.pairwise_insertionSort _ _⟩
+
+/-- `m′ = Σ_{i ∈ I′′} Δ'_i` (paper (2.1c)): all the derived segments, of all fibers. -/
 def residual (m : Multisegment) (h : m.segments ≠ []) : Multisegment :=
-  let raw := (List.range (maxDepth m + 1)).flatMap (fun d => bucketResidual m d)
-  ⟨raw.insertionSort (· ≤ ·), List.pairwise_insertionSort _ _⟩
+  multisegment [s | k ≤ maxDepth m, s ∈ bucketResidual m k]
 
 /-- **One step of the RSK algorithm** on a nonzero multisegment: the extracted ladder and
 the residual. -/
-def rsk_step (m : Multisegment) (h : m.segments ≠ []) : List Segment × Multisegment :=
+def rsk_step (m : Multisegment) (h : m.segments ≠ []) : Set Segment × Multisegment :=
   (ladderRungs m, residual m)
 
 end RSK

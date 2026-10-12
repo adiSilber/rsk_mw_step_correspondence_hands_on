@@ -2,6 +2,7 @@ import LeanProof.Basic_t
 import LeanProof.Ladder1_t
 import LeanProof.Ladder2_t
 import LeanProof.RSK3_t
+import LeanProof.RSK3_u
 
 set_option linter.style.setOption false
 set_option linter.flexible false
@@ -40,8 +41,8 @@ def m_repeated : Multisegment :=
 #eval maxDepth m_complex  -- 1 (deepest segments sit at depth 1)
 #eval maxDepth m_repeated -- 1 (the repeated `(1,3)` segments can both precede `(2,4)`)
 
-#eval ladderRungs m_complex  -- [(5, 100), (6, 200)]
-#eval ladderRungs m_repeated -- [(1, 3), (2, 4)]
+#eval (ladderRungs m_complex).toFinset  -- {(6, 200), (5, 100)}
+#eval (ladderRungs m_repeated).toFinset -- {(2, 4), (1, 3)}
 
 
 #eval (residual m_complex).segments  -- [(1, 90), (2, 190), (3, 80), (4, 180)]
@@ -54,11 +55,16 @@ def m_repeated : Multisegment :=
 #eval bucketResidual m_repeated 5  -- empty bucket → []
 
 -- rsk_step: the extracted ladder together with the residual, in one step.
-#eval ((rsk_step m_repeated).1, (rsk_step m_repeated).2.segments)
-  -- ([(1, 3), (2, 4)], [(1, 3)])
+#eval ((rsk_step m_repeated).1.toFinset, (rsk_step m_repeated).2.segments)
+  -- ({(2, 4), (1, 3)}, [(1, 3)])
 -- (The empty multisegment is not an input: `rsk_step` needs `m.segments ≠ []`, as in the paper.)
 def m_single : Multisegment := ⟨[⟨⟨7, 7⟩, by omega⟩], by simp⟩
-#eval ((rsk_step m_single).1, (rsk_step m_single).2.segments)
-  -- ([(7, 7)], []) — a singleton segment: one rung, empty residual (edge case)
+#eval ((rsk_step m_single).1.toFinset, (rsk_step m_single).2.segments)
+  -- ({(7, 7)}, []) — a singleton segment: one rung, empty residual (edge case)
 
 end RSK
+
+-- `multisegment l`: the segments of `l`, sorted (and repeats kept).
+#eval (RSK.multisegment [⟨⟨2, 4⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩]).segments
+  -- [(1, 3), (1, 3), (2, 4)]
+#eval (RSK.multisegment []).segments  -- []
