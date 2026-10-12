@@ -24,8 +24,8 @@ maximal ladder rungs and the residual multisegment.
 
 Each bucket's rung is the coordinatewise max of its segments (`bucketRung`);
 `ladderRungs` is the set of them. The residual replaces each neighbouring pair
-`Δᵢ, Δᵢ₊₁` of a fiber by the derived segment `[Δᵢ.a, Δᵢ₊₁.b]`. The correctness lemmas (`ladderRungs_isLadder`, Lemma 2.2,
-Corollary 2.3) and the `Ladder`-packaged step `rskStep` live in `RSK3_u`. -/
+`Δᵢ, Δᵢ₊₁` of a fiber by the derived segment `[Δᵢ.a, Δᵢ₊₁.b]`. The correctness
+lemmas (`ladderRungs_isLadder`, Lemma 2.2, Corollary 2.3) live in `RSK3_u`. -/
 
 /-- `d(m) = max_{i ∈ I} 𝔡(i)`, the depth of a nonzero multisegment. -/
 def maxDepth (m : Multisegment) (h : m.segments ≠ []) : ℕ :=

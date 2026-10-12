@@ -43,8 +43,7 @@ lemma mw_preserves_ladder
       < ((sorted (RSK.ladderRungs m)).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
   have h := (mdag_ladder_eq m _ _ hsₘ hs_l hmin hm).symm
   rw [← mw_step_snd_eq m hm] at h
-  show RSK.ladderRungs m = RSK.ladderRungs _
-  exact eq_of_sorted_eq h
+  exact eq_of_sorted_eq (S := RSK.ladderRungs m) (T := RSK.ladderRungs _) h
 
 /-- **(m†)′ = (m′)†** (paper Cor. `main`, third component): under `min m < min L(m)`,
 the two orders of taking the remainders agree —

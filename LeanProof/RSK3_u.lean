@@ -329,10 +329,8 @@ lemma mem_bucketResidual_of_split {m : Multisegment} {d : ℕ} {i t : Segment}
     rw [List.getElem_of_eq hsplit]; simp
   refine ⟨Segment (fiber m d)[l₁.length].a (fiber m d)[l₁.length + 1].b,
     mem_bucketResidual_iff.mpr ⟨l₁.length, hlen, rfl, rfl⟩, ?_, ?_⟩
-  · show (fiber m d)[l₁.length].a = i.a
-    rw [hi]
-  · show (fiber m d)[l₁.length + 1].b = t.b
-    rw [ht]
+  · exact (congrArg Segment.a hi :)
+  · exact (congrArg Segment.b ht :)
 
 /-- The residual's segments are the fibers' residuals, concatenated and sorted. -/
 lemma residual_segments (m : Multisegment) (h : m.segments ≠ []) :
