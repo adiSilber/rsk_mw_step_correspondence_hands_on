@@ -56,10 +56,9 @@ def m_repeated : Multisegment :=
 -- rsk_step: the extracted ladder together with the residual, in one step.
 #eval ((rsk_step m_repeated).1, (rsk_step m_repeated).2.segments)
   -- ([(1, 3), (2, 4)], [(1, 3)])
-#eval ((rsk_step ⟨[], by simp⟩).1, (rsk_step ⟨[], by simp⟩).2.segments)
-  -- ([], []) — the empty multisegment is a fixed point (edge case)
-#eval ((rsk_step ⟨[⟨⟨7, 7⟩, by omega⟩], by simp⟩).1,
-       (rsk_step ⟨[⟨⟨7, 7⟩, by omega⟩], by simp⟩).2.segments)
+-- (The empty multisegment is not an input: `rsk_step` needs `m.segments ≠ []`, as in the paper.)
+def m_single : Multisegment := ⟨[⟨⟨7, 7⟩, by omega⟩], by simp⟩
+#eval ((rsk_step m_single).1, (rsk_step m_single).2.segments)
   -- ([(7, 7)], []) — a singleton segment: one rung, empty residual (edge case)
 
 end RSK

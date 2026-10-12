@@ -65,7 +65,8 @@ lemma mw_residual_commute
       < ((RSK.ladderRungs m).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
   have h1 : (RSK.rsk_step (MW.mw_step m hm).2).2
       = RSK.residual (MW.makeResidual m (MW.leadingChain m).val.segments) := by
-    rw [mw_step_snd_eq m hm]
+    -- `simp` (not `rw`) because the nonemptiness proof depends on the term being rewritten
+    simp only [mw_step_snd_eq m hm]
     rfl
   have h2 : (MW.mw_step (RSK.rsk_step m).2 hne').2
       = MW.makeResidual (RSK.residual m)

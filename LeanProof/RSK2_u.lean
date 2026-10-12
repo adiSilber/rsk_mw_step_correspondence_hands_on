@@ -61,7 +61,7 @@ lemma fiber_zip_a_le_b {m : Multisegment} {k : ℕ} {p : Segment × Segment}
   omega
 
 -- `auto_prop` uses it for `Segment p.1.a p.2.b` in `bucketResidual`.
-macro_rules | `(tactic| auto_prop) => `(tactic| exact fiber_zip_a_le_b ‹_›)
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply fiber_zip_a_le_b; assumption))
 
 /-- A rung exists only at the depth of some segment, so below `m.segments.length`. -/
 lemma lt_length_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}

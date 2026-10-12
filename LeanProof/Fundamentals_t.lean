@@ -30,18 +30,36 @@ def missingProof? (e : Expr) : TermElabM (Option Expr) := do
   let .forallE _ p _ _ ← whnf (← instantiateMVars (← inferType e)) | return none
   return if ← isProp p then some p else none
 
-/-- A proof of `p` by `auto_prop`: deferred if `later`, otherwise right now or `none`. -/
+/-- A proof of `p` by `auto_prop`, found right now if possible; if `later`, it may also be
+left for the end of elaboration (when more is known), otherwise the result is `none`. -/
 def prove? (p : Expr) (later : Bool) : TermElabM (Option Expr) := do
+  if let some h ← proveNow? p then return some h
   if later then return some (← elabTermEnsuringType (← `(by auto_prop)) p)
-  let h ← mkFreshExprMVar p
-  try
-    let [] ← Tactic.run h.mvarId! (Tactic.evalTactic (← `(tactic| auto_prop))) | return none
-    return some h
-  catch _ => return none
+  return none
+where
+  /-- `observing?` undoes any partial progress if the proof is not found. -/
+  proveNow? (p : Expr) : TermElabM (Option Expr) := observing? do
+    let mctx₀ ← getMCtx
+    let h ← mkFreshExprMVar p
+    -- hypotheses whose type is still a placeholder are not facts: hide them from the search
+    let untyped ← (← getLCtx).getFVarIds.filterM fun f => do
+      pure (← instantiateMVars (← f.getType)).hasExprMVar
+    let goal ← h.mvarId!.tryClearMany untyped
+    let [] ← Tactic.run goal (Tactic.evalTactic (← `(tactic| auto_prop)))
+      | throwError "unsolved"
+    -- the search may not decide placeholders that belong to the surrounding term
+    for (mv, _) in (← getMCtx).eAssignment.toList do
+      if mctx₀.decls.contains mv && !mctx₀.eAssignment.contains mv then
+        throwError "the proof search touched the surrounding term"
+    pure h
 
 /-- Fundamental rule: when an application `f a b` still expects proof arguments (and no
 function is expected), each missing proof is found by `auto_prop`. -/
 @[term_elab app] def elabApp' : TermElab := fun stx expected? => do
+  -- an expected type that is still a placeholder counts as unknown
+  let expected? ← match expected? with
+    | some t => do let t ← instantiateMVars t; pure (if t.isMVar then none else some t)
+    | none => pure none
   let mut e ← elabApp stx expected?
   if let some t := expected? then
     if (← whnf t).isForall then return e        -- a function is wanted: leave it alone
@@ -50,6 +68,16 @@ function is expected), each missing proof is found by `auto_prop`. -/
     let some h ← prove? p (later := expected?.isSome) | break
     e := mkApp e h
   return e
+
+/-- The same rule for the head of a field access, `(f a b).field`: the head is read first (so
+its missing proofs are filled), then the field is taken. -/
+@[term_elab proj] def elabProj' : TermElab := fun stx expected? => do
+  let head := stx[0]
+  let inner := if head.isOfKind ``Parser.Term.paren then head[1] else head
+  unless inner.isOfKind ``Parser.Term.app do throwUnsupportedSyntax
+  let e ← elabTerm inner none
+  let stx' := stx.setArg 0 (← exprToSyntax e)
+  elabTerm stx' expected?
 
 end AutoProp
 

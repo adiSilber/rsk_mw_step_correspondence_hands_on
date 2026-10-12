@@ -64,7 +64,8 @@ lemma head_begin_le (m : Multisegment) (sₘ : Segment)
 
 /-- Every residual segment has a *source*: a position-adjacent bucket pair `(i, t)`
 with `w = ⟨i.a, t.b⟩`. -/
-lemma residual_source (m : Multisegment) (w : Segment) (hw : w ∈ (RSK.residual m).segments) :
+lemma residual_source (m : Multisegment) (hm : m.segments ≠ []) (w : Segment)
+    (hw : w ∈ (RSK.residual m).segments) :
     ∃ (d : ℕ) (i t : Segment) (l₁ l₂ : List Segment),
       d ≤ RSK.maxDepth m ∧ (sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂ ∧
       w.a = i.a ∧ w.b = t.b := by
@@ -79,7 +80,8 @@ lemma residual_source (m : Multisegment) (w : Segment) (hw : w ∈ (RSK.residual
     by rw [← hfw]; rfl, by rw [← hfw]; rfl⟩
 
 /-- A residual segment of any in-range bucket lands in the residual. -/
-lemma mem_residual_of_bucket (m : Multisegment) {d : ℕ} (hd : d ≤ RSK.maxDepth m)
+lemma mem_residual_of_bucket (m : Multisegment) (hm : m.segments ≠ []) {d : ℕ}
+    (hd : d ≤ RSK.maxDepth m)
     {w : Segment} (hw : w ∈ RSK.bucketResidual m d) : w ∈ (RSK.residual m).segments := by
   simp only [RSK.residual]
   rw [(List.perm_insertionSort (· ≤ ·) _).mem_iff]
@@ -101,7 +103,7 @@ lemma derived_mem_bucketResidual (m : Multisegment) (d : ℕ) (i t : Segment)
 lemma residual_begin_ge (m : Multisegment) (sₘ : Segment)
     (hsₘ : m.segments.head? = some sₘ) (s : Segment)
     (hs : s ∈ (RSK.residual m).segments) : sₘ.a ≤ s.a := by
-  obtain ⟨d, i, t, l₁, l₂, hd, hsplit, hsa, hsb⟩ := residual_source m s hs
+  obtain ⟨d, i, t, l₁, l₂, hd, hsplit, hsa, hsb⟩ := residual_source m (by auto_prop) s hs
   have hi_bk : i ∈ (sortedBucket m d).map (·.val) := by rw [hsplit]; simp
   obtain ⟨hi_m, -⟩ := RSK.mem_bucket_depth m d i hi_bk
   have := head_begin_le m sₘ hsₘ i hi_m
@@ -112,7 +114,7 @@ lemma residual_begin_ge (m : Multisegment) (sₘ : Segment)
 /-- The ladder's head begin is `≤` any rung's begin (the ladder is pairwise `≪`,
 head first). -/
 lemma ladderHead_le_rung (m : Multisegment) (s_l : Segment)
-    (hs_l : (RSK.ladderRungs m).head? = some s_l)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hm : m.segments ≠ [])
     (d : ℕ) (_hd : d ≤ RSK.maxDepth m) (r : Segment) (hr : RSK.bucketRung m d = some r) :
     s_l.a ≤ r.a := by
   have hr_mem : r ∈ RSK.ladderRungs m := mem_sorted.mpr ⟨d, hr⟩
@@ -158,11 +160,11 @@ lemma residual_attains_min (m : Multisegment)
   obtain ⟨r, hr⟩ := RSK.bucketRung_some_of_mem m _ sₘ hbk
   obtain ⟨-, ⟨xmax, hxmax, hxeq⟩, -⟩ := RSK.bucketRung_spec m _ r hr
   have hlt : sₘ.a < xmax.a := by
-    have := ladderHead_le_rung m s_l hs_l _ hd₀le r hr; omega
+    have := ladderHead_le_rung m s_l hs_l (by auto_prop) _ hd₀le r hr; omega
   obtain ⟨s0, s1, rest, hseg, hs0⟩ := bucket_sorted_cons m _ hbk hxmax hlt
   obtain ⟨w, hw_mem, hwa, -⟩ :=
     derived_mem_bucketResidual m _ s0 s1 [] rest (by simpa using hseg)
-  exact ⟨w, mem_residual_of_bucket m hd₀le hw_mem, by omega⟩
+  exact ⟨w, mem_residual_of_bucket m (by auto_prop) hd₀le hw_mem, by omega⟩
 
 /-- **(A) `min m = min m'`.** The smallest begin-point survives the RSK residual. -/
 lemma minPreserved
@@ -259,7 +261,7 @@ lemma chain_seg_lt_rung (m : Multisegment) (sₘ s_l : Segment)
     RSK.mem_bucket_of_depth m _ sₘ hsₘm rfl
   obtain ⟨r0, hr0⟩ := RSK.bucketRung_some_of_mem m _ sₘ hsₘbk
   have hslr : s_l.a ≤ r0.a :=
-    ladderHead_le_rung m s_l hs_l _ (RSK.depth_le_maxDepth m sₘ hsₘm) r0 hr0
+    ladderHead_le_rung m s_l hs_l (by auto_prop) _ (RSK.depth_le_maxDepth m sₘ hsₘm) r0 hr0
   have hgap := rung_a_gap m (depth_of_segment m sₘ hsₘm - depth_of_segment m σ hσm)
     (depth_of_segment m σ hσm) r r0 hr
     (by rw [Nat.add_sub_cancel' (by omega)]; exact hr0)
@@ -393,7 +395,7 @@ lemma forward_chain (m : Multisegment) (sₘ s_l : Segment)
       chain_seg_boundary m sₘ s_l hsₘ hs_l hmin σ hσ_lc hσm
     obtain ⟨w, hw_bres, hwa, hwb⟩ := derived_mem_bucketResidual m _ i t l₁ l₂ hsplit
     have hw_res : w ∈ (RSK.residual m).segments :=
-      mem_residual_of_bucket m (RSK.depth_le_maxDepth m σ hσm) hw_bres
+      mem_residual_of_bucket m (by auto_prop) (RSK.depth_le_maxDepth m σ hσm) hw_bres
     have hchain' : MW.isChain l' := by
       rw [MW.isChain, List.isChain_cons] at hchain; exact hchain.2
     obtain ⟨c', hc'chain, hc'len, hc'mem, hc'head⟩ :=
@@ -570,7 +572,8 @@ lemma pullback_go (m : Multisegment) :
     intro w x d hsrc hx hxa hwbx hdx hchain hmem
     obtain ⟨i, t, l₁, l₂, hsplit, hwa, hwb⟩ := hsrc
     have hw'_res : w' ∈ (RSK.residual m).segments := hmem w' (by simp)
-    obtain ⟨d', i', t', l₁', l₂', hd'le, hsplit', hw'a, hw'b⟩ := residual_source m w' hw'_res
+    obtain ⟨d', i', t', l₁', l₂', hd'le, hsplit', hw'a, hw'b⟩ :=
+      residual_source m (by auto_prop) w' hw'_res
     have hlink : MW.chainLink w w' := by
       rw [MW.isChain, List.isChain_cons] at hchain
       exact hchain.1 w' (by simp)
@@ -643,7 +646,8 @@ lemma reverse_len (m : Multisegment) (sₘ s_l : Segment)
   · simp
   · have hw0_res : w0 ∈ (RSK.residual m).segments :=
       MW.leadingChain_subset (RSK.residual m) w0 (by rw [hLC']; simp)
-    obtain ⟨d0, i0, t0, l₁0, l₂0, hd0le, hsplit0, hw0a, hw0b⟩ := residual_source m w0 hw0_res
+    obtain ⟨d0, i0, t0, l₁0, l₂0, hd0le, hsplit0, hw0a, hw0b⟩ :=
+      residual_source m (by auto_prop) w0 hw0_res
     have hi0_bk : i0 ∈ (sortedBucket m d0).map (·.val) := by rw [hsplit0]; simp
     obtain ⟨hi0_m, hi0_d⟩ := RSK.mem_bucket_depth m d0 i0 hi0_bk
     obtain ⟨ht0a, ht0b⟩ := RSK.bucket_split_pair_subset m d0 i0 t0 l₁0 l₂0 hsplit0
@@ -1586,18 +1590,10 @@ lemma mdag_depth_bound (m : Multisegment) (sₘ s_l : Segment)
 /-- A nonempty multisegment attains its `maxDepth`. -/
 lemma maxDepth_attained (M : Multisegment) (hM : M.segments ≠ []) :
     ∃ x, ∃ hx : x ∈ M.segments, depth_of_segment M x hx = RSK.maxDepth M := by
-  have h0 : RSK.maxDepth M ∈
-      0 :: M.segments.attach.map (fun p => depth_of_segment M p.val p.property) :=
-    maximum_mem _ (nonempty_mem_cons _ _)
-  rcases List.mem_cons.mp h0 with h | h
-  · -- maxDepth = 0: any element has depth ≤ 0
-    obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil M.segments hM
-    refine ⟨x, hx, ?_⟩
-    have h1 : depth_of_segment M x hx ≤ RSK.maxDepth M := RSK.depth_le_maxDepth M x hx
-    have h2 : RSK.maxDepth M = 0 := h
-    omega
-  · obtain ⟨⟨x, hx⟩, -, heq⟩ := List.mem_map.mp h
-    exact ⟨x, hx, heq⟩
+  have h0 : RSK.maxDepth M hM ∈ (↑[depth_of_segment M s | s ∈ M.segments] : Set ℕ) :=
+    maximum_mem _ _
+  obtain ⟨⟨x, hx⟩, -, heq⟩ := List.mem_map.mp h0
+  exact ⟨x, hx, heq⟩
 
 /-- Every depth up to `maxDepth` carries a rung. -/
 lemma rung_exists (M : Multisegment) (hM : M.segments ≠ []) (d : ℕ)
@@ -1868,6 +1864,23 @@ lemma mdag_rung_eq (m : Multisegment) (sₘ s_l : Segment)
     obtain ⟨-, hyBrb⟩ := hdom' yB hyBin
     omega
 
+/-- Paper Lemma 1 (well-formedness), the `m†` half: under `min m < min L(m)`, `m†` is
+nonempty — the starred chain head lives there. -/
+lemma mdag_ne_nil' (m : Multisegment) {sₘ s_l : Segment}
+    (hsₘ : m.segments.head? = some sₘ)
+    (hs_l : (RSK.ladderRungs m).head? = some s_l) (hmin : sₘ.a < s_l.a) :
+    (MW.makeResidual m (MW.leadingChain m).val.segments).segments ≠ [] := by
+  obtain ⟨first, rest, hseg⟩ := List.exists_cons_of_ne_nil (ne_nil_of_head?_eq_some hsₘ)
+  have hCne : (MW.leadingChain m).val.segments ≠ [] := by
+    rw [leadingChain_eq_go m first rest hseg]
+    exact go_ne_nil rest [first] (by simp)
+  obtain ⟨σ₀, hσ₀⟩ := List.exists_mem_of_ne_nil _ hCne
+  have hσ₀nd := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σ₀ hσ₀
+  exact List.ne_nil_of_mem (starred_mem_mdag m (MW.leadingChain m).val.segments σ₀ hσ₀ hσ₀nd)
+
+-- `auto_prop` learns it, for statements about the RSK step of `m†`.
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply mdag_ne_nil' <;> assumption))
+
 /-- **(ε) The ladder is preserved by `makeResidual` along the leading chain.** -/
 lemma mdag_ladder_eq (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
@@ -1875,16 +1888,8 @@ lemma mdag_ladder_eq (m : Multisegment) (sₘ s_l : Segment)
     (hmax : m.segments ≠ []) :
     RSK.ladderRungs (MW.makeResidual m (MW.leadingChain m).val.segments)
       = RSK.ladderRungs m := by
-  -- m† is nonempty: the starred chain head lives there
-  obtain ⟨first, rest, hseg⟩ := List.exists_cons_of_ne_nil hmax
-  have hCne : (MW.leadingChain m).val.segments ≠ [] := by
-    rw [leadingChain_eq_go m first rest hseg]
-    exact go_ne_nil rest [first] (by simp)
-  obtain ⟨σ₀, hσ₀⟩ := List.exists_mem_of_ne_nil _ hCne
-  have hσ₀nd := chain_seg_nondegenerate m sₘ s_l hsₘ hs_l hmin σ₀ hσ₀
-  have hmax' : (MW.makeResidual m (MW.leadingChain m).val.segments).segments ≠ [] :=
-    List.ne_nil_of_mem (starred_mem_mdag m (MW.leadingChain m).val.segments σ₀ hσ₀ hσ₀nd)
-  rw [RSK.ladderRungs_eq, RSK.ladderRungs_eq]
+  have hmax' := mdag_ne_nil' m hsₘ hs_l hmin
+  rw [RSK.ladderRungs_eq _ hmax', RSK.ladderRungs_eq _ hmax]
   rw [mdag_maxDepth_eq m sₘ s_l hsₘ hs_l hmin hmax hmax']
   apply List.filterMap_congr
   intro d hd
@@ -1898,6 +1903,15 @@ lemma mw_step_snd_eq (m : Multisegment) (hm : m.segments ≠ []) :
     (MW.mw_step m hm).2 = MW.makeResidual m (MW.leadingChain m).val.segments := by
   show MW.makeResidual m (MW.extendChain.go m.segments [m.segments.head hm] (by simp)) = _
   rw [go_full_eq m _ (List.head?_eq_some_head hm) (by simp)]
+
+/-- Paper Lemma 1 (well-formedness), `m†` half, in terms of the MW step: under
+`min m < min L(m)` the MW residual is nonempty, so the RSK step applies to it. -/
+lemma mdag_ne_nil (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
+    (MW.mw_step m hm).2.segments ≠ [] := by
+  rw [mw_step_snd_eq m hm]
+  exact mdag_ne_nil' m (List.head?_eq_some_head hm) (List.head?_eq_some_head _) h_min
+
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply mdag_ne_nil <;> assumption))
 
 /-! ## Completing Lemma `pre1`: the two converse clauses -/
 
@@ -2120,7 +2134,8 @@ lemma residual_min_end_base (m : Multisegment) (sₘ : Segment)
     exact Option.some.inj h1
   by_contra hcon
   push_neg at hcon
-  obtain ⟨d_z, i_z, t_z, u_z, v_z, hdz_le, hsplit_z, hzia, hzib⟩ := residual_source m z hz
+  obtain ⟨d_z, i_z, t_z, u_z, v_z, hdz_le, hsplit_z, hzia, hzib⟩ :=
+    residual_source m (by auto_prop) z hz
   have hiz_bk : i_z ∈ (sortedBucket m d_z).map (·.val) := by rw [hsplit_z]; simp
   obtain ⟨hiz_m, hiz_d⟩ := RSK.mem_bucket_depth m d_z i_z hiz_bk
   have htz_bk : t_z ∈ (sortedBucket m d_z).map (·.val) := by rw [hsplit_z]; simp
@@ -2211,7 +2226,8 @@ lemma residual_min_end_step (m : Multisegment)
   obtain ⟨hll, hsucc⟩ := leadingChain_consecutive_link m u v σj σj1 hsplitC
   by_contra hcon
   push_neg at hcon
-  obtain ⟨d_z, i_z, t_z, u_z, v_z, hdz_le, hsplit_z, hzia, hzib⟩ := residual_source m z hz
+  obtain ⟨d_z, i_z, t_z, u_z, v_z, hdz_le, hsplit_z, hzia, hzib⟩ :=
+    residual_source m (by auto_prop) z hz
   have hiz_bk : i_z ∈ (sortedBucket m d_z).map (·.val) := by rw [hsplit_z]; simp
   obtain ⟨hiz_m, hiz_d⟩ := RSK.mem_bucket_depth m d_z i_z hiz_bk
   have htz_bk : t_z ∈ (sortedBucket m d_z).map (·.val) := by rw [hsplit_z]; simp
@@ -2288,7 +2304,7 @@ lemma leadingChain_residual_entries (m : Multisegment) (sₘ s_l : Segment)
     obtain ⟨w0, hw0_bkres, hw0a, hw0b⟩ :=
       derived_mem_bucketResidual m _ i t l₁ l₂ hsplit
     have hw0_mem : w0 ∈ (RSK.residual m).segments :=
-      mem_residual_of_bucket m (RSK.depth_le_maxDepth m σ hσm) hw0_bkres
+      mem_residual_of_bucket m (by auto_prop) (RSK.depth_le_maxDepth m σ hσm) hw0_bkres
     have hne' : (RSK.residual m).segments ≠ [] := List.ne_nil_of_mem hw0_mem
     obtain ⟨s_m', tl, hcons⟩ := List.exists_cons_of_ne_nil hne'
     have hs_m' : (RSK.residual m).segments.head? = some s_m' := by rw [hcons]; rfl
@@ -2363,7 +2379,7 @@ lemma leadingChain_residual_entries (m : Multisegment) (sₘ s_l : Segment)
     obtain ⟨w1, hw1_bkres, hw1a, hw1b⟩ :=
       derived_mem_bucketResidual m _ i' t' l₁' l₂' hsplit'
     have hw1_mem : w1 ∈ (RSK.residual m).segments :=
-      mem_residual_of_bucket m (RSK.depth_le_maxDepth m σ1 hσ1m) hw1_bkres
+      mem_residual_of_bucket m (by auto_prop) (RSK.depth_le_maxDepth m σ1 hσ1m) hw1_bkres
     -- W_{j+1} is a valid continuation of wⱼ
     have hlink1 : MW.chainLink wj w1 := by
       refine ⟨⟨by omega, by omega⟩, by omega⟩
@@ -4531,7 +4547,7 @@ lemma count_flatMap_pairs (f : ℕ → List (ℤ × ℤ)) : ∀ (l : List ℕ) (
 
 /-- The coordinate count of the RSK residual is the sum of derived-pair counts over
 the fibers. -/
-lemma count_residual_pairs (M : Multisegment) (w : ℤ × ℤ) :
+lemma count_residual_pairs (M : Multisegment) (hM : M.segments ≠ []) (w : ℤ × ℤ) :
     ((RSK.residual M).segments.map segPair).count w =
       ((List.range (RSK.maxDepth M + 1)).map
         (fun d => (derivedPairs ((sortedBucket M d).map (·.val))).count w)).sum := by
@@ -5524,8 +5540,8 @@ lemma count_mdag_residual_pairs (m : Multisegment) (sₘ s_l : Segment)
         (fun c => if w = ((c.a + 1 : ℤ), (c.b : ℤ)) then 1 else 0)).sum
         = if ∃ c ∈ (MW.leadingChain (RSK.residual m)).val.segments,
             c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b then 1 else 0 := by
-      rw [← sum_starred_ind _ hBlt' hnondeg x]
-      refine congrArg List.sum (List.map_congr_left ?_)
+      refine (congrArg List.sum (List.map_congr_left ?_)).trans
+        (sum_starred_ind _ hBlt' hnondeg x)
       intro c _
       by_cases h : x.a = c.a + 1 ∧ x.b = c.b
       · rw [if_pos (by rw [pair_eq_iff]; exact ⟨h.1, h.2⟩), if_pos h]
@@ -5608,8 +5624,8 @@ lemma residual_commute_core (m : Multisegment) (sₘ s_l : Segment)
     have h1 := residual_count_telescope m sₘ s_l hsₘ hs_l hmin w
     have h2 := count_mdag_residual_pairs m sₘ s_l hsₘ hs_l hmin w
     have h3 := count_residual_pairs (MW.makeResidual m
-      (MW.leadingChain m).val.segments) w
-    have h4 := count_residual_pairs m w
+      (MW.leadingChain m).val.segments) (by auto_prop) w
+    have h4 := count_residual_pairs m (by auto_prop) w
     rw [hmaxeq] at h3
     omega
   -- segment counts agree everywhere
@@ -5623,7 +5639,7 @@ lemma residual_commute_core (m : Multisegment) (sₘ s_l : Segment)
     rw [count_map_segPair_eq, count_map_segPair_eq] at h
     exact h
   refine (List.perm_iff_count.mpr hcnt).eq_of_pairwise ?_
-    (RSK.residual _).is_sorted
-    (MW.makeResidual (RSK.residual m) _).is_sorted
+    (RSK.residual _ hmdne).is_sorted
+    (MW.makeResidual (RSK.residual m hm) _).is_sorted
   intro a b _ _ h1 h2
   exact le_antisymm h1 h2

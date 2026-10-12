@@ -25,7 +25,7 @@ Correctness of the definitions in `RSK3_t`: the assembled rungs form a ladder
 lemma depth_le_maxDepth (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) :
     depth_of_segment m s hs ≤ maxDepth m := by
   unfold maxDepth
-  exact le_maximum _ _ (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨⟨s, hs⟩, by simp, rfl⟩))
+  exact le_maximum _ _ (List.mem_map.mpr ⟨⟨s, hs⟩, by simp, rfl⟩)
 
 /-- The rung dominates its bucket coordinatewise, and each coordinate is attained. -/
 lemma bucketRung_spec (m : Multisegment) (d : ℕ) (r : Segment)
@@ -116,16 +116,23 @@ lemma pairwise_rungs (m : Multisegment) (n : ℕ) :
       rw [hd'_eq, Option.some.injEq] at hr'; subst hr'
       exact hr_lt
 
+/-- A rung exists only if `m` is nonempty. -/
+lemma ne_nil_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
+    (h : bucketRung m k = some r) : m.segments ≠ [] :=
+  List.ne_nil_of_length_pos (by have := lt_length_of_bucketRung h; omega)
+
 /-- A rung exists only at depths `≤ maxDepth`. -/
 lemma le_maxDepth_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
-    (h : bucketRung m k = some r) : k ≤ maxDepth m := by
+    (h : bucketRung m k = some r) : k ≤ maxDepth m (ne_nil_of_bucketRung h) := by
   obtain ⟨-, ⟨x, hx, -⟩, -⟩ := bucketRung_spec m k r h
   obtain ⟨⟨y, hy⟩, hybk, rfl⟩ := List.mem_map.mp hx
   have hd : depth_of_segment m y hy = k := by simpa [bucket] using hybk
-  rw [← hd]; exact depth_le_maxDepth m y hy
+  have := depth_le_maxDepth m y hy
+  rw [hd] at this
+  exact this
 
 /-- `ladderRungs` lists the rungs deepest-first: it is the rungs of depth `maxDepth`, …, `0`. -/
-lemma ladderRungs_eq (m : Multisegment) :
+lemma ladderRungs_eq (m : Multisegment) (hm : m.segments ≠ []) :
     ladderRungs m = (List.range (maxDepth m + 1)).reverse.filterMap (bucketRung m) := by
   have hlt : ((List.range (maxDepth m + 1)).reverse.filterMap (bucketRung m)).Pairwise (· < ·) :=
     (pairwise_rungs m _).imp fun {x y} h =>
@@ -146,8 +153,17 @@ lemma ladderRungs_eq (m : Multisegment) :
 /-- The rungs assembled by `ladderRungs` form a ladder (pairwise `≪`). -/
 lemma ladderRungs_isLadder (m : Multisegment) : isLadder (ladderRungs m) := by
   unfold isLadder
-  rw [decide_eq_true_eq, ladderRungs_eq]
-  exact pairwise_rungs m _
+  rw [decide_eq_true_eq]
+  by_cases hm : m.segments = []
+  · -- no segments, no rungs
+    have : ladderRungs m = [] := by
+      apply List.eq_nil_iff_forall_not_mem.mpr
+      intro r hr
+      obtain ⟨k, hk⟩ := mem_sorted.mp hr
+      exact ne_nil_of_bucketRung hk hm
+    rw [this]; simp
+  · rw [ladderRungs_eq m hm]
+    exact pairwise_rungs m _
 
 -- /-- The extracted maximal ladder, packaged from `ladderRungs` and its proof. -/
 -- def extractFullLadder (m : Multisegment) : Ladder :=

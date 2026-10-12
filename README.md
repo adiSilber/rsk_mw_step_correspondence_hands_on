@@ -70,6 +70,7 @@ Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, 
 │           │     RSK1_u proves its entries are valid indices of m
 │           └── RSK2  fiber (the segments in that order), bucketRung
 │               └── RSK3  maxDepth, ladderRungs, bucketResidual, residual, rsk_step
+│                         (maxDepth, residual and rsk_step take `m ≠ 0`, as in the paper)
 └── MW         chainLink, isChain, extendChain.go, Chain, segmentResidual,
                 makeResidual, mw_step
                 (MW depends on Basic only — RSK and MW are independent)

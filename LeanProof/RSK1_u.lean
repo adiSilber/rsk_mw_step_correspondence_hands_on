@@ -37,4 +37,4 @@ end RSK
 -- The index rule learns it: `m.segments[i]` is valid for `i ∈ RSK.enumeration m k`.
 macro_rules
   | `(tactic| get_elem_tactic_extensible) =>
-    `(tactic| exact RSK.lt_length_of_mem_enumeration ‹_›)
+    `(tactic| (apply RSK.lt_length_of_mem_enumeration; assumption))

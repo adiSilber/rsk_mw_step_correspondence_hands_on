@@ -78,6 +78,10 @@ instance : ∀(s₁ s₂ : Segment), Decidable (s₁ ⊆ s₂) := by
 instance : ∀ (ms₀ ms₁ : Multisegment), Decidable (ms₀ ⊆ ms₁) := by
   unfold subms; infer_instance
 
+-- Concrete facts (e.g. about an example multisegment in an `_e` file) are checked by `decide`.
+-- Declared first, so it is tried after the more specific rules below.
+macro_rules | `(tactic| auto_prop) => `(tactic| decide)
+
 /-! ### What `auto_prop` knows about segments (for `Segment a b`) -/
 
 /-- Every segment satisfies `a ≤ b`; `grind` learns it whenever it meets `s.a` or `s.b`. -/
@@ -131,6 +135,20 @@ instance {α} [DecidableEq α] (l : List α) : Fintype {x | x ∈ l} :=
 lemma nonempty_mem_cons {α} (a : α) (l : List α) : {x | x ∈ a :: l}.Nonempty :=
   ⟨a, List.mem_cons_self⟩
 
+/-- The members of a nonempty list form a nonempty set. -/
+lemma nonempty_mem_of_ne_nil {α} {l : List α} (h : l ≠ []) : {x | x ∈ l}.Nonempty := by
+  obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil l h
+  exact ⟨x, hx⟩
+
+/-- A comprehension `[f x | x ∈ l]` over a nonempty list is nonempty. -/
+lemma comprehension_ne_nil {α β} {l : List α} (f : {x // x ∈ l} → β) (h : l ≠ []) :
+    List.map f l.attach ≠ [] := by
+  simpa using h
+
+/-- A list with a `head?` is nonempty. -/
+lemma ne_nil_of_head?_eq_some {α} {l : List α} {a : α} (h : l.head? = some a) : l ≠ [] := by
+  rintro rfl; simp at h
+
 lemma nonempty_image_cons {α β} (s : α) (ss : List α) (f : α → β) :
     {y | ∃ x ∈ s :: ss, f x = y}.Nonempty := ⟨f s, s, List.mem_cons_self, rfl⟩
 
@@ -144,6 +162,14 @@ lemma maximum_a_le_maximum_b (l : List Segment) (h₁ h₂) :
 -- Teach `auto_prop` (the tactic that finds omitted proof arguments) the facts above.
 macro_rules | `(tactic| auto_prop) => `(tactic| exact List.getElem_mem _)
 macro_rules | `(tactic| auto_prop) => `(tactic| exact nonempty_mem_cons _ _)
+-- (`apply …; assumption` rather than `exact … ‹_›`: a failing `‹_›` is only reported, not
+-- backtracked, so it would block the other alternatives.)
+macro_rules
+  | `(tactic| auto_prop) =>
+    `(tactic| (apply nonempty_mem_of_ne_nil; apply comprehension_ne_nil; assumption))
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply List.ne_nil_of_mem; assumption))
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply ne_nil_of_head?_eq_some; assumption))
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply List.ne_nil_of_length_pos; assumption))
 macro_rules | `(tactic| auto_prop) => `(tactic| exact nonempty_image_cons _ _ _)
 macro_rules | `(tactic| auto_prop) => `(tactic| exact maximum_a_le_maximum_b _ _ _)
 

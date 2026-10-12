@@ -28,9 +28,9 @@ consecutive nested pair `(s, t)` of a bucket by the derived segment
 `[s.a, t.b]`. The correctness lemmas (`ladderRungs_isLadder`, Lemma 2.2,
 Corollary 2.3) and the `Ladder`-packaged step `rskStep` live in `RSK3_u`. -/
 
-/-- Maximum depth over all segments of `m`. `0` for an empty multisegment. -/
-def maxDepth (m : Multisegment) : ℕ :=
-  maximum (0 :: [depth_of_segment m s | s ∈ m.segments])
+/-- `d(m) = max_{i ∈ I} 𝔡(i)`, the depth of a nonzero multisegment. -/
+def maxDepth (m : Multisegment) (h : m.segments ≠ []) : ℕ :=
+  maximum [depth_of_segment m s | s ∈ m.segments]
 
 /-- `𝔩(m)`: the rungs of all fibers, in increasing order (= deepest first). -/
 def ladderRungs (m : Multisegment) : List Segment :=
@@ -48,12 +48,13 @@ def bucketResidual (m : Multisegment) (d : ℕ) : List Segment :=
 --   ((l.zip l.tail).find? (fun p => decide (p.1 = s))).map (·.2)
 
 /-- The changed (residual) multisegment: every bucket's residual, re-sorted. -/
-def residual (m : Multisegment) : Multisegment :=
+def residual (m : Multisegment) (h : m.segments ≠ []) : Multisegment :=
   let raw := (List.range (maxDepth m + 1)).flatMap (fun d => bucketResidual m d)
   ⟨raw.insertionSort (· ≤ ·), List.pairwise_insertionSort _ _⟩
 
-/-- **One step of the RSK algorithm**: the extracted ladder and the residual. -/
-def rsk_step (m : Multisegment) : List Segment × Multisegment :=
+/-- **One step of the RSK algorithm** on a nonzero multisegment: the extracted ladder and
+the residual. -/
+def rsk_step (m : Multisegment) (h : m.segments ≠ []) : List Segment × Multisegment :=
   (ladderRungs m, residual m)
 
 end RSK
