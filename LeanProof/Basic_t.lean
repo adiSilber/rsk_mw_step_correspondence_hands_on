@@ -25,10 +25,9 @@ end Segment
 /-- `Segment a b` is the segment `[a, b]`; the proof of `a ≤ b` is found automatically. -/
 macro_rules | `(Segment $a:term $b:term) => `((⟨⟨$a, $b⟩, by auto_prop⟩ : Segment))
 
-/-- Lexicographic order on segments: `s₁ ≤ s₂` iff `a₁ < a₂`, or `a₁ = a₂` and `b₁ ≤ b₂`. -/
-instance : LinearOrder Segment :=
-  LinearOrder.lift' (fun s : Segment => toLex (s.toProd))
-    NonemptyInterval.toProd_injective
+/-- Segments are compared lexicographically: `s ≤ t` iff `a(s) < a(t)`, or `a(s) = a(t)` and
+`b(s) ≤ b(t)`. (That this is a linear order is proved in `Basic_u`.) -/
+instance : LE Segment := ⟨fun s t => s.a < t.a ∨ (s.a = t.a ∧ s.b ≤ t.b)⟩
 
 /-- Strict precedence: Δ₁ ≪ Δ₂ iff a₁ < a₂ and b₁ < b₂. -/
 def ll (s1 s2 : Segment) := s1.a < s2.a ∧ s1.b < s2.b

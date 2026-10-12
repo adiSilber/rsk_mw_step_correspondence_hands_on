@@ -34,7 +34,33 @@ instance : Repr Segment where
 /-- The explicit description of the lexicographic order on segments. -/
 lemma Segment.le_def (s₁ s₂ : Segment) :
     s₁ ≤ s₂ ↔ s₁.a < s₂.a ∨ (s₁.a = s₂.a ∧ s₁.b ≤ s₂.b) :=
-  Prod.Lex.le_iff
+  Iff.rfl
+
+/-- Two segments agreeing on begin and end are equal. -/
+private lemma Segment.ext' {s t : Segment} (ha : s.a = t.a) (hb : s.b = t.b) : s = t :=
+  NonemptyInterval.ext (Prod.ext ha hb)
+
+/-- The lexicographic order on segments is a linear order. -/
+instance : LinearOrder Segment where
+  le := (· ≤ ·)
+  le_refl s := (Segment.le_def s s).mpr (Or.inr ⟨rfl, le_rfl⟩)
+  le_trans s t u h₁ h₂ := by
+    have h₁ := (Segment.le_def s t).mp h₁
+    have h₂ := (Segment.le_def t u).mp h₂
+    exact (Segment.le_def s u).mpr (by omega)
+  le_antisymm s t h₁ h₂ := by
+    have h₁ := (Segment.le_def s t).mp h₁
+    have h₂ := (Segment.le_def t s).mp h₂
+    exact Segment.ext' (by omega) (by omega)
+  le_total s t := by
+    rw [Segment.le_def, Segment.le_def]; omega
+  toDecidableLE s t := inferInstanceAs (Decidable (s.a < t.a ∨ (s.a = t.a ∧ s.b ≤ t.b)))
+
+/-- The explicit description of the strict lexicographic order on segments. -/
+lemma Segment.lt_def (s t : Segment) :
+    s < t ↔ s.a < t.a ∨ (s.a = t.a ∧ s.b < t.b) := by
+  change (s ≤ t ∧ ¬ t ≤ s) ↔ _
+  rw [Segment.le_def, Segment.le_def]; omega
 
 instance : ∀ x y, Decidable (x ≪ y) := by
   intro x y; simp [(· ≪ ·)]; infer_instance

@@ -114,7 +114,7 @@ lemma Ladder_sublist_extend (ms : Multisegment)
   -- s₁ ≤ b follows from s₁ ≪ b by lex projection on the first component
   have h_le : ∀ b ∈ l.val.segments, s₁ ≤ b := fun b hb => by
     rcases h_ll b hb with ⟨ha, _⟩
-    apply Prod.Lex.left; assumption
+    exact (Segment.le_def _ _).mpr (Or.inl ha)
   -- s₁ ∉ l.val.segments, since otherwise we'd have s₁ ≪ s₁ ⇒ s₁.a < s₁.a
   have h_notin : s₁ ∉ l.val.segments := fun hc =>
     lt_irrefl _ (h_ll s₁ hc).1
@@ -367,7 +367,7 @@ lemma depth_le_of_coord_le (m : Multisegment) (s t : Segment) (hs : s ∈ m.segm
   have hsleb : ∀ b ∈ rest, s ≤ b := by
     intro b hb'; obtain ⟨h1, _⟩ := ht_rest b hb'
     have hlt : s.a < b.a := by omega
-    apply Prod.Lex.left; exact hlt
+    exact (Segment.le_def _ _).mpr (Or.inl hlt)
   have hsub_s : s :: rest <+ m.segments :=
     sorted_Sublist_append (· ≤ ·) m.segments rest m.is_sorted s hrest_sub hs hsnotin hsleb
   have hge := depth_witness' m s hs ⟨⟨s :: rest, isLadder_sorted _ hlad_s⟩, hlad_s⟩ hsub_s (by simp)

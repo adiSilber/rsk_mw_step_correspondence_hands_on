@@ -30,7 +30,7 @@ instance : ∀ l, Decidable (isChain l) := by
 
 /-- A `chainLink` between two segments implies strict lex order. -/
 lemma chainLink_imp_lt (s₁ s₂ : Segment) (h : chainLink s₁ s₂) : s₁ < s₂ :=
-  Prod.Lex.left _ _ h.1.1
+  (Segment.lt_def _ _).mpr (Or.inl h.1.1)
 
 /-- An `isChain` list is also lex-sorted under `≤`. -/
 lemma isChain_imp_sorted (l : List Segment) (h : isChain l) : l.Pairwise (· ≤ ·) := by
@@ -169,9 +169,7 @@ lemma leadingChain_pairwise_ll (m : Multisegment) :
 
 /-- Lex order: `s ≤ t` with equal begins forces `s.b ≤ t.b`. -/
 lemma seg_b_le_of_le_of_a_eq {s t : Segment} (h : s ≤ t) (ha : s.a = t.a) : s.b ≤ t.b := by
-  have h' : toLex s.toProd ≤ toLex t.toProd := h
-  rw [Prod.Lex.le_iff] at h'
-  rcases h' with h1 | ⟨_, h2⟩
+  rcases (Segment.le_def s t).mp h with h1 | ⟨_, h2⟩
   · have : s.a < t.a := h1
     omega
   · exact h2

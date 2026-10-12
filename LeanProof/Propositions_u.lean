@@ -36,9 +36,7 @@ component: `Δ°(m) = Δ°(m')`. This file proves the two halves:
 
 /-- Lex order on segments: `s ≤ t` implies `s.a ≤ t.a`. -/
 lemma seg_le_imp_a_le {s t : Segment} (h : s ≤ t) : s.a ≤ t.a := by
-  have h' : toLex s.toProd ≤ toLex t.toProd := h
-  rw [Prod.Lex.le_iff] at h'
-  rcases h' with h1 | ⟨h1, _⟩
+  rcases (Segment.le_def s t).mp h with h1 | ⟨h1, _⟩
   · exact le_of_lt h1
   · exact le_of_eq h1
 
@@ -1147,7 +1145,7 @@ lemma pairwise_ll_cons {l : List Segment} (hp : l.Pairwise (· ≪ ·))
 /-- A `≪`-pairwise list of members of a multisegment is a sublist of it. -/
 lemma ladder_sublist_of_mem (M : Multisegment) (l : List Segment)
     (hp : l.Pairwise (· ≪ ·)) (hmem : ∀ y ∈ l, y ∈ M.segments) : l <+ M.segments := by
-  have hlt : l.Pairwise (· < ·) := hp.imp (fun {a b} h => Prod.Lex.left _ _ h.1)
+  have hlt : l.Pairwise (· < ·) := hp.imp (fun {a b} h => (Segment.lt_def _ _).mpr (Or.inl h.1))
   have hnd : l.Nodup := hlt.imp (fun {a b} h => ne_of_lt h)
   have hle : l.Pairwise (· ≤ ·) := hlt.imp (fun {a b} h => le_of_lt h)
   exact List.sublist_of_subperm_of_pairwise (List.subperm_of_subset hnd hmem) hle M.is_sorted
