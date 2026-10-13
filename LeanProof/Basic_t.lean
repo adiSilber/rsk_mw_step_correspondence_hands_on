@@ -23,7 +23,7 @@ def b (s : Segment) : ℤ := s.snd
 end Segment
 
 /-- `Segment a b` is the segment `[a, b]`; the proof of `a ≤ b` is found automatically. -/
-macro_rules | `(Segment $a:term $b:term) => `((⟨⟨$a, $b⟩, by auto_prop⟩ : Segment))
+macro_rules | `(Segment $a:term $b:term) => `(id (α := Segment) ⟨⟨$a, $b⟩, by auto_prop⟩)
 
 /-- Segments are compared lexicographically: `s ≤ t` iff `a(s) < a(t)`, or `a(s) = a(t)` and
 `b(s) ≤ b(t)`. (That this is a linear order is proved in `Basic_u`.) -/

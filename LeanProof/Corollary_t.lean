@@ -64,13 +64,13 @@ lemma mw_residual_commute
   have hmin : (m.segments.head hm).a
       < ((sorted (RSK.ladderRungs m)).head (RSK.ladderRungs_ne_nil m hm)).a := h_min
   have h1 : (RSK.rsk_step (MW.mw_step m hm).2).2
-      = RSK.residual (MW.makeResidual m (MW.leadingChain m).val.segments) := by
+      = RSK.residual (MW.makeResidual m (MW.greedyChain m).val.segments) := by
     -- `simp` (not `rw`) because the nonemptiness proof depends on the term being rewritten
     simp only [mw_step_snd_eq m hm]
     rfl
   have h2 : (MW.mw_step (RSK.rsk_step m).2 hne').2
       = MW.makeResidual (RSK.residual m)
-          (MW.leadingChain (RSK.residual m)).val.segments :=
+          (MW.greedyChain (RSK.residual m)).val.segments :=
     mw_step_snd_eq (RSK.residual m) hne'
   exact h1.trans ((Multisegment.eq_of_segments_eq
     (residual_commute_core m _ _ hsₘ hs_l hmin)).trans h2.symm)

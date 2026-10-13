@@ -22,7 +22,10 @@ Things we decided not to do yet, but would like to make better.
 - `open scoped List` is there only for `<+` in `subms`; writing `ms₀.segments.Sublist
   ms₁.segments` would make the file self-explanatory and the `open` line unnecessary.
 
-## RSK
+## `MW1_t`
 
-- `residual` still loops over `List.range (maxDepth m + 1)`; it should be stated like the
-  paper, as the sum over all fibers of their derived segments.
+- `isChain` and `Chain` feel like extra stuff: `mw_step` uses neither (`extendChain.go` tests
+  `chainLink` directly); `isChain` exists only to define `Chain`, and `Chain` is used only inside
+  `MW1_u`. Options: keep `Chain` with the formula inline
+  (`{ms : Multisegment // ms.segments.IsChain chainLink}`) and drop `isChain`, or move both to
+  `MW1_u` so `MW1_t` keeps just `chainLink` and the paper's conditions.
