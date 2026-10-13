@@ -40,14 +40,15 @@ The parts are layered with a strict import discipline:
   and of earlier ones;
 - a part's `_e` file may depend on the `_t` and `_u` files of its **own** part
   and of earlier ones (e.g. `Basic_e` uses `Basic_u`'s decidability
-  instances, and `MW_e` uses `MW_u` to demonstrate `leadingChain`). Nothing
+  instances, and `MW1_e` uses `MW1_u` to demonstrate the greedy scan). Nothing
   imports an `_e` file, so this adds nothing to the trusted surface.
 
 Every definition in a `_u` file is `private`, so no lemma statement outside
-that file can depend on it — with two sanctioned exceptions, `MW.leadingChain`
-(public in `MW_u`) and `sortedBucket` (public in `Ladder2_u`, the bucket sorted by
-nesting; `RSK2_u` proves `RSK.fiber m k` equals it). Both are objects the proposition
-layer reasons about, and they appear in **no** trusted statement.
+that file can depend on it — with three sanctioned exceptions: `sortedBucket` (public in
+`Ladder2_u`, the bucket sorted by nesting; `RSK2_u` proves `RSK.fiber m k` equals it), and
+`MW.extendChain.go` / `MW.greedyChain` (public in `MW1_u`, the greedy scan that finds a
+sequence of leading indices; `MW2_u` proves `MW.leadingChain` equals it). They are objects
+the proposition layer reasons about, and they appear in **no** trusted statement.
 
 "Earlier" refers not to a single linear chain but to the dependency **tree**
 below.
@@ -72,9 +73,11 @@ Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, 
 │           └── RSK2  fiber (the segments in that order), bucketRung
 │               └── RSK3  maxDepth, ladderRungs, bucketResidual, residual, rsk_step
 │                         (maxDepth, residual and rsk_step take `m ≠ 0`, as in the paper)
-└── MW         chainLink, isChain, extendChain.go, Chain, segmentResidual,
-                makeResidual, mw_step
-                (MW depends on Basic only — RSK and MW are independent)
+└── MW1        chainLink, isChain, Chain, isNext, isLast, leadingIndices (the paper's
+    │          (a)–(c)); MW1_u: the greedy scan finds one, and all give the same segments
+    └── MW2    leadingChain (the first sequence of leading indices), segmentResidual,
+               makeResidual, mw_step
+               (MW depends on Basic only — RSK and MW are independent)
 
 RSK + MW ──► Propositions   min_m_lt_min_lm, cond_rsk_residual_nonempty,
                             and all proof machinery (Lemma 2.1/2.2 API,
@@ -107,10 +110,13 @@ Exact file-level imports (within the project):
 | `RSK3_t`          | the imports of `RSK2_t` + `RSK2_t`, `RSK2_u`                   |
 | `RSK3_u`          | the above + `RSK3_t`                                            |
 | `RSK3_e`          | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `RSK3_t`, `RSK3_u`          |
-| `MW_t`           | `Basic_t`, `Basic_u`                                           |
-| `MW_u`           | `Basic_t`, `Basic_u`, `MW_t`                                   |
-| `MW_e`           | `Basic_t`, `Basic_u`, `MW_t`, `MW_u`                           |
-| `Propositions_t` | `RSK3_t`, `RSK3_u`, `MW_t`                                       |
+| `MW1_t`          | `Basic_t`, `Basic_u`                                           |
+| `MW1_u`          | `Basic_t`, `Basic_u`, `MW1_t`                                  |
+| `MW1_e`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`                         |
+| `MW2_t`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`                         |
+| `MW2_u`          | the above + `MW2_t`                                            |
+| `MW2_e`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u`       |
+| `Propositions_t` | `RSK3_t`, `RSK3_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u`           |
 | `Propositions_u` | everything above it                                            |
 | `Propositions_e` | `Propositions_t`                                               |
 | `Corollary_t`    | `Propositions_t`, `Propositions_u`                             |

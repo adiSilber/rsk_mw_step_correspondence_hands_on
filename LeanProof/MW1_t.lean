@@ -1,7 +1,6 @@
 import LeanProof.Basic_t
 import LeanProof.Basic_u
 import Mathlib.Data.List.Chain
-import Mathlib.Order.Bounds.Defs
 
 set_option linter.style.setOption false
 set_option linter.flexible false
@@ -22,14 +21,14 @@ abbrev isChain (segments : List Segment) : Prop := segments.IsChain chainLink
 def Chain := {ms : Multisegment // isChain ms.segments}
 
 abbrev isNext (m : Multisegment) (s t : Segment) : Prop :=
-  IsLeast {u ∈ m.segments | chainLink s u} t
+  t ∈ m.segments ∧ chainLink s t ∧ ∀ u ∈ m.segments, chainLink s u → t ≤ u
 
 abbrev isLast (m : Multisegment) (s : Segment) : Prop :=
   ∀ t ∈ m.segments, ¬ chainLink s t
 
 def leadingIndices (m : Multisegment) : Set (List ℕ) :=
   { i : List ℕ | ∃ k : {k : ℕ // i ∈ Indices k m ∧ 0 < k},
-        IsLeast m.segments m.segments[i[0]] ∧
+        (∀ t ∈ m.segments, m.segments[i[0]] ≤ t) ∧
         (∀ j : ℕ, j + 1 < k → isNext m m.segments[i[j]] m.segments[i[j + 1]]) ∧
         (∀ j : ℕ, j + 1 = k → isLast m m.segments[i[j]]) }
 

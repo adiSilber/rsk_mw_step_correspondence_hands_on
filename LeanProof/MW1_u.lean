@@ -729,7 +729,7 @@ positions of the greedy chain are one such sequence (`greedyIdx_mem_leadingIndic
 
 private def IsLeading (m : Multisegment) (c : List Segment) : Prop :=
   c ≠ [] ∧
-  (∀ x, c.head? = some x → IsLeast (m.segments : Set Segment) x) ∧
+  (∀ x, c.head? = some x → x ∈ m.segments ∧ ∀ t ∈ m.segments, x ≤ t) ∧
   (∀ n (hn : n + 1 < c.length), isNext m c[n] c[n + 1]) ∧
   (∀ x, c.getLast? = some x → isLast m x)
 
@@ -762,11 +762,9 @@ private lemma greedy_isLeading (m : Multisegment) (hm : m.segments ≠ []) :
   · intro x hx
     rw [hhead] at hx
     obtain rfl := Option.some.inj hx
-    refine ⟨?_, ?_⟩
-    · show first ∈ m.segments
-      rw [hseg]; exact List.mem_cons_self
-    · intro y hy
-      exact head_le_mem m first (by rw [hseg]; rfl) y hy
+    refine ⟨by rw [hseg]; exact List.mem_cons_self, ?_⟩
+    intro y hy
+    exact head_le_mem m first (by rw [hseg]; rfl) y hy
   · intro n hn
     have hsplit : (greedyChain m).val.segments =
         (greedyChain m).val.segments.take n ++ (greedyChain m).val.segments[n] ::
@@ -774,14 +772,18 @@ private lemma greedy_isLeading (m : Multisegment) (hm : m.segments ≠ []) :
       conv_lhs => rw [← List.take_append_drop n (greedyChain m).val.segments]
       rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_getElem_cons (by omega)]
     have hlink := greedyChain_consecutive_link m _ _ _ _ hsplit
-    refine ⟨⟨greedyChain_subset m _ (List.getElem_mem _), hlink⟩, ?_⟩
-    rintro x ⟨hx, hxl⟩
+    refine ⟨greedyChain_subset m _ (List.getElem_mem _), hlink, ?_⟩
+    intro x hx hxl
     have hb := greedyChain_min_end m _ _ _ _ hsplit x hx hxl
     have ha : ((greedyChain m).val.segments[n + 1]).a = x.a := by
       have := hlink.2; have := hxl.2; omega
     exact (Segment.le_def _ _).mpr (Or.inr ⟨ha, hb⟩)
   · intro x hx t ht
     exact greedyChain_last_no_link m t ht x hx
+
+private lemma isNext_unique {m : Multisegment} {s t t' : Segment}
+    (h : isNext m s t) (h' : isNext m s t') : t = t' :=
+  le_antisymm (h.2.2 t' h'.1 h'.2.1) (h'.2.2 t h.1 h.2.1)
 
 private lemma isLeading_getElem_eq (m : Multisegment) {c c' : List Segment}
     (hc : IsLeading m c) (hc' : IsLeading m c') :
@@ -792,13 +794,13 @@ private lemma isLeading_getElem_eq (m : Multisegment) {c c' : List Segment}
     intro hn hn'
     have h1 := hc.2.1 c[0] (by rw [List.head?_eq_getElem?, List.getElem?_eq_getElem hn])
     have h2 := hc'.2.1 c'[0] (by rw [List.head?_eq_getElem?, List.getElem?_eq_getElem hn'])
-    exact h1.unique h2
+    exact le_antisymm (h1.2 _ h2.1) (h2.2 _ h1.1)
   | succ n ih =>
     intro hn hn'
     have h1 := hc.2.2.1 n hn
     have h2 := hc'.2.2.1 n hn'
     rw [ih (by omega) (by omega)] at h1
-    exact h1.unique h2
+    exact isNext_unique h1 h2
 
 private lemma isLeading_not_lt (m : Multisegment) {c c' : List Segment}
     (hc : IsLeading m c) (hc' : IsLeading m c') : ¬ c.length < c'.length := by
@@ -809,7 +811,7 @@ private lemma isLeading_not_lt (m : Multisegment) {c c' : List Segment}
   have hnext := hc'.2.2.1 (c.length - 1) (by omega)
   have heq := isLeading_getElem_eq m hc hc' (c.length - 1) (by omega) (by omega)
   rw [← heq] at hnext
-  obtain ⟨⟨hmem, hlink⟩, -⟩ := hnext
+  obtain ⟨hmem, hlink, -⟩ := hnext
   exact hlast _ hmem hlink
 
 private lemma isLeading_unique (m : Multisegment) {c c' : List Segment}
@@ -833,7 +835,7 @@ private lemma isLeading_segsAt_iff (m : Multisegment) (i : List ℕ)
     · intro x hx
       rw [List.head?_eq_getElem?, List.getElem?_eq_getElem (by rw [length_segsAt]; exact hpos),
         getElem_segsAt m i H 0 hpos] at hx
-      exact (Option.some.inj hx) ▸ ha
+      exact (Option.some.inj hx) ▸ ⟨List.getElem_mem _, ha⟩
     · intro n hn
       rw [length_segsAt] at hn
       rw [getElem_segsAt m i H n (by omega), getElem_segsAt m i H (n + 1) hn]
@@ -847,8 +849,8 @@ private lemma isLeading_segsAt_iff (m : Multisegment) (i : List ℕ)
     have hpos : 0 < i.length := by
       rw [← length_segsAt m i H]; exact List.length_pos_of_ne_nil hne
     refine ⟨⟨i.length, ⟨rfl, hnd, H⟩, hpos⟩, ?_, ?_, ?_⟩
-    · have := ha ((segsAt m i H)[0]'(by rw [length_segsAt]; exact hpos))
-        (by rw [List.head?_eq_getElem?, List.getElem?_eq_getElem])
+    · have := (ha ((segsAt m i H)[0]'(by rw [length_segsAt]; exact hpos))
+        (by rw [List.head?_eq_getElem?, List.getElem?_eq_getElem])).2
       rwa [getElem_segsAt m i H 0 hpos] at this
     · intro j hj
       change j + 1 < i.length at hj
@@ -983,11 +985,6 @@ instance (m : Multisegment) : Fintype (leadingIndices m) :=
 
 instance (m : Multisegment) (i : List ℕ) : Decidable (i ∈ leadingIndices m) :=
   decidable_of_iff (i ∈ (leadingIndices m).toFinset) Set.mem_toFinset
-
-instance (m : Multisegment) (s t : Segment) : Decidable (isNext m s t) :=
-  decidable_of_iff ((t ∈ m.segments ∧ chainLink s t) ∧ ∀ u ∈ m.segments, chainLink s u → t ≤ u)
-    ⟨fun ⟨h1, h2⟩ => ⟨h1, fun u hu => h2 u hu.1 hu.2⟩,
-     fun ⟨h1, h2⟩ => ⟨h1, fun _ hu hl => h2 ⟨hu, hl⟩⟩⟩
 
 lemma lt_length_of_mem_first_leadingIndices (m : Multisegment) (h : (leadingIndices m).Nonempty)
     {j : ℕ} (hj : j ∈ first (leadingIndices m) h) : j < m.segments.length :=
