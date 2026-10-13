@@ -62,6 +62,14 @@ lemma Segment.lt_def (s t : Segment) :
   change (s ≤ t ∧ ¬ t ≤ s) ↔ _
   rw [Segment.le_def, Segment.le_def]; omega
 
+/-- Every list of segments is a multisegment, `Σ Δ`: its segments in increasing order (repeats
+kept). Used silently wherever a `Multisegment` is expected and a list is given. -/
+instance : Coe (List Segment) Multisegment where
+  coe l := ⟨l.insertionSort (· ≤ ·), List.pairwise_insertionSort _ _⟩
+
+@[simp] lemma coe_list_segments (l : List Segment) :
+    (l : Multisegment).segments = l.insertionSort (· ≤ ·) := rfl
+
 instance : ∀ x y, Decidable (x ≪ y) := by
   intro x y; simp [(· ≪ ·)]; infer_instance
 

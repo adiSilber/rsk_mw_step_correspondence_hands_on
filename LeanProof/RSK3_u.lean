@@ -337,6 +337,6 @@ lemma residual_segments (m : Multisegment) (h : m.segments ≠ []) :
     (residual m h).segments =
       ((List.range (maxDepth m + 1)).flatMap (fun d => bucketResidual m d)).insertionSort
         (· ≤ ·) := by
-  simp [residual, multisegment]
+  simp [residual]
 
 end RSK

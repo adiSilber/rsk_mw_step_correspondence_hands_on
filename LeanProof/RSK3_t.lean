@@ -46,14 +46,9 @@ def bucketResidual (m : Multisegment) (d : ℕ) : List Segment :=
 --   let l := (bucket m d).map (·.val)
 --   ((l.zip l.tail).find? (fun p => decide (p.1 = s))).map (·.2)
 
-/-- The multisegment `Σ Δ` with the given segments (in any order): the list, sorted. (Here and
-not in `Basic_t`: that the sort is sorted needs `≤` to be total, proved in `Basic_u`.) -/
-def multisegment (l : List Segment) : Multisegment :=
-  ⟨l.insertionSort (· ≤ ·), List.pairwise_insertionSort _ _⟩
-
 /-- `m′ = Σ_{i ∈ I′′} Δ'_i` (paper (2.1c)): all the derived segments, of all fibers. -/
 def residual (m : Multisegment) (h : m.segments ≠ []) : Multisegment :=
-  multisegment [s | k ≤ maxDepth m, s ∈ bucketResidual m k]
+  [s | k ≤ maxDepth m, s ∈ bucketResidual m k]
 
 /-- **One step of the RSK algorithm** on a nonzero multisegment: the extracted ladder and
 the residual. -/

@@ -169,7 +169,7 @@ lemma exists_ladder_of_mem_depthSet {m : Multisegment} {s : Segment} {j : ℕ}
     simp only [l, List.length_ofFn] at hr'
     exact ll_of_chain i hlen hi hchain r' (by omega) r hlt
   have hnodup : l.Nodup := hpw.imp fun h heq => by subst heq; exact lt_irrefl _ h.1
-  have hsubset : l ⊆ m.segments := by
+  have hsubset : List.Subset l m.segments := by
     intro x hx
     obtain ⟨r, rfl⟩ := List.mem_ofFn.mp hx
     exact List.getElem_mem _

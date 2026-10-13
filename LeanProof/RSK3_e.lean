@@ -63,8 +63,3 @@ def m_single : Multisegment := ⟨[⟨⟨7, 7⟩, by omega⟩], by simp⟩
   -- ({(7, 7)}, []) — a singleton segment: one rung, empty residual (edge case)
 
 end RSK
-
--- `multisegment l`: the segments of `l`, sorted (and repeats kept).
-#eval (RSK.multisegment [⟨⟨2, 4⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩]).segments
-  -- [(1, 3), (1, 3), (2, 4)]
-#eval (RSK.multisegment []).segments  -- []

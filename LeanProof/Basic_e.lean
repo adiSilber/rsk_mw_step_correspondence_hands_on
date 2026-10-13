@@ -56,3 +56,9 @@ def m_three : Multisegment :=
 #eval decide ([] ∈ Indices 0 m_three)  -- true (no indices)
 #eval decide ([0] ∈ Indices 1 ⟨[], by decide⟩)  -- false (empty m: no valid index)
 
+
+-- Any list of segments is a multisegment (`Basic_u`): in increasing order, repeats kept.
+def l_unsorted : List Segment := [⟨⟨2, 4⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩]
+#eval (l_unsorted : Multisegment).segments
+  -- [(1, 3), (1, 3), (2, 4)]
+#eval (([] : List Segment) : Multisegment).segments  -- []
