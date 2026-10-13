@@ -1,1 +1,8 @@
 .lake/
+
+# scratch / legacy, not part of the development
+LadderMinimal.lean
+MW.lean
+LeanProof/RSK.lean
+rsk_mw_minimal.pdf
+rsk_mw_minimal.tex
