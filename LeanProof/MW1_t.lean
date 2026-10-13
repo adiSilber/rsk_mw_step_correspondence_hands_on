@@ -20,6 +20,9 @@ abbrev isChain (segments : List Segment) : Prop := segments.IsChain chainLink
 
 def Chain := {ms : Multisegment // isChain ms.segments}
 
+abbrev isFirst (m : Multisegment) (s : Segment) : Prop :=
+  s ∈ m.segments ∧ ∀ t ∈ m.segments, s ≤ t
+
 abbrev isNext (m : Multisegment) (s t : Segment) : Prop :=
   t ∈ m.segments ∧ chainLink s t ∧ ∀ u ∈ m.segments, chainLink s u → t ≤ u
 
@@ -28,7 +31,7 @@ abbrev isLast (m : Multisegment) (s : Segment) : Prop :=
 
 def leadingIndices (m : Multisegment) : Set (List ℕ) :=
   { i : List ℕ | ∃ k : {k : ℕ // i ∈ Indices k m ∧ 0 < k},
-        (∀ t ∈ m.segments, m.segments[i[0]] ≤ t) ∧
+        isFirst m m.segments[i[0]] ∧
         (∀ j : ℕ, j + 1 < k → isNext m m.segments[i[j]] m.segments[i[j + 1]]) ∧
         (∀ j : ℕ, j + 1 = k → isLast m m.segments[i[j]]) }
 

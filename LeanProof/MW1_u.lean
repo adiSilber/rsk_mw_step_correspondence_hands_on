@@ -729,7 +729,7 @@ positions of the greedy chain are one such sequence (`greedyIdx_mem_leadingIndic
 
 private def IsLeading (m : Multisegment) (c : List Segment) : Prop :=
   c ≠ [] ∧
-  (∀ x, c.head? = some x → x ∈ m.segments ∧ ∀ t ∈ m.segments, x ≤ t) ∧
+  (∀ x, c.head? = some x → isFirst m x) ∧
   (∀ n (hn : n + 1 < c.length), isNext m c[n] c[n + 1]) ∧
   (∀ x, c.getLast? = some x → isLast m x)
 
@@ -835,7 +835,7 @@ private lemma isLeading_segsAt_iff (m : Multisegment) (i : List ℕ)
     · intro x hx
       rw [List.head?_eq_getElem?, List.getElem?_eq_getElem (by rw [length_segsAt]; exact hpos),
         getElem_segsAt m i H 0 hpos] at hx
-      exact (Option.some.inj hx) ▸ ⟨List.getElem_mem _, ha⟩
+      exact (Option.some.inj hx) ▸ ha
     · intro n hn
       rw [length_segsAt] at hn
       rw [getElem_segsAt m i H n (by omega), getElem_segsAt m i H (n + 1) hn]
@@ -849,8 +849,8 @@ private lemma isLeading_segsAt_iff (m : Multisegment) (i : List ℕ)
     have hpos : 0 < i.length := by
       rw [← length_segsAt m i H]; exact List.length_pos_of_ne_nil hne
     refine ⟨⟨i.length, ⟨rfl, hnd, H⟩, hpos⟩, ?_, ?_, ?_⟩
-    · have := (ha ((segsAt m i H)[0]'(by rw [length_segsAt]; exact hpos))
-        (by rw [List.head?_eq_getElem?, List.getElem?_eq_getElem])).2
+    · have := ha ((segsAt m i H)[0]'(by rw [length_segsAt]; exact hpos))
+        (by rw [List.head?_eq_getElem?, List.getElem?_eq_getElem])
       rwa [getElem_segsAt m i H 0 hpos] at this
     · intro j hj
       change j + 1 < i.length at hj
