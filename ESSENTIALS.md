@@ -8,9 +8,10 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
    examples. Nothing in `_t` is justified by anything in `_u`, except facts imported from
    an *earlier* stage.
 
-2. **Trusted definitions read like the paper.** Set and list comprehensions, `maximum`,
-   `first`, `sorted`, `m.segments[i]`, `∀ j, j + 1 < k → …`. No `match`, `if`, `filter`,
-   `foldl`, `zip`, `insertionSort`, `↑`, named proof binders, or inline `by` proofs.
+2. **Trusted definitions read like the paper.** Set and list comprehensions (with conditions:
+   `[f | j ∈ i, p]`), `maximum`, `sorted`, `let i ∈ S; …`, `m.segments[i]`,
+   `∀ j, j + 1 < k → …`. No `match`, `if`, `filter`, `foldl`, `zip`, `erase`, `Option`,
+   `insertionSort`, `head`, `↑`, named proof binders, or inline `by` proofs.
 
 3. **Proof obligations are invisible.** Omitted proof arguments and index bounds are found
    by `auto_prop`; what it knows is taught in `_u` files, never written in `_t`.
@@ -37,7 +38,8 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
    its formula (and decidable for free); a type, number, list or step is a new object.
 
 9. **A multisegment is a sorted list,** so that `=` is equality of formal sums; every list of
-   segments is a multisegment through a coercion proved in `Basic_u`.
+   segments is a multisegment through a coercion, and `l₁ + l₂` is the formal sum of two lists
+   (both in `Basic_u`).
 
 10. **Hypotheses follow the paper.** `maxDepth`, `residual`, `rsk_step`, `mw_step` take
     `m.segments ≠ []` (the paper's `m ≠ 0`); no `0 ::` or empty-case conventions.

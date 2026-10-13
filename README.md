@@ -46,9 +46,11 @@ The parts are layered with a strict import discipline:
 Every definition in a `_u` file is `private`, so no lemma statement outside
 that file can depend on it — with three sanctioned exceptions: `sortedBucket` (public in
 `Ladder2_u`, the bucket sorted by nesting; `RSK1_u` proves `RSK.fiber m k` equals it), and
-`MW.extendChain.go` / `MW.greedyChain` (public in `MW1_u`, the greedy scan that finds a
-sequence of leading indices; `MW2_u` proves `MW.leadingChain` equals it). They are objects
-the proposition layer reasons about, and they appear in **no** trusted statement.
+`MW.extendChain.go` / `MW.greedyChain` / `MW.residualAlong` (public in `MW1_u`: the greedy
+scan that finds a sequence of leading indices, and the computation of the residual along it;
+`MW2_u`/`MW3_u` prove `MW.leadingChain`, `MW.makeResidual` and `MW.mw_step` equal them).
+They are objects the proposition layer reasons about, and they appear in **no** trusted
+statement.
 
 "Earlier" refers not to a single linear chain but to the dependency **tree**
 below.
@@ -60,11 +62,13 @@ Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i
                bounds are found by `auto_prop` (= `grind`, taught facts in `_u` files),
                `maximum`, `first` and `sorted` of a finite set, `let x ∈ S; e` (an arbitrary
                element, when `e` does not depend on it), list comprehensions `[x ∈ l | p]`
-               and `[f | x ∈ l, (y, z) ∈ l', k ≤ n, …]`,
+               and `[f | x ∈ l, (y, z) ∈ l', k ≤ n, p, …]` (a bare `p` keeps the choices
+               satisfying it),
                lists usable as sets, `p → q` keeps `p` in scope for `q`,
                `x ∈ s` converts `x` to the element type of `s`; below everything
 Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, ≪, ⊆,
-               lex order, Indices (index lists into a multisegment)
+               lex order, Indices (index lists into a multisegment); Basic_u: lists of
+               segments are multisegments (coercion), `l₁ + l₂` is their formal sum
 ├── Ladder1    depthSet (the paper's depth set, by set comprehension);
 │   │          Ladder1_u proves it finite by computing it (depthFinset)
 │   └── Ladder2   depth_of_segment (= max of depthSet), isLadder, bucket, Ladder,
@@ -76,8 +80,10 @@ Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, 
 │                         (maxDepth, residual and rsk_step take `m ≠ 0`, as in the paper)
 └── MW1        chainLink, isChain, Chain, isNext, isLast, leadingIndices (the paper's
     │          (a)–(c)); MW1_u: the greedy scan finds one, and all give the same segments
-    └── MW2    leadingChain (the first sequence of leading indices), segmentResidual,
-               makeResidual, mw_step
+    └── MW2    leadingChain, segmentResidual (⁻Δ), makeResidual (m^MW), deltaCirc (Δ^MW),
+        │      by the paper's formulas over a sequence of leading indices; MW2_u: they do
+        │      not depend on which sequence
+        └── MW3  mw_step = (deltaCirc, makeResidual) for any sequence of leading indices
                (MW depends on Basic only — RSK and MW are independent)
 
 RSK + MW ──► Propositions   min_m_lt_min_lm, cond_rsk_residual_nonempty,
@@ -117,7 +123,10 @@ Exact file-level imports (within the project):
 | `MW2_t`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`                         |
 | `MW2_u`          | the above + `MW2_t`                                            |
 | `MW2_e`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u`       |
-| `Propositions_t` | `RSK3_t`, `RSK3_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u`           |
+| `MW3_t`          | the imports of `MW2_t` + `MW2_t`, `MW2_u`                      |
+| `MW3_u`          | the above + `MW3_t`                                            |
+| `MW3_e`          | `Basic_t`, `Basic_u`, `MW1_t`…`MW3_u`                          |
+| `Propositions_t` | `RSK3_t`, `RSK3_u`, `MW1_t`…`MW3_u`                              |
 | `Propositions_u` | everything above it                                            |
 | `Propositions_e` | `Propositions_t`                                               |
 | `Corollary_t`    | `Propositions_t`, `Propositions_u`                             |
