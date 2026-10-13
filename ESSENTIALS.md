@@ -22,9 +22,11 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
 5. **When a definition needs a fact, split the stage.** The fact is proved in a `_u` file
    between two `_t` files (Ladder1/2, RSK1/2/3, MW1/2); it is never proved inline.
 
-6. **Choices are canonical, not algorithmic.** "The first admissible enumeration", "the first
-   sequence of leading indices": the trusted text states the conditions (paper's (a)–(c)) and
-   picks the first solution; the algorithm that finds one (greedy scan) lives in `_u`.
+6. **Choices are stated, not computed.** "Let `i` be a sequence of leading indices": the
+   trusted text states the conditions (paper's (a)–(c)) and writes `let i ∈ leadingIndices m; …`,
+   which Lean accepts only with a proof that the result does not depend on the choice; the
+   algorithm that finds one (greedy scan) lives in `_u`. Likewise `fiber` is
+   `let i ∈ admissibleEnumerations m k; …`.
 
 7. **Say it explicitly.** `∀ t ∈ m.segments, s ≤ t`, not `IsLeast m.segments s`: a Mathlib
    name may hide a parameter (here, which order). *Open:* `Nodup`, `Pairwise`, `IsChain`,

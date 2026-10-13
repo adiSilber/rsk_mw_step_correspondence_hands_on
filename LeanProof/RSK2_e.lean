@@ -21,13 +21,6 @@ def m_complex : Multisegment :=
 def m_repeated : Multisegment :=
   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩], by decide⟩
 
-/-! ### `fiber`: the segments of `𝔡⁻¹(k)` in our enumeration's order (outermost first) -/
-#eval RSK.fiber m_complex 0   -- [(2, 200), (4, 190), (6, 180)]
-#eval RSK.fiber m_complex 1   -- [(1, 100), (3, 90), (5, 80)]
-#eval RSK.fiber m_repeated 1  -- [(1, 3), (1, 3)]
-#eval RSK.fiber m_complex 2   -- [] (empty fiber)
-#eval RSK.fiber ⟨[], by simp⟩ 0  -- [] (empty multisegment)
-
 /-! ### `bucketRung`: (max b, max e) of `𝔡⁻¹(d)` -/
 #eval RSK.bucketRung m_complex 0   -- some (6, 200)
 #eval RSK.bucketRung m_complex 1   -- some (5, 100)

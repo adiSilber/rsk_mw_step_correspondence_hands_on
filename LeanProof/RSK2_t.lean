@@ -13,11 +13,7 @@ set_option linter.style.whitespace false
 
 namespace RSK
 
-/-! # RSK, part 2: the fibers in the order of our enumeration (trusted definitions) -/
-
-/-- `Δ_{i^k_0} ⊇ … ⊇ Δ_{i^k_l}`: the segments of `𝔡⁻¹(k)` in the order of our enumeration. -/
-def fiber (m : Multisegment) (k : ℕ) : List Segment :=
-  [m.segments[i] | i ∈ enumeration m k]
+/-! # RSK, part 2: the rung of a fiber (trusted definitions) -/
 
 /-- The rung of `𝔡⁻¹(d)` (paper (2.2)): the largest begin point paired with the largest end
 point; `none` if the fiber is empty. -/

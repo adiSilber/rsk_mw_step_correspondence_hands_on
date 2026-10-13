@@ -12,12 +12,13 @@ set_option linter.style.whitespace false
 
 namespace RSK
 
-/-! # RSK, part 1: our choice of admissible enumerations (trusted definitions)
+/-! # RSK, part 1: the fibers (trusted definitions)
 
 Paper, §2: "For any `k = 0, …, d` choose an admissible enumeration of `𝔡⁻¹(k)`". -/
 
-/-- Our admissible enumeration `i^k_0, …, i^k_{l-1}` of `𝔡⁻¹(k)`: the first one. -/
-def enumeration (m : Multisegment) (k : ℕ) : List ℕ :=
-  first (admissibleEnumerations m k)
+/-- `Δ_{i^k_0} ⊇ … ⊇ Δ_{i^k_l}`: the segments of `𝔡⁻¹(k)` in the order of an admissible
+enumeration (any one: they all list the same segments). -/
+def fiber (m : Multisegment) (k : ℕ) : List Segment :=
+  let i ∈ admissibleEnumerations m k; [m.segments[j] | j ∈ i]
 
 end RSK

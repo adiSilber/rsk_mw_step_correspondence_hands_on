@@ -668,3 +668,49 @@ lemma admissibleEnumerations_nonempty (m : Multisegment) (k : ℕ) :
 
 -- `first (admissibleEnumerations m k)` needs the set nonempty: `auto_prop` learns it.
 macro_rules | `(tactic| auto_prop) => `(tactic| exact admissibleEnumerations_nonempty _ _)
+
+/-! ## The segments listed by an admissible enumeration do not depend on it -/
+
+lemma lt_length_of_mem_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : List ℕ}
+    {j : ℕ} (hj : j ∈ i) (h : i ∈ admissibleEnumerations m k) : j < m.segments.length :=
+  lt_length_of_mem_admissibleEnumerations h j hj
+
+-- The index rule learns it: `m.segments[j]` is valid for `j ∈ i`, `i ∈ admissibleEnumerations m k`.
+macro_rules
+  | `(tactic| get_elem_tactic_extensible) =>
+    `(tactic| (apply lt_length_of_mem_of_mem_admissibleEnumerations <;> assumption))
+
+/-- An admissible enumeration lists the bucket sorted outermost-first. -/
+lemma pmap_eq_sortedBucket {m : Multisegment} {k : ℕ} {i : List ℕ}
+    (he : i ∈ admissibleEnumerations m k) (hlt : ∀ j ∈ i, j < m.segments.length) :
+    i.pmap (fun j hj => m.segments[j]) hlt = (sortedBucket m k).map (·.val) := by
+  by_cases h : ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k
+  · apply List.Perm.eq_of_pairwise (le := fun s t => subsegment t s)
+    · intro a b _ _ h₁ h₂
+      exact seg_ext (by simp only [subsegment] at *; omega) (by simp only [subsegment] at *; omega)
+    · exact pairwise_of_mem he _
+    · exact bucket_nested m k
+    · exact (perm_bucket_of_mem he _).trans ((sortedBucket_perm m k).map _).symm
+  · push_neg at h
+    have hnil : (sortedBucket m k).map (·.val) = [] := by
+      apply List.eq_nil_iff_forall_not_mem.mpr
+      intro s hs
+      obtain ⟨⟨s, hsm⟩, hsb, rfl⟩ := List.mem_map.mp hs
+      rw [mem_sortedBucket] at hsb
+      obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hsm
+      exact h ⟨j, by omega⟩ (by simpa [bucket] using hsb)
+    rw [hnil]
+    simp [eq_nil_of_mem_admissibleEnumerations h he]
+
+/-- Any two admissible enumerations list the same segments: this is what makes
+`let i ∈ admissibleEnumerations m k; [m.segments[j] | j ∈ i]` well defined. -/
+lemma segments_indep (m : Multisegment) (k : ℕ) :
+    ∀ x (hx : x ∈ admissibleEnumerations m k) y (hy : y ∈ admissibleEnumerations m k),
+      [m.segments[j] | j ∈ x] = [m.segments[j] | j ∈ y] := by
+  intro x hx y hy
+  have h1 := pmap_eq_sortedBucket hx (fun _ hj => lt_length_of_mem_admissibleEnumerations hx _ hj)
+  have h2 := pmap_eq_sortedBucket hy (fun _ hj => lt_length_of_mem_admissibleEnumerations hy _ hj)
+  rw [List.pmap_eq_map_attach] at h1 h2
+  exact h1.trans h2.symm
+
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply segments_indep))

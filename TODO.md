@@ -29,10 +29,3 @@ Things we decided not to do yet, but would like to make better.
   `MW1_u`. Options: keep `Chain` with the formula inline
   (`{ms : Multisegment // ms.segments.IsChain chainLink}`) and drop `isChain`, or move both to
   `MW1_u` so `MW1_t` keeps just `chainLink` and the paper's conditions.
-
-## RSK
-
-- `enumeration m k := first (admissibleEnumerations m k)` could become
-  `let i ∈ admissibleEnumerations m k; …` in `fiber`, as `leadingChain` does: any two admissible
-  enumerations list the same segments (ties in the nesting order are equal segments), so the
-  fiber does not depend on the choice. Needs that independence lemma in `RSK1_u`/`RSK2_u`.

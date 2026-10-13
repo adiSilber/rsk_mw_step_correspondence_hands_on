@@ -14,38 +14,7 @@ set_option linter.style.whitespace false
 
 namespace RSK
 
-/-! # RSK, part 2: proofs
-
-`fiber m k` is exactly the bucket sorted outermost-first (`fiber_eq`): the bridge from the
-paper-style definitions to the proof machinery built on `sortedBucket`. -/
-
-private lemma fiber_eq_pmap (m : Multisegment) (k : ℕ) :
-    fiber m k = (enumeration m k).pmap (fun j hj => m.segments[j])
-      (fun _ hj => lt_length_of_mem_enumeration hj) := by
-  unfold fiber
-  rw [List.pmap_eq_map_attach]
-
-/-- The fiber, in our enumeration's order, is the bucket sorted outermost-first. -/
-lemma fiber_eq (m : Multisegment) (k : ℕ) : fiber m k = (sortedBucket m k).map (·.val) := by
-  rw [fiber_eq_pmap]
-  by_cases h : ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k
-  · have he := enumeration_mem m k
-    apply List.Perm.eq_of_pairwise (le := fun s t => subsegment t s)
-    · intro a b _ _ h₁ h₂
-      exact seg_ext (by simp only [subsegment] at *; omega) (by simp only [subsegment] at *; omega)
-    · exact pairwise_of_mem he _
-    · exact bucket_nested m k
-    · exact (perm_bucket_of_mem he _).trans ((sortedBucket_perm m k).map _).symm
-  · push_neg at h
-    have hnil : (sortedBucket m k).map (·.val) = [] := by
-      apply List.eq_nil_iff_forall_not_mem.mpr
-      intro s hs
-      obtain ⟨⟨s, hsm⟩, hsb, rfl⟩ := List.mem_map.mp hs
-      rw [mem_sortedBucket] at hsb
-      obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hsm
-      exact h ⟨j, by omega⟩ (by simpa [bucket] using hsb)
-    rw [hnil]
-    simp [enumeration_eq_nil h]
+/-! # RSK, part 2: proofs -/
 
 /-- Consecutive segments of the fiber are nested, so `[Δᵢ.a, Δᵢ₊₁.b]` is a segment. -/
 lemma fiber_a_le_succ_b (m : Multisegment) (k i : ℕ) (h : i + 1 < (fiber m k).length) :

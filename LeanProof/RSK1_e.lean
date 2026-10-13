@@ -20,11 +20,11 @@ def m_complex : Multisegment :=
 def m_repeated : Multisegment :=
   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩], by decide⟩
 
-/-! ### `enumeration`: our admissible enumeration of `𝔡⁻¹(k)` -/
-#eval RSK.enumeration m_complex 0   -- [1, 3, 5]
-#eval RSK.enumeration m_complex 1   -- [0, 2, 4]
-#eval RSK.enumeration m_complex 2   -- [] (empty fiber)
-#eval RSK.enumeration m_repeated 1  -- [0, 1] (equal segments: the first of [0,1], [1,0])
-#eval RSK.enumeration ⟨[], by simp⟩ 0  -- [] (empty multisegment)
+/-! ### `fiber`: the segments of `𝔡⁻¹(k)` in an admissible enumeration's order (outermost first) -/
+#eval RSK.fiber m_complex 0   -- [(2, 200), (4, 190), (6, 180)]
+#eval RSK.fiber m_complex 1   -- [(1, 100), (3, 90), (5, 80)]
+#eval RSK.fiber m_repeated 1  -- [(1, 3), (1, 3)] (both copies, in either enumeration)
+#eval RSK.fiber m_complex 2   -- [] (empty fiber)
+#eval RSK.fiber ⟨[], by simp⟩ 0  -- [] (empty multisegment)
 
 end RSK1Examples

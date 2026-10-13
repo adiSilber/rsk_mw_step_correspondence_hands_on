@@ -45,7 +45,7 @@ The parts are layered with a strict import discipline:
 
 Every definition in a `_u` file is `private`, so no lemma statement outside
 that file can depend on it — with three sanctioned exceptions: `sortedBucket` (public in
-`Ladder2_u`, the bucket sorted by nesting; `RSK2_u` proves `RSK.fiber m k` equals it), and
+`Ladder2_u`, the bucket sorted by nesting; `RSK1_u` proves `RSK.fiber m k` equals it), and
 `MW.extendChain.go` / `MW.greedyChain` (public in `MW1_u`, the greedy scan that finds a
 sequence of leading indices; `MW2_u` proves `MW.leadingChain` equals it). They are objects
 the proposition layer reasons about, and they appear in **no** trusted statement.
@@ -69,9 +69,9 @@ Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, 
 │   │          Ladder1_u proves it finite by computing it (depthFinset)
 │   └── Ladder2   depth_of_segment (= max of depthSet), isLadder, bucket, Ladder,
 │       │         admissibleEnumerations (Ladder2_u: finite, nonempty for nonempty fibers)
-│       └── RSK1  enumeration (our choice: the first admissible enumeration);
-│           │     RSK1_u proves its entries are valid indices of m
-│           └── RSK2  fiber (the segments in that order), bucketRung
+│       └── RSK1  fiber (the segments of 𝔡⁻¹(k) in the order of an admissible
+│           │     enumeration — any one; Ladder2_u proves they all agree)
+│           └── RSK2  bucketRung
 │               └── RSK3  maxDepth, ladderRungs, bucketResidual, residual, rsk_step
 │                         (maxDepth, residual and rsk_step take `m ≠ 0`, as in the paper)
 └── MW1        chainLink, isChain, Chain, isNext, isLast, leadingIndices (the paper's

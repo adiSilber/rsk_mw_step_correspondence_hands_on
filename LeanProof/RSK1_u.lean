@@ -14,27 +14,15 @@ namespace RSK
 
 /-! # RSK, part 1: proofs
 
-Our enumeration is an admissible enumeration whenever the fiber is nonempty
-(`enumeration_mem`), and its entries are valid indices of `m`
-(`lt_length_of_mem_enumeration`), which lets `RSK2_t` write `m.segments[i]`. -/
+`fiber m k` is exactly the bucket sorted outermost-first (`fiber_eq`): the bridge from the
+paper-style definition to the proof machinery built on `sortedBucket`. -/
 
-lemma enumeration_mem (m : Multisegment) (k : ℕ) :
-    enumeration m k ∈ admissibleEnumerations m k :=
-  first_mem _ _
-
-lemma enumeration_eq_nil {m : Multisegment} {k : ℕ}
-    (h : ∀ j : Fin m.segments.length, depth_of_segment m m.segments[j] ≠ k) :
-    enumeration m k = [] :=
-  eq_nil_of_mem_admissibleEnumerations h (enumeration_mem m k)
-
-/-- The entries of our enumeration are valid indices of `m`. -/
-lemma lt_length_of_mem_enumeration {m : Multisegment} {k i : ℕ}
-    (hi : i ∈ enumeration m k) : i < m.segments.length :=
-  lt_length_of_mem_admissibleEnumerations (enumeration_mem m k) i hi
+lemma fiber_eq (m : Multisegment) (k : ℕ) : fiber m k = (sortedBucket m k).map (·.val) := by
+  unfold fiber
+  rw [anyOf_eq (first_mem _ (admissibleEnumerations_nonempty m k))]
+  have h := pmap_eq_sortedBucket (first_mem _ (admissibleEnumerations_nonempty m k))
+    (fun _ hj => lt_length_of_mem_admissibleEnumerations (first_mem _ _) _ hj)
+  rw [List.pmap_eq_map_attach] at h
+  exact h
 
 end RSK
-
--- The index rule learns it: `m.segments[i]` is valid for `i ∈ RSK.enumeration m k`.
-macro_rules
-  | `(tactic| get_elem_tactic_extensible) =>
-    `(tactic| (apply RSK.lt_length_of_mem_enumeration; assumption))
