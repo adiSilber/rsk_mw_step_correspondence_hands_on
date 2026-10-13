@@ -20,6 +20,7 @@ namespace MW
 lemma leadingChain_eq (m : Multisegment) (hm : m.segments ≠ []) :
     leadingChain m hm = (greedyChain m).val.segments := by
   unfold leadingChain
-  exact segments_of_leadingIndices m (first_mem _ _) _
+  rw [anyOf_eq (first_mem _ (leadingIndices_nonempty m hm))]
+  exact segments_of_leadingIndices m (first_mem _ _)
 
 end MW

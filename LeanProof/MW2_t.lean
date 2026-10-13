@@ -15,7 +15,7 @@ set_option linter.style.whitespace false
 namespace MW
 
 def leadingChain (m : Multisegment) (h : m.segments ≠ []) : List Segment :=
-  [m.segments[i] | i ∈ first (leadingIndices m)]
+  let i ∈ leadingIndices m; [m.segments[j] | j ∈ i]
 
 /-- Residual of a chain segment: `[a, b] → [a+1, b]`; singletons are discarded. -/
 def segmentResidual (s : Segment) : Option Segment :=

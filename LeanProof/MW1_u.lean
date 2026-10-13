@@ -736,7 +736,7 @@ private def IsLeading (m : Multisegment) (c : List Segment) : Prop :=
 /-- The segments at the positions `i`. -/
 private def segsAt (m : Multisegment) (i : List ℕ) (H : ∀ j ∈ i, j < m.segments.length) :
     List Segment :=
-  i.attach.map fun j => m.segments[j.1]'(H j.1 j.2)
+  i.attach.map fun ⟨j, hj⟩ => m.segments[j]'(H j hj)
 
 private lemma length_segsAt (m : Multisegment) (i : List ℕ) (H : ∀ j ∈ i, j < m.segments.length) :
     (segsAt m i H).length = i.length := by
@@ -748,8 +748,8 @@ private lemma getElem_segsAt (m : Multisegment) (i : List ℕ) (H : ∀ j ∈ i,
       m.segments[i[n]]'(H _ (List.getElem_mem hn)) := by
   simp [segsAt]
 
-lemma lt_length_of_mem_leadingIndices {m : Multisegment} {i : List ℕ}
-    (hi : i ∈ leadingIndices m) {j : ℕ} (hj : j ∈ i) : j < m.segments.length := by
+lemma lt_length_of_mem_leadingIndices {m : Multisegment} {i : List ℕ} {j : ℕ}
+    (hj : j ∈ i) (hi : i ∈ leadingIndices m) : j < m.segments.length := by
   obtain ⟨⟨k, ⟨-, -, hb⟩, -⟩, -⟩ := hi
   exact hb j hj
 
@@ -867,9 +867,9 @@ private lemma isLeading_segsAt_iff (m : Multisegment) (i : List ℕ)
 
 /-- Every sequence of leading indices gives the segments of the greedy chain (paper: the set of
 leading segments depends only on `m`). -/
-lemma segments_of_leadingIndices (m : Multisegment) {i : List ℕ} (hi : i ∈ leadingIndices m)
+private lemma segsAt_eq_segments (m : Multisegment) {i : List ℕ} (hi : i ∈ leadingIndices m)
     (H : ∀ j ∈ i, j < m.segments.length) :
-    i.attach.map (fun j => m.segments[j.1]'(H j.1 j.2)) = (greedyChain m).val.segments := by
+    segsAt m i H = (greedyChain m).val.segments := by
   have hm : m.segments ≠ [] := by
     obtain ⟨⟨k, ⟨hlen, -, -⟩, hk⟩, -⟩ := hi
     obtain ⟨j, hj⟩ := List.exists_mem_of_ne_nil i (List.ne_nil_of_length_pos (by omega))
@@ -976,26 +976,44 @@ instance (m : Multisegment) : Fintype (leadingIndices m) :=
         exact List.ne_nil_of_length_pos (by have := hb j hj; omega)
       · intro hi
         have hb : ∀ j ∈ i, j < m.segments.length := fun j hj =>
-          lt_length_of_mem_leadingIndices hi hj
+          lt_length_of_mem_leadingIndices hj hi
         obtain ⟨hnd, hne, -⟩ := (isLeading_segsAt_iff m i hb).mp hi
         refine ⟨⟨hnd, hb⟩, ?_, ?_⟩
         · intro h; subst h; exact hne rfl
         · rw [map_getElem?_eq_iff m i hb]
-          exact segments_of_leadingIndices m hi hb)
+          exact segsAt_eq_segments m hi hb)
 
 instance (m : Multisegment) (i : List ℕ) : Decidable (i ∈ leadingIndices m) :=
   decidable_of_iff (i ∈ (leadingIndices m).toFinset) Set.mem_toFinset
 
-lemma lt_length_of_mem_first_leadingIndices (m : Multisegment) (h : (leadingIndices m).Nonempty)
-    {j : ℕ} (hj : j ∈ first (leadingIndices m) h) : j < m.segments.length :=
-  lt_length_of_mem_leadingIndices (first_mem _ h) hj
+end MW
+
+-- The index rule learns it: `m.segments[j]` is valid for `j ∈ i` with `i ∈ MW.leadingIndices m`.
+macro_rules
+  | `(tactic| get_elem_tactic_extensible) =>
+    `(tactic| (apply MW.lt_length_of_mem_leadingIndices <;> assumption))
+
+namespace MW
+
+/-- Every sequence of leading indices gives the segments of the greedy chain (paper: the set of
+leading segments depends only on `m`). -/
+lemma segments_of_leadingIndices (m : Multisegment) {i : List ℕ} (hi : i ∈ leadingIndices m) :
+    [m.segments[j] | j ∈ i] = (greedyChain m).val.segments :=
+  segsAt_eq_segments m hi (fun _ hj => lt_length_of_mem_leadingIndices hj hi)
+
+/-- The segments at a sequence of leading indices do not depend on the sequence: this is what
+makes `let i ∈ leadingIndices m; [m.segments[j] | j ∈ i]` well defined. -/
+lemma segments_indep (m : Multisegment) :
+    ∀ x (hx : x ∈ leadingIndices m) y (hy : y ∈ leadingIndices m),
+      [m.segments[j] | j ∈ x] = [m.segments[j] | j ∈ y] := by
+  intro x hx y hy
+  exact (segments_of_leadingIndices m hx).trans (segments_of_leadingIndices m hy).symm
 
 end MW
+
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply MW.segments_indep))
 
 macro_rules
   | `(tactic| auto_prop) =>
     `(tactic| (apply MW.leadingIndices_nonempty; first | assumption | decide))
 
-macro_rules
-  | `(tactic| get_elem_tactic_extensible) =>
-    `(tactic| (apply MW.lt_length_of_mem_first_leadingIndices; assumption))

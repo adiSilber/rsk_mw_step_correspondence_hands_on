@@ -112,6 +112,12 @@ lemma first_mem {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) 
 lemma sorted_eq_nil {α} [LinearOrder α] {S : Set α} [Fintype S] (h : S = ∅) : sorted S = [] := by
   apply List.eq_nil_iff_forall_not_mem.mpr; intro x hx; simp [h] at hx
 
+/-- `let x ∈ S; e` is `e` at any member of `S`. -/
+lemma anyOf_eq {α β} [LinearOrder α] {S : Set α} [Fintype S] {f : (x : α) → x ∈ S → β}
+    {h : S.Nonempty} {hf : ∀ x (hx : x ∈ S) y (hy : y ∈ S), f x hx = f y hy}
+    {x : α} (hx : x ∈ S) : anyOf S f h hf = f x hx :=
+  hf _ _ _ hx
+
 /-- Finite sets with the same sorted list are equal. -/
 lemma eq_of_sorted_eq {α} [LinearOrder α] {S T : Set α} [Fintype S] [Fintype T]
     (h : sorted S = sorted T) : S = T := by

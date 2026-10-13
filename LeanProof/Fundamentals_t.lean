@@ -53,6 +53,14 @@ where
         throwError "the proof search touched the surrounding term"
     pure h
 
+/-- The type of a term once the proof arguments it still expects are supplied (as long as the
+type does not depend on them). -/
+partial def resultType (ty : Expr) : TermElabM Expr := do
+  let ty ← instantiateMVars ty
+  if let .forallE _ p b _ ← whnf ty then
+    if (← isProp p) && !b.hasLooseBVars then return ← resultType b
+  return ty
+
 /-- Fundamental rule: when an application `f a b` still expects proof arguments (and no
 function is expected), each missing proof is found by `auto_prop`. -/
 @[term_elab app] def elabApp' : TermElab := fun stx expected? => do
@@ -63,6 +71,9 @@ function is expected), each missing proof is found by `auto_prop`. -/
   let mut e ← elabApp stx expected?
   if let some t := expected? then
     if (← whnf t).isForall then return e        -- a function is wanted: leave it alone
+    -- the type once the proofs are supplied is the expected one: say so now, so that the
+    -- parts of the term still waiting for their type can proceed before the proofs are sought
+    discard <| observing? (isDefEq (← resultType (← inferType e)) t)
   repeat
     let some p ← missingProof? e | break
     let some h ← prove? p (later := expected?.isSome) | break
@@ -117,6 +128,27 @@ def first [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
 /-- The elements of a finite set, in increasing order. -/
 def sorted [LinearOrder α] (S : Set α) [Fintype S] : List α :=
   S.toFinset.sort (· ≤ ·)
+
+/-- `let x ∈ S; e`: `e` for an arbitrary element `x` of `S`. It is well defined because `e`
+takes the same value at every element of `S` — a proof Lean demands (and `auto_prop` finds),
+together with `S` being nonempty. (To compute, `e` is evaluated at `first S`.) -/
+def anyOf [LinearOrder α] (S : Set α) [Fintype S] (f : (x : α) → x ∈ S → β) (h : S.Nonempty)
+    (_hf : ∀ x (hx : x ∈ S) y (hy : y ∈ S), f x hx = f y hy) : β :=
+  f (first S h) (Set.mem_toFinset.mp (Finset.min'_mem _ _))
+
+syntax "let " ident " ∈ " term "; " term : term
+
+open Lean Elab Term Meta in
+elab_rules : term <= expected
+  | `(let $x:ident ∈ $S; $e) => do
+    -- `e` is read completely first (as a function of `x`), so that the two facts behind
+    -- `anyOf` are asked about a finished term
+    let S ← elabTerm S none
+    let expected ← instantiateMVars expected
+    let body ← if expected.isMVar then pure e else `(($e : $(← exprToSyntax expected)))
+    let f ← elabTerm (← `(fun $x (_ : $x ∈ $(← exprToSyntax S)) => $body)) none
+    synthesizeSyntheticMVarsNoPostponing
+    elabTerm (← `(anyOf $(← exprToSyntax S) $(← exprToSyntax f))) (some expected)
 
 /-- List comprehension `[x ∈ l | p x]`: the elements of `l` satisfying `p`, in order, with
 repeats; each comes with its proof of `x ∈ l` (available to `p`). -/
