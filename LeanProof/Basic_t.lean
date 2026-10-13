@@ -30,10 +30,10 @@ macro_rules | `(Segment $a:term $b:term) => `((⟨⟨$a, $b⟩, by auto_prop⟩ 
 instance : LE Segment := ⟨fun s t => s.a < t.a ∨ (s.a = t.a ∧ s.b ≤ t.b)⟩
 
 /-- Strict precedence: Δ₁ ≪ Δ₂ iff a₁ < a₂ and b₁ < b₂. -/
-def ll (s1 s2 : Segment) := s1.a < s2.a ∧ s1.b < s2.b
+abbrev ll (s1 s2 : Segment) : Prop := s1.a < s2.a ∧ s1.b < s2.b
 infix:90 " ≪ " => ll
 
-def subsegment (s₁ s₂ : Segment) :=
+abbrev subsegment (s₁ s₂ : Segment) : Prop :=
   s₁.a ≥ s₂.a ∧ s₁.b ≤ s₂.b
 infix:90 " ⊆ " => subsegment
 
@@ -42,7 +42,7 @@ structure Multisegment where
   segments : List Segment
   is_sorted : segments.Pairwise (· ≤ ·)
 
-def subms (ms₀ ms₁ : Multisegment) := ms₀.segments <+ ms₁.segments
+abbrev subms (ms₀ ms₁ : Multisegment) : Prop := ms₀.segments <+ ms₁.segments
 infix:90 " ⊆ " => subms
 
 /-- `n` distinct indices into `m`. -/

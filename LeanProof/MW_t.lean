@@ -31,13 +31,10 @@ namespace MW
 
 /-- A "chain link" between two segments: a strict precedence `≪` with the
 extra constraint that the `a`'s are consecutive. -/
-def chainLink (s₁ s₂ : Segment) : Prop := s₁ ≪ s₂ ∧ s₂.a = s₁.a + 1
-
-instance : ∀ s₁ s₂, Decidable (chainLink s₁ s₂) := by
-  intro s₁ s₂; unfold chainLink; infer_instance
+abbrev chainLink (s₁ s₂ : Segment) : Prop := s₁ ≪ s₂ ∧ s₂.a = s₁.a + 1
 
 /-- A list of segments is a chain if each consecutive pair is a `chainLink`. -/
-def isChain (segments : List Segment) : Prop := segments.IsChain chainLink
+abbrev isChain (segments : List Segment) : Prop := segments.IsChain chainLink
 
 /-- The internal recursion of `extendChain`: scans `m`, appends `s` to the chain
     whenever it forms a `chainLink` with the current last. -/
