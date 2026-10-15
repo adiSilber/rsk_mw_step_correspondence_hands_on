@@ -32,12 +32,15 @@ lemma fiber_a_le_succ_b (m : Multisegment) (k i : ℕ) (h : i + 1 < (fiber m k).
 grind_pattern fiber_a_le_succ_b => (fiber m k)[i + 1]
 
 /-- `maximum [depth_of_segment m s | s ∈ m.segments]` (`maxDepth`, in `RSK3_t`) needs that set
-nonempty; it is, for `m.segments ≠ []`. Keyed on the term `m.segments` (a `grind` pattern
-cannot look inside the set-builder lambda). -/
+nonempty; it is, for `m.segments ≠ []`. Keyed on the term `m.segments` together with a
+`Set.Nonempty {…}` term (a `grind` pattern cannot look inside the set-builder lambda, so the
+second key is only a shape): it fires only where such a set is being asked about, not in every
+proof that mentions `m.segments`. -/
 lemma depth_set_nonempty (m : Multisegment) (h : m.segments ≠ []) :
     ({x | x ∈ [depth_of_segment m s | s ∈ m.segments]} : Set ℕ).Nonempty :=
   nonempty_mem_of_ne_nil (comprehension_ne_nil _ h)
-grind_pattern depth_set_nonempty => Multisegment.segments m
+grind_pattern depth_set_nonempty =>
+  Multisegment.segments m, Set.Nonempty {x | x ∈ [depth_of_segment m s | s ∈ m.segments]}
 
 /-- A rung exists only at the depth of some segment, so below `m.segments.length`. -/
 lemma lt_length_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
