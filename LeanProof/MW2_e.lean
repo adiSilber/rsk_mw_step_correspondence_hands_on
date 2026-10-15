@@ -27,23 +27,19 @@ def m_twice : Multisegment := [Segment 1 1, Segment 1 1, Segment 2 3, Segment 4 
 #eval leadingChain m_points   -- [(1, 1), (2, 2), (3, 3)]: singletons link up
 #eval leadingChain m_single   -- [(7, 7)]
 
-/-! ### `segmentResidual`: [a, b] → [a+1, b], singletons discarded -/
-#eval segmentResidual (Segment 1 3)   -- some (2, 3)
-#eval segmentResidual (Segment 1 1)   -- none
+/-! ### `makeResidual`, `deltaCirc`: m^MW and Δ^MW(m) -/
+#eval (makeResidual m_break).segments   -- [(2, 3), (3, 4), (5, 7)]
+#eval deltaCirc m_break                 -- (1, 2)
+-- (1,1) twice: one copy is leading and loses its only point, the other stays
+#eval (makeResidual m_twice).segments   -- [(1, 1), (3, 3), (4, 6)]
+#eval (makeResidual m_points).segments  -- []: three singletons, all leading, nothing is left
+#eval deltaCirc m_points                -- (1, 3)
 
-/-! ### `makeResidual`: remove the chain, add back its residuals -/
-#eval (makeResidual m_break [Segment 1 3, Segment 2 4]).segments   -- [(2, 3), (3, 4), (5, 7)]
--- (1,1) twice in m, once in the chain: one copy stays, the other leaves no residual
-#eval (makeResidual m_twice [Segment 1 1, Segment 2 3]).segments   -- [(1, 1), (3, 3), (4, 6)]
--- every chain segment a singleton → all residuals discarded
-#eval (makeResidual m_points [Segment 1 1, Segment 2 2, Segment 3 3]).segments   -- []
-
-/-! ### `mw_step`: (Δ°(m), m^MW) -/
+/-! ### `mw_step`: (Δ^MW(m), m^MW) -/
 #eval ((mw_step m_full).1, (mw_step m_full).2.segments)
-  -- ((1, 4), [(2, 3), (3, 4), (4, 5), (5, 6)])
-#eval ((mw_step m_points).1, (mw_step m_points).2.segments)
-  -- ((1, 3), []): the chain is all three singletons, nothing is left
+  -- ((1, 4), [(2, 3), (3, 4), (4, 5), (5, 6)]): all leading, each loses its first point
 #eval ((mw_step m_single).1, (mw_step m_single).2.segments)   -- ((7, 7), [])
+#eval ((mw_step m_twice).1, (mw_step m_twice).2.segments)   -- ((1, 2), [(1, 1), (3, 3), (4, 6)])
 -- (The empty multisegment is not an input: `mw_step` needs `m.segments ≠ []`, as in the paper.)
 
 end MW2Examples

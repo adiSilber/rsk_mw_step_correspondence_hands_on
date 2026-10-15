@@ -27,6 +27,11 @@ open MW
 -- Not a chain: b doesn't strictly increase.
 #eval decide (isChain [Segment 1 5, Segment 2 4])   -- false
 
+/-! ### `segmentResidual`: ⁻Δ = [a+1, b], for a segment that is not a single point -/
+#eval segmentResidual (Segment 1 3)   -- (2, 3)
+#eval segmentResidual (Segment 1 2)   -- (2, 2)
+-- (`segmentResidual (Segment 1 1)` does not type-check: ⁻[1,1] is empty.)
+
 -- m = [(1,2), (1,4), (2,3), (2,5), (5,7)]: sorted; (1,2) is least; after (1,2) both (2,3)
 -- and (2,5) are chain-linked, the least being (2,3); nothing is linked to (2,3) or (5,7).
 def m_fork : Multisegment := [Segment 1 2, Segment 1 4, Segment 2 3, Segment 2 5, Segment 5 7]

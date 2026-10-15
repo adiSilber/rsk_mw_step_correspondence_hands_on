@@ -20,6 +20,9 @@ abbrev isChain (segments : List Segment) : Prop := segments.IsChain chainLink
 
 def Chain := {ms : Multisegment // isChain ms.segments}
 
+def segmentResidual (s : Segment) (h : s.a < s.b) : Segment :=
+  Segment (s.a + 1) s.b
+
 abbrev isFirst (m : Multisegment) (s : Segment) : Prop :=
   s ∈ m.segments ∧ ∀ t ∈ m.segments, s ≤ t
 

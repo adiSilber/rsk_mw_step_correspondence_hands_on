@@ -11,8 +11,10 @@ set_option linter.style.whitespace false
 /-!
 # Mœglin–Waldspurger, part 2: proofs
 
-The leading chain of `MW2_t` is the greedy chain of `MW1_u` (`leadingChain_eq`), which is what
-the propositions reason about.
+The step in terms of the greedy chain of `MW1_u`: the leading chain is it (`leadingChain_eq`),
+the residual is the computation along it (`mw_step_snd_eq`), and `Δ^MW(m)` is
+`[min m, min m + k − 1]` (`mw_step_fst_a`, `mw_step_fst_b`). This is what the propositions
+reason about.
 -/
 
 namespace MW
@@ -23,4 +25,38 @@ lemma leadingChain_eq (m : Multisegment) (hm : m.segments ≠ []) :
   rw [anyOf_eq (first_mem _ (leadingIndices_nonempty m hm))]
   exact segments_of_leadingIndices m (first_mem _ _)
 
+lemma makeResidual_eq (m : Multisegment) (hm : m.segments ≠ []) :
+    makeResidual m hm = residualAlong m (greedyChain m).val.segments := by
+  unfold makeResidual
+  have hi := first_mem _ (leadingIndices_nonempty m hm)
+  rw [anyOf_eq hi, list_add_list]
+  exact residual_eq m hi
+
+lemma deltaCirc_a (m : Multisegment) (hm : m.segments ≠ []) :
+    (deltaCirc m hm).a = (m.segments.head hm).a := by
+  unfold deltaCirc
+  have hi := first_mem _ (leadingIndices_nonempty m hm)
+  rw [anyOf_eq hi]
+  change m.segments[(first (leadingIndices m) _)[0]].a = _
+  rw [getElem_zero_eq_head hm hi]
+
+lemma deltaCirc_b (m : Multisegment) (hm : m.segments ≠ []) :
+    (deltaCirc m hm).b = (m.segments.head hm).a + ↑((greedyChain m).val.segments.length - 1) := by
+  unfold deltaCirc
+  have hi := first_mem _ (leadingIndices_nonempty m hm)
+  rw [anyOf_eq hi]
+  exact a_last_eq hm hi
+
+lemma mw_step_fst_a (m : Multisegment) (hm : m.segments ≠ []) :
+    (mw_step m hm).1.a = (m.segments.head hm).a := deltaCirc_a m hm
+
+lemma mw_step_fst_b (m : Multisegment) (hm : m.segments ≠ []) :
+    (mw_step m hm).1.b = (m.segments.head hm).a + ↑((greedyChain m).val.segments.length - 1) :=
+  deltaCirc_b m hm
+
 end MW
+
+/-- The MW residual of `mw_step` is the residual along the greedy chain. -/
+lemma mw_step_snd_eq (m : Multisegment) (hm : m.segments ≠ []) :
+    (MW.mw_step m hm).2 = MW.residualAlong m (MW.greedyChain m).val.segments :=
+  MW.makeResidual_eq m hm

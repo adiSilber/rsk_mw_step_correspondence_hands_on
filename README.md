@@ -48,7 +48,7 @@ that file can depend on it — with three sanctioned exceptions: `sortedBucket` 
 `Ladder2_u`, the bucket sorted by nesting; `RSK1_u` proves `RSK.fiber m k` equals it), and
 `MW.extendChain.go` / `MW.greedyChain` / `MW.residualAlong` (public in `MW1_u`: the greedy
 scan that finds a sequence of leading indices, and the computation of the residual along it;
-`MW2_u`/`MW3_u` prove `MW.leadingChain`, `MW.makeResidual` and `MW.mw_step` equal them).
+`MW2_u` proves `MW.leadingChain`, `MW.makeResidual` and `MW.mw_step` equal them).
 They are objects the proposition layer reasons about, and they appear in **no** trusted
 statement.
 
@@ -63,7 +63,8 @@ Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i
                `maximum`, `first` and `sorted` of a finite set, `let x ∈ S; e` (an arbitrary
                element, when `e` does not depend on it), list comprehensions `[x ∈ l | p]`
                and `[f | x ∈ l, (y, z) ∈ l', k ≤ n, p, …]` (a bare `p` keeps the choices
-               satisfying it),
+               satisfying it; a fact `f` needs and the binders do not give becomes a
+               condition too),
                lists usable as sets, `p → q` keeps `p` in scope for `q`,
                `x ∈ s` converts `x` to the element type of `s`; below everything
 Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, ≪, ⊆,
@@ -78,12 +79,12 @@ Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, 
 │           └── RSK2  bucketRung
 │               └── RSK3  maxDepth, ladderRungs, bucketResidual, residual, rsk_step
 │                         (maxDepth, residual and rsk_step take `m ≠ 0`, as in the paper)
-└── MW1        chainLink, isChain, Chain, isNext, isLast, leadingIndices (the paper's
-    │          (a)–(c)); MW1_u: the greedy scan finds one, and all give the same segments
-    └── MW2    leadingChain, segmentResidual (⁻Δ), makeResidual (m^MW), deltaCirc (Δ^MW),
-        │      by the paper's formulas over a sequence of leading indices; MW2_u: they do
-        │      not depend on which sequence
-        └── MW3  mw_step = (deltaCirc, makeResidual) for any sequence of leading indices
+└── MW1        chainLink, isChain, Chain, segmentResidual (⁻Δ), isFirst, isNext, isLast,
+    │          leadingIndices (the paper's (a)–(c)); MW1_u: the greedy scan finds one, and
+    │          all give the same segments
+    └── MW2    leadingChain, makeResidual (m^MW), deltaCirc (Δ^MW), mw_step, by the paper's
+               formulas over a sequence of leading indices (any one — MW1_u proves the
+               result does not depend on it)
                (MW depends on Basic only — RSK and MW are independent)
 
 RSK + MW ──► Propositions   min_m_lt_min_lm, cond_rsk_residual_nonempty,
@@ -123,10 +124,7 @@ Exact file-level imports (within the project):
 | `MW2_t`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`                         |
 | `MW2_u`          | the above + `MW2_t`                                            |
 | `MW2_e`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u`       |
-| `MW3_t`          | the imports of `MW2_t` + `MW2_t`, `MW2_u`                      |
-| `MW3_u`          | the above + `MW3_t`                                            |
-| `MW3_e`          | `Basic_t`, `Basic_u`, `MW1_t`…`MW3_u`                          |
-| `Propositions_t` | `RSK3_t`, `RSK3_u`, `MW1_t`…`MW3_u`                              |
+| `Propositions_t` | `RSK3_t`, `RSK3_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u`           |
 | `Propositions_u` | everything above it                                            |
 | `Propositions_e` | `Propositions_t`                                               |
 | `Corollary_t`    | `Propositions_t`, `Propositions_u`                             |

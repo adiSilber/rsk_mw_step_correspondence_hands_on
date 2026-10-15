@@ -70,6 +70,14 @@ instance : Coe (List Segment) Multisegment where
 @[simp] lemma coe_list_segments (l : List Segment) :
     (l : Multisegment).segments = l.insertionSort (· ≤ ·) := rfl
 
+/-- The sum `l₁ + l₂` of two lists of segments is a multisegment: their formal sum `Σ Δ`, the
+multisegment of all their segments. -/
+instance : HAdd (List Segment) (List Segment) Multisegment :=
+  ⟨fun l₁ l₂ => ((l₁ ++ l₂ : List Segment) : Multisegment)⟩
+
+@[simp] lemma list_add_list (l₁ l₂ : List Segment) :
+    (l₁ + l₂ : Multisegment) = ((l₁ ++ l₂ : List Segment) : Multisegment) := rfl
+
 @[trans]
 lemma ll_trans x y z : x ≪ y → y ≪ z → x ≪ z := by
   simp [(· ≪ ·)]; omega
@@ -125,6 +133,14 @@ lemma eq_of_sorted_eq {α} [LinearOrder α] {S T : Set α} [Fintype S] [Fintype 
   have := congrArg (x ∈ ·) h
   simpa using this
 
+/-- Two segments with the same begin and end are equal. -/
+lemma Segment.ext_ab {s t : Segment} (ha : s.a = t.a) (hb : s.b = t.b) : s = t :=
+  Segment.ext' ha hb
+
+/-- The list comprehension `[x | x ∈ l]` is `l`. -/
+@[simp] lemma comprehension_id {α} (l : List α) : List.map (fun ⟨x, _⟩ => x) l.attach = l := by
+  simp
+
 /-- The list comprehension `[f x | x ∈ l]` is `l.map f`. -/
 @[simp] lemma comprehension_map {α β} (l : List α) (f : α → β) :
     List.map (fun ⟨x, _⟩ => f x) l.attach = l.map f := by
@@ -146,6 +162,22 @@ attribute [irreducible] first
 /-- The set of members of a list is finite: it is computed by the list itself. -/
 instance {α} [DecidableEq α] (l : List α) : Fintype {x | x ∈ l} :=
   Fintype.ofFinset l.toFinset (by simp)
+
+/-- The least element of a sorted list is its head. -/
+lemma first_eq_head {α} [LinearOrder α] (l : List α) (hl : l.Pairwise (· ≤ ·)) (h : l ≠ [])
+    (hS : (l : Set α).Nonempty) : first l hS = l.head h := by
+  unfold first
+  cases l with
+  | nil => exact absurd rfl h
+  | cons a t =>
+    apply le_antisymm
+    · exact Finset.min'_le _ _ (by rw [Set.mem_toFinset]; exact List.mem_cons_self)
+    · apply Finset.le_min'
+      intro y hy
+      rw [Set.mem_toFinset] at hy
+      rcases List.mem_cons.mp hy with rfl | hy
+      · exact le_rfl
+      · exact (List.pairwise_cons.mp hl).1 y hy
 
 lemma nonempty_mem_cons {α} (a : α) (l : List α) : {x | x ∈ a :: l}.Nonempty :=
   ⟨a, List.mem_cons_self⟩
@@ -193,3 +225,55 @@ attribute [grind =] Indices
 
 instance (j : ℕ) (m : Multisegment) (i : List ℕ) : Decidable (i ∈ Indices j m) := by
   unfold Indices; infer_instance
+
+/-! ### Comprehensions with a condition, and lists as multisets -/
+
+/-- A condition binder `[f | x ∈ l, p]` lists the values at the elements of `l` satisfying `p`. -/
+lemma comprehension_cond {α β} (l : List α) (p : α → Prop) [DecidablePred p]
+    (f : (a : α) → a ∈ l → p a → β) :
+    ∀ (L : List α) (hL : L = l.filter (fun a => decide (p a))),
+    l.attach.flatMap (fun ⟨a, ha⟩ => if h : p a then [f a ha h] else [])
+      = L.attach.map (fun ⟨a, ha⟩ =>
+          f a ((List.mem_filter (p := fun a => decide (p a))).mp (hL ▸ ha)).1
+            (of_decide_eq_true
+              ((List.mem_filter (p := fun a => decide (p a))).mp (hL ▸ ha)).2)) := by
+  induction l with
+  | nil => intro L hL; subst hL; rfl
+  | cons a l ih =>
+    intro L hL
+    by_cases hp : p a
+    · rw [List.filter_cons_of_pos (p := fun a => decide (p a)) (decide_eq_true hp)] at hL
+      subst hL
+      simp only [List.attach_cons, List.flatMap_cons, List.flatMap_map, dif_pos hp,
+        List.singleton_append, List.map_cons, List.map_map]
+      congr 1
+      exact ih (fun a ha h => f a (List.mem_cons_of_mem _ ha) h) _ rfl
+    · rw [List.filter_cons_of_neg (p := fun a => decide (p a)) (by simpa using hp)] at hL
+      subst hL
+      simp only [List.attach_cons, List.flatMap_cons, List.flatMap_map, dif_neg hp,
+        List.nil_append]
+      exact ih (fun a ha h => f a (List.mem_cons_of_mem _ ha) h) _ rfl
+
+/-- `[l[j] | j < l.length]` is `l`. -/
+lemma pmap_range_getElem {α} (l : List α) :
+    (List.range l.length).pmap (fun j hj => l[j]) (fun _ h => List.mem_range.mp h) = l := by
+  apply List.ext_getElem <;> simp
+
+lemma filterMap_eq_flatMap_toList {α β} (f : α → Option β) (l : List α) :
+    l.filterMap f = l.flatMap (fun a => (f a).toList) := by
+  induction l with
+  | nil => rfl
+  | cons a l ih =>
+    rw [List.filterMap_cons, List.flatMap_cons, ih]
+    rcases f a with _ | b <;> rfl
+
+/-- Removing the elements of `c` one by one from `l` leaves `a`, when `a ++ c` lists `l`. -/
+lemma perm_foldl_erase_of_perm_append {α} [DecidableEq α] : ∀ (c a l : List α),
+    (a ++ c) ~ l → a ~ c.foldl List.erase l := by
+  intro c
+  induction c with
+  | nil => intro a l h; simpa using h
+  | cons x c ih =>
+    intro a l h
+    rw [List.foldl_cons]
+    exact ih a _ (List.cons_perm_iff_perm_erase.mp (List.perm_middle.symm.trans h)).2

@@ -38,6 +38,17 @@ def extendChain.go (m : List Segment) (chain : List Segment) (hne : chain ≠ []
     else
       extendChain.go rest chain hne
 
+/-- `⁻Δ` as a computation: `[a, b] → [a+1, b]`, and nothing for a singleton. -/
+def shorten (s : Segment) : Option Segment :=
+  if h : s.a < s.b then some (segmentResidual s h) else none
+
+/-- Remove the chain's segments from `m`, add back their residuals `⁻Δ`, then re-sort: the
+computation behind `makeResidual` (`residual_eq`). -/
+def residualAlong (m : Multisegment) (chain : List Segment) : Multisegment :=
+  let m_without := chain.foldl List.erase m.segments
+  let residuals := chain.filterMap shorten
+  ⟨(m_without ++ residuals).insertionSort (· ≤ ·), List.pairwise_insertionSort _ _⟩
+
 /-- A `chainLink` between two segments implies strict lex order. -/
 lemma chainLink_imp_lt (s₁ s₂ : Segment) (h : chainLink s₁ s₂) : s₁ < s₂ :=
   (Segment.lt_def _ _).mpr (Or.inl h.1.1)
@@ -1017,3 +1028,166 @@ macro_rules
   | `(tactic| auto_prop) =>
     `(tactic| (apply MW.leadingIndices_nonempty; first | assumption | decide))
 
+namespace MW
+
+/-! ## The MW step by indices equals the computation along the greedy chain -/
+
+@[grind →] lemma length_pos_of_mem_leadingIndices {m : Multisegment} {x : List ℕ}
+    (hx : x ∈ leadingIndices m) : 0 < x.length := by
+  obtain ⟨⟨k, hk⟩, -⟩ := hx
+  have hidx : x.length = k ∧ x.Nodup ∧ ∀ j ∈ x, j < m.segments.length := hk.1
+  have := hk.2
+  omega
+
+attribute [grind →] lt_length_of_mem_leadingIndices
+
+/-- The first leading index points at the least segment, the head of `m`. -/
+lemma getElem_zero_eq_head {m : Multisegment} (hm : m.segments ≠ []) {x : List ℕ}
+    (hx : x ∈ leadingIndices m) : m.segments[x[0]] = m.segments.head hm := by
+  obtain ⟨⟨k, hk⟩, ha, -, -⟩ := hx
+  exact le_antisymm (ha.2 _ (List.head_mem hm))
+    (head_le_mem m _ (List.head?_eq_some_head hm) _ ha.1)
+
+lemma length_eq_greedy {m : Multisegment} {x : List ℕ} (hx : x ∈ leadingIndices m) :
+    x.length = (greedyChain m).val.segments.length := by
+  have := congrArg List.length (segments_of_leadingIndices m hx)
+  simpa using this
+
+/-- Along a sequence of leading indices the begins increase, so `[b(Δ_{i₁}), b(Δ_{i_k})]` is a
+segment. -/
+lemma a_le_a_last {m : Multisegment} {x : List ℕ} (hx : x ∈ leadingIndices m) :
+    m.segments[x[0]].a ≤ m.segments[x[x.length - 1]].a := by
+  have H : ∀ j ∈ x, j < m.segments.length := fun _ hj => lt_length_of_mem_leadingIndices hj hx
+  have hseg := segsAt_eq_segments m hx H
+  have hpos := length_pos_of_mem_leadingIndices hx
+  have hpw : (segsAt m x H).Pairwise (· ≪ ·) := by rw [hseg]; exact greedyChain_pairwise_ll m
+  rw [← getElem_segsAt m x H 0 hpos, ← getElem_segsAt m x H (x.length - 1) (by omega)]
+  rcases Nat.eq_zero_or_pos (x.length - 1) with h1 | h1
+  · simp only [h1, le_refl]
+  · exact le_of_lt (List.pairwise_iff_getElem.mp hpw 0 (x.length - 1)
+      (by rw [length_segsAt]; omega) (by rw [length_segsAt]; omega) h1).1
+
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply MW.a_le_a_last; assumption))
+
+/-- The begin of the last leading segment: `min m + k − 1` (the chain's begins are consecutive). -/
+lemma a_last_eq {m : Multisegment} (hm : m.segments ≠ []) {x : List ℕ}
+    (hx : x ∈ leadingIndices m) :
+    m.segments[x[x.length - 1]].a
+      = (m.segments.head hm).a + ↑((greedyChain m).val.segments.length - 1) := by
+  have H : ∀ j ∈ x, j < m.segments.length := fun _ hj => lt_length_of_mem_leadingIndices hj hx
+  have hseg := segsAt_eq_segments m hx H
+  have hpos := length_pos_of_mem_leadingIndices hx
+  have hk := length_eq_greedy hx
+  rw [← getElem_segsAt m x H _ (by omega), List.getElem_of_eq hseg]
+  have h0 : (greedyChain m).val.segments[0]? = some (m.segments.head hm) := by
+    rw [← List.head?_eq_getElem?]
+    exact greedyChain_head m _ (List.head?_eq_some_head hm)
+  have ht := List.getElem?_eq_getElem (l := (greedyChain m).val.segments) (i := x.length - 1)
+    (by rw [← hk]; omega)
+  rw [chain_get_a _ (greedyChain m).property (x.length - 1) _ _ h0 ht, hk]
+
+/-- Paper: `m^MW = Σ Δ_i^*` — the segments at the positions outside `x`, and `⁻Δ` at the
+positions in `x` (dropped when empty) — is the residual along the greedy chain. -/
+lemma residual_eq (m : Multisegment) {x : List ℕ} (hx : x ∈ leadingIndices m) :
+    (([m.segments[j] | j < m.segments.length, j ∉ x] ++
+        [segmentResidual m.segments[j] | j ∈ x]
+        : List Segment) : Multisegment)
+      = residualAlong m (greedyChain m).val.segments := by
+  have H : ∀ j ∈ x, j < m.segments.length := fun _ hj => lt_length_of_mem_leadingIndices hj hx
+  have hseg : segsAt m x H = (greedyChain m).val.segments := segsAt_eq_segments m hx H
+  have hnd : x.Nodup := ((isLeading_segsAt_iff m x H).mp hx).1
+  -- the residuals of the leading segments
+  have hB : [segmentResidual m.segments[j] | j ∈ x]
+      = (greedyChain m).val.segments.filterMap shorten := by
+    rw [← hseg]
+    unfold segsAt
+    rw [List.filterMap_map, filterMap_eq_flatMap_toList]
+    congr 1
+    funext ⟨j, hj⟩
+    by_cases hlt : m.segments[j].a < m.segments[j].b
+    · simp [shorten, hlt]
+    · simp [shorten, hlt]
+  -- the other segments, as a multiset: `m` minus the leading segments
+  have hA : [m.segments[j] | j < m.segments.length, j ∉ x]
+      ~ (greedyChain m).val.segments.foldl List.erase m.segments := by
+    rw [← hseg]
+    apply perm_foldl_erase_of_perm_append
+    have hA' := comprehension_cond (List.range m.segments.length) (fun j => j ∉ x)
+      (fun j hj _ => m.segments[j]'(List.mem_range.mp hj)) _ rfl
+    rw [hA']
+    unfold segsAt
+    have hperm : (List.range m.segments.length).filter (fun j => decide (j ∉ x)) ++ x
+        ~ List.range m.segments.length := by
+      refine (List.Perm.append_left _ ?_).trans
+        (List.filter_append_perm (fun j => decide (j ∉ x)) (List.range m.segments.length))
+      refine (List.perm_ext_iff_of_nodup hnd (List.nodup_range.filter _)).mpr fun j => ?_
+      simp only [List.mem_filter, List.mem_range, Bool.not_eq_true', decide_eq_false_iff_not,
+        not_not]
+      exact ⟨fun hj => ⟨H j hj, hj⟩, fun h => h.2⟩
+    have hall : ∀ j ∈ (List.range m.segments.length).filter (fun j => decide (j ∉ x)) ++ x,
+        j < m.segments.length := by
+      intro j hj
+      rcases List.mem_append.mp hj with h | h
+      · exact List.mem_range.mp (List.mem_of_mem_filter h)
+      · exact H j h
+    have key : List.pmap (fun (j : ℕ) (hj : j < m.segments.length) => m.segments[j])
+        ((List.range m.segments.length).filter (fun j => decide (j ∉ x)) ++ x) hall
+        ~ m.segments :=
+      (List.Perm.pmap _ hperm).trans (by rw [pmap_range_getElem])
+    rw [List.pmap_append, List.pmap_eq_map_attach, List.pmap_eq_map_attach] at key
+    exact key
+  -- both multisegments are the sorted versions of permuted lists
+  unfold residualAlong
+  show (⟨_, _⟩ : Multisegment) = ⟨_, _⟩
+  congr 1
+  apply List.Perm.eq_of_pairwise (le := (· ≤ ·))
+  · intro a b _ _ h₁ h₂; exact le_antisymm h₁ h₂
+  · exact List.pairwise_insertionSort _ _
+  · exact List.pairwise_insertionSort _ _
+  · have hB' : [segmentResidual m.segments[j] | j ∈ x]
+        ~ (greedyChain m).val.segments.filterMap shorten := by
+      rw [hB]
+    exact (List.perm_insertionSort _ _).trans
+      ((hA.append hB').trans (List.perm_insertionSort _ _).symm)
+
+/-- `m^MW` does not depend on the sequence of leading indices: this is what makes
+`let i ∈ leadingIndices m; …` in `makeResidual` well defined. -/
+lemma residual_indep (m : Multisegment) :
+    ∀ x (hx : x ∈ leadingIndices m) y (hy : y ∈ leadingIndices m),
+      (([m.segments[j] | j < m.segments.length, j ∉ x] ++
+          [segmentResidual m.segments[j] | j ∈ x]
+          : List Segment) : Multisegment)
+      = (([m.segments[j] | j < m.segments.length, j ∉ y] ++
+          [segmentResidual m.segments[j] | j ∈ y]
+          : List Segment) : Multisegment) := by
+  intro x hx y hy
+  exact (residual_eq m hx).trans (residual_eq m hy).symm
+
+/-- `Δ^MW(m)` does not depend on the sequence of leading indices either. -/
+lemma deltaCirc_indep (m : Multisegment) :
+    ∀ x (hx : x ∈ leadingIndices m) y (hy : y ∈ leadingIndices m),
+      Segment m.segments[x[0]].a m.segments[x[x.length - 1]].a
+        = Segment m.segments[y[0]].a m.segments[y[y.length - 1]].a := by
+  intro x hx y hy
+  have hm : m.segments ≠ [] := List.ne_nil_of_length_pos (by
+    have := lt_length_of_mem_leadingIndices
+      (List.getElem_mem (length_pos_of_mem_leadingIndices hx)) hx
+    omega)
+  have h0 : m.segments[x[0]] = m.segments[y[0]] := by
+    rw [getElem_zero_eq_head hm hx, getElem_zero_eq_head hm hy]
+  have hlen : x.length = y.length := by rw [length_eq_greedy hx, length_eq_greedy hy]
+  have Hx : ∀ j ∈ x, j < m.segments.length := fun _ hj => lt_length_of_mem_leadingIndices hj hx
+  have Hy : ∀ j ∈ y, j < m.segments.length := fun _ hj => lt_length_of_mem_leadingIndices hj hy
+  have hL : m.segments[x[x.length - 1]] = m.segments[y[y.length - 1]] := by
+    rw [← getElem_segsAt m x Hx _ (by have := length_pos_of_mem_leadingIndices hx; omega),
+      ← getElem_segsAt m y Hy _ (by have := length_pos_of_mem_leadingIndices hy; omega),
+      List.getElem_of_eq (segsAt_eq_segments m hx Hx),
+      List.getElem_of_eq (segsAt_eq_segments m hy Hy)]
+    simp only [hlen]
+  exact Segment.ext_ab (by change m.segments[x[0]].a = m.segments[y[0]].a; rw [h0])
+    (by change m.segments[x[x.length - 1]].a = m.segments[y[y.length - 1]].a; rw [hL])
+
+end MW
+
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply MW.residual_indep))
+macro_rules | `(tactic| auto_prop) => `(tactic| (apply MW.deltaCirc_indep))

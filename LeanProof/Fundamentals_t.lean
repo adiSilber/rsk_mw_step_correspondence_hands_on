@@ -42,8 +42,10 @@ where
     let mctx₀ ← getMCtx
     let h ← mkFreshExprMVar p
     -- hypotheses whose type is still a placeholder are not facts: hide them from the search
+    -- (a placeholder standing for a proof, e.g. an index bound, does not count)
     let untyped ← (← getLCtx).getFVarIds.filterM fun f => do
-      pure (← instantiateMVars (← f.getType)).hasExprMVar
+      (← getMVars (← instantiateMVars (← f.getType))).anyM fun mv => do
+        pure !(← isProp (← mv.getType))
     let goal ← h.mvarId!.tryClearMany untyped
     let [] ← Tactic.run goal (Tactic.evalTactic (← `(tactic| auto_prop)))
       | throwError "unsolved"
@@ -74,9 +76,21 @@ function is expected), each missing proof is found by `auto_prop`. -/
     -- the type once the proofs are supplied is the expected one: say so now, so that the
     -- parts of the term still waiting for their type can proceed before the proofs are sought
     discard <| observing? (isDefEq (← resultType (← inferType e)) t)
+  -- a proof may be left for later when the term is clearly not meant as a function: a type
+  -- is expected, or the term is an object (not a proof) that is not a function once its
+  -- proofs are supplied
+  let later ← match expected? with
+    | some _ => pure true
+    | none => do
+      let ty ← inferType e
+      let r ← whnf (← resultType ty)
+      pure (!(← isProp ty) && !r.isForall && !r.isMVar)
+  -- inside a comprehension body, a proof is not left for later: a fact that is not at hand
+  -- becomes a condition of the comprehension instead
+  let later := later && !(← getOptions).getBool `autoProp.noDefer
   repeat
     let some p ← missingProof? e | break
-    let some h ← prove? p (later := expected?.isSome) | break
+    let some h ← prove? p later | break
     e := mkApp e h
   return e
 
@@ -156,37 +170,134 @@ macro "[" x:ident " ∈ " l:term " | " p:term "]" : term =>
   `(List.filter (fun ⟨$x, _⟩ => decide $p) (List.attach $l))
 
 /-- List comprehension `[f | b₁, …, bₙ]`: the values of `f` for each choice of the binders,
-in order, with repeats. A binder is `x ∈ l`, `(x, y) ∈ l`, `k ≤ n` or `k < n`; inside `f`
-(and in later binders) the fact `x ∈ l` is available, so that `l'[x]`-like terms need no
-proof. -/
+in order, with repeats. A binder is `x ∈ l`, `(x, y) ∈ l`, `k ≤ n`, `k < n`, or a condition
+`p` (keeping only the choices for which it holds); a name already bound (by an earlier binder,
+or outside, like `s.a`) makes `x ∈ l`, `k ≤ n`, `k < n` conditions too. Inside `f` (and in
+later binders) the facts `x ∈ l` and `p` are available, so that `l'[x]`-like terms need no
+proof; and when `f` needs a fact that does not follow from them, that fact becomes one more
+condition: the choices for which `f` is not defined are skipped. -/
 declare_syntax_cat comprehension_binder
 syntax (name := memBinder) ident " ∈ " term : comprehension_binder
 syntax (name := pairBinder) "(" ident ", " ident ")" " ∈ " term : comprehension_binder
 syntax (name := leBinder) ident " ≤ " term : comprehension_binder
 syntax (name := ltBinder) ident " < " term : comprehension_binder
+syntax (name := condBinder) (priority := low) term : comprehension_binder
+syntax (name := comprehension) "[" term " | " comprehension_binder,+ "]" : term
 
-open Lean in
-/-- A binder as a pattern (carrying the membership fact) and the list it ranges over. -/
-def comprehensionBinder (b : Syntax) : MacroM (Term × Term) := do
-  if b.isOfKind ``memBinder then
-    return (← `(⟨$(⟨b[0]⟩):term, _⟩), ⟨b[2]⟩)
-  if b.isOfKind ``pairBinder then
-    return (← `(⟨⟨$(⟨b[1]⟩):term, $(⟨b[3]⟩):term⟩, _⟩), ⟨b[6]⟩)
-  if b.isOfKind ``leBinder then
-    return (← `(⟨$(⟨b[0]⟩):term, _⟩), ← `(List.range ($(⟨b[2]⟩) + 1)))
-  if b.isOfKind ``ltBinder then
-    return (← `(⟨$(⟨b[0]⟩):term, _⟩), ← `(List.range $(⟨b[2]⟩)))
-  Macro.throwUnsupported
+namespace Comprehension
+open Lean Elab Term Meta
 
-open Lean in
-macro "[" f:term " | " bs:comprehension_binder,+ "]" : term => do
-  let bs := bs.getElems
-  let mut body : Term := f
-  for i in [0:bs.size] do
-    let (pat, l) ← comprehensionBinder bs[bs.size - 1 - i]!
-    body ← if i == 0 then `(List.map (fun $pat => $body) (List.attach $l))
-      else `(List.flatMap (fun $pat => $body) (List.attach $l))
-  return body
+/-- `[e]`, and `[]` of the type of `e`. -/
+private def singleton (e : Expr) : MetaM Expr := do
+  mkAppM ``List.cons #[e, ← mkAppOptM ``List.nil #[some (← inferType e)]]
+
+/-- `if h : p then t h else []`, for `t : p → List β`. -/
+private def guard (p t : Expr) : MetaM Expr := do
+  let β ← withLocalDecl `h .default p fun h => inferType (t.beta #[h])
+  let nil ← mkAppOptM ``List.nil #[some (← whnf β).appArg!]
+  let e ← withLocalDecl `h .default (mkNot p) fun h => mkLambdaFVars #[h] nil
+  mkAppOptM ``dite #[some β, some p, none, some t, some e]
+
+/-- The body `f`, read with the facts of the binders at hand: one value, or — when it needs a
+fact that is not at hand — the list of it under that fact as a condition. -/
+private def body (f : Term) (expected? : Option Expr) : TermElabM (Expr × Bool) := do
+  let e ← withTheReader Core.Context
+    (fun c => { c with options := c.options.setBool `autoProp.noDefer true }) do
+    let settled (e? : Option Expr) : TermElabM Expr := do
+      let e ← elabTerm f e?
+      synthesizeSyntheticMVarsNoPostponing
+      pure e
+    match ← observing? (settled none) with
+    | some e => pure e
+    | none => settled expected?
+  let e ← instantiateMVars e
+  let ty ← whnf (← inferType e)
+  if let .forallE _ p β _ := ty then
+    if (← isProp p) && !β.hasLooseBVars then
+      let t ← withLocalDecl `h .default p fun h => do
+        let one ← singleton (mkApp e h)
+        mkLambdaFVars #[h] one
+      return (← guard p t, true)
+  return (e, false)
+
+/-- The binders, left to right; returns the list, and whether it is a list (always, here) or
+a single value (the body alone). -/
+private partial def go (f : Term) (bs : Array Syntax) (i : Nat) (bound : Array Name)
+    (expected? : Option Expr) : TermElabM (Expr × Bool) := do
+  if h : i < bs.size then
+    let b := bs[i]
+    let fresh (x : Syntax) : Bool := x.getId.isAtomic && !bound.contains x.getId
+    if b.isOfKind ``memBinder && fresh b[0] then
+      ranging #[b[0].getId] (← elabTerm b[2] none)
+    else if b.isOfKind ``pairBinder then
+      ranging #[b[1].getId, b[3].getId] (← elabTerm b[6] none)
+    else if b.isOfKind ``leBinder && fresh b[0] then
+      ranging #[b[0].getId] (← elabTerm (← `(List.range ($(⟨b[2]⟩) + 1))) none)
+    else if b.isOfKind ``ltBinder && fresh b[0] then
+      ranging #[b[0].getId] (← elabTerm (← `(List.range $(⟨b[2]⟩))) none)
+    else
+      let p : Term ←
+        if b.isOfKind ``memBinder then `($(⟨b[0]⟩):term ∈ $(⟨b[2]⟩))
+        else if b.isOfKind ``leBinder then `($(⟨b[0]⟩):term ≤ $(⟨b[2]⟩))
+        else if b.isOfKind ``ltBinder then `($(⟨b[0]⟩):term < $(⟨b[2]⟩))
+        else pure ⟨b[0]⟩
+      let p ← elabTerm p (some (mkSort levelZero))
+      synthesizeSyntheticMVarsNoPostponing
+      let p ← instantiateMVars p
+      let t ← withLocalDecl `h .default p fun h => do
+        let (inner, isList) ← go f bs (i + 1) bound expected?
+        let inner ← if isList then pure inner else singleton inner
+        mkLambdaFVars #[h] inner
+      return (← guard p t, true)
+  else
+    body f expected?
+where
+  /-- `x` (or `(x, y)`) ranges over the list `l`: the rest, over `l.attach`. -/
+  ranging (names : Array Name) (l : Expr) : TermElabM (Expr × Bool) := do
+    synthesizeSyntheticMVarsNoPostponing
+    let l ← instantiateMVars l
+    let lty ← whnf (← instantiateMVars (← inferType l))
+    unless lty.isAppOfArity ``List 1 do throwError "a comprehension ranges over a list, not {lty}"
+    let α := lty.appArg!
+    let memPred ← withLocalDecl `a .default α fun a => do
+      mkLambdaFVars #[a] (← mkAppM ``Membership.mem #[l, a])
+    let subty ← mkAppM ``Subtype #[memPred]
+    let attached ← mkAppM ``List.attach #[l]
+    withLocalDecl `s .default subty fun s => do
+      let sval := mkProj ``Subtype 0 s
+      let sprop := mkProj ``Subtype 1 s
+      let (lam, isList) ←
+        if names.size == 1 then
+          withLocalDecl names[0]! .default α fun x => do
+            withLocalDecl `h .default (← mkAppM ``Membership.mem #[l, x]) fun hx => do
+              let (inner, isList) ← go f bs (i + 1) (bound ++ names) expected?
+              let fn ← mkLambdaFVars #[x, hx] inner
+              pure (← mkLambdaFVars #[s] (fn.beta #[sval, sprop]), isList)
+        else do
+          let pty ← whnf α
+          unless pty.isAppOfArity ``Prod 2 do throwError "`(x, y) ∈ l` needs a list of pairs"
+          withLocalDecl names[0]! .default pty.appFn!.appArg! fun x => do
+          withLocalDecl names[1]! .default pty.appArg! fun y => do
+            let pair ← mkAppM ``Prod.mk #[x, y]
+            withLocalDecl `h .default (← mkAppM ``Membership.mem #[l, pair]) fun hxy => do
+              let (inner, isList) ← go f bs (i + 1) (bound ++ names) expected?
+              let fn ← mkLambdaFVars #[x, y, hxy] inner
+              let fst := mkProj ``Prod 0 sval
+              let snd := mkProj ``Prod 1 sval
+              pure (← mkLambdaFVars #[s] (fn.beta #[fst, snd, sprop]), isList)
+      let e ← mkAppM (if isList then ``List.flatMap else ``List.map) #[lam, attached]
+      return (e, true)
+
+@[term_elab comprehension] def elab' : TermElab := fun stx expected? => do
+  let elemExpected? ← match expected? with
+    | some t => do
+      let t ← whnf (← instantiateMVars t)
+      pure (if t.isAppOfArity ``List 1 then some t.appArg! else none)
+    | none => pure none
+  let (e, _) ← go ⟨stx[1]⟩ stx[3].getSepArgs 0 #[] elemExpected?
+  return e
+
+end Comprehension
 
 
 -- todo: write the autogenerate versions of maximum for other set functions

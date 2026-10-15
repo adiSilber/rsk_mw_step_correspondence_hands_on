@@ -10,8 +10,11 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
 
 2. **Trusted definitions read like the paper.** Set and list comprehensions (with conditions:
    `[f | j ∈ i, p]`), `maximum`, `sorted`, `let i ∈ S; …`, `m.segments[i]`,
-   `∀ j, j + 1 < k → …`. No `match`, `if`, `filter`, `foldl`, `zip`, `erase`, `Option`,
-   `insertionSort`, `head`, `↑`, named proof binders, or inline `by` proofs.
+   `∀ j, j + 1 < k → …`. A partial notion takes its condition as a hypothesis
+   (`segmentResidual s (h : s.a < s.b)`, `maxDepth m (h : m.segments ≠ [])`), which callers
+   never write; a comprehension over such a notion silently ranges over the choices where it
+   is defined (`[segmentResidual m.segments[j] | j ∈ i]`). No `match`, `filter`, `foldl`,
+   `zip`, `erase`, `Option`, `insertionSort`, `head`, `↑`, or inline `by` proofs.
 
 3. **Proof obligations are invisible.** Omitted proof arguments and index bounds are found
    by `auto_prop`; what it knows is taught in `_u` files, never written in `_t`.
