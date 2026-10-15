@@ -17,10 +17,11 @@ macro_rules
 proof. The resulting proposition is unchanged. -/
 macro_rules | `($p → $q) => `(∀ (_ : $p), $q)
 
-/-- The tactic that finds omitted proof arguments (see the rule below). `grind`, extended by
-`macro_rules` in `_u` files with the facts it should know. -/
+/-- The tactic that finds omitted proof arguments (see the rule below): `decide` for concrete
+examples (`_e` files), otherwise `grind`. The `_u` files teach it facts only through attributes
+(`grind →`/`←`/`.`, `grind_pattern`, instances) — never by changing the tactic itself. -/
 syntax "auto_prop" : tactic
-macro_rules | `(tactic| auto_prop) => `(tactic| grind)
+macro_rules | `(tactic| auto_prop) => `(tactic| first | decide | grind)
 
 namespace AutoProp
 open Lean Elab Term Meta
