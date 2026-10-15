@@ -88,10 +88,6 @@ instance : Transitive (· ≪ ·) := ll_trans
 instance : ∀ (ms₀ ms₁ : Multisegment), Decidable (ms₀ ⊆ ms₁) := by
   unfold subms; infer_instance
 
--- Concrete facts (e.g. about an example multisegment in an `_e` file) are checked by `decide`.
--- Declared first, so it is tried after the more specific rules below.
-macro_rules | `(tactic| auto_prop) => `(tactic| decide)
-
 /-! ### What `auto_prop` knows about segments (for `Segment a b`) -/
 
 /-- Every segment satisfies `a ≤ b`; `grind` learns it whenever it meets `s.a` or `s.b`. -/
@@ -192,7 +188,9 @@ lemma comprehension_ne_nil {α β} {l : List α} (f : {x // x ∈ l} → β) (h 
     List.map f l.attach ≠ [] := by
   simpa using h
 
-/-- A list with a `head?` is nonempty. -/
+/-- A list with a `head?` is nonempty. `grind` (so `auto_prop`) learns `l ≠ []` from a
+hypothesis `l.head? = some a`. -/
+@[grind →]
 lemma ne_nil_of_head?_eq_some {α} {l : List α} {a : α} (h : l.head? = some a) : l ≠ [] := by
   rintro rfl; simp at h
 
@@ -206,19 +204,25 @@ lemma maximum_a_le_maximum_b (l : List Segment) (h₁ h₂) :
   rw [← hxa]
   exact le_trans x.fst_le_snd (le_maximum _ h₂ ⟨x, hx, rfl⟩)
 
--- Teach `auto_prop` (the tactic that finds omitted proof arguments) the facts above.
-macro_rules | `(tactic| auto_prop) => `(tactic| exact List.getElem_mem _)
-macro_rules | `(tactic| auto_prop) => `(tactic| exact nonempty_mem_cons _ _)
--- (`apply …; assumption` rather than `exact … ‹_›`: a failing `‹_›` is only reported, not
--- backtracked, so it would block the other alternatives.)
-macro_rules
-  | `(tactic| auto_prop) =>
-    `(tactic| (apply nonempty_mem_of_ne_nil; apply comprehension_ne_nil; assumption))
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply List.ne_nil_of_mem; assumption))
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply ne_nil_of_head?_eq_some; assumption))
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply List.ne_nil_of_length_pos; assumption))
-macro_rules | `(tactic| auto_prop) => `(tactic| exact nonempty_image_cons _ _ _)
-macro_rules | `(tactic| auto_prop) => `(tactic| exact maximum_a_le_maximum_b _ _ _)
+/-! ### Teaching `auto_prop` (= `grind`) the facts above — by attributes only
+
+`l[i] ∈ l`, and `l ≠ []` from `a ∈ l` or `0 < l.length`, `grind` knows by itself. -/
+
+/-- A set with a `Nonempty` instance is nonempty. `grind` tries it on every `S.Nonempty` it
+meets (a `grind` pattern cannot look inside the set-builder lambda, but instance search can);
+the instances below cover the set-builder sets of the `_t` files. -/
+lemma Set.nonempty_of_inst {α} (S : Set α) [h : Nonempty S] : S.Nonempty :=
+  Set.nonempty_coe_sort.mp h
+grind_pattern Set.nonempty_of_inst => Set.Nonempty S
+
+instance {α} (a : α) (l : List α) : Nonempty ↥{x | x ∈ a :: l} :=
+  (nonempty_mem_cons a l).to_subtype
+
+instance {α β} (s : α) (ss : List α) (f : α → β) : Nonempty ↥{y | ∃ x ∈ s :: ss, f x = y} :=
+  (nonempty_image_cons s ss f).to_subtype
+
+-- Keyed on the two `maximum` terms: their proof arguments `h₁`, `h₂` carry `l`.
+grind_pattern maximum_a_le_maximum_b => maximum _ h₁, maximum _ h₂
 
 -- Lets the index rule of `Fundamentals_t` unfold `Indices`.
 attribute [grind =] Indices

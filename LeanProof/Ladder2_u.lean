@@ -667,7 +667,7 @@ lemma admissibleEnumerations_nonempty (m : Multisegment) (k : ℕ) :
     exact ⟨[], nil_mem_admissibleEnumerations h⟩
 
 -- `first (admissibleEnumerations m k)` needs the set nonempty: `auto_prop` learns it.
-macro_rules | `(tactic| auto_prop) => `(tactic| exact admissibleEnumerations_nonempty _ _)
+attribute [grind .] admissibleEnumerations_nonempty
 
 /-! ## The segments listed by an admissible enumeration do not depend on it -/
 
@@ -676,9 +676,7 @@ lemma lt_length_of_mem_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ
   lt_length_of_mem_admissibleEnumerations h j hj
 
 -- The index rule learns it: `m.segments[j]` is valid for `j ∈ i`, `i ∈ admissibleEnumerations m k`.
-macro_rules
-  | `(tactic| get_elem_tactic_extensible) =>
-    `(tactic| (apply lt_length_of_mem_of_mem_admissibleEnumerations <;> assumption))
+attribute [grind →] lt_length_of_mem_of_mem_admissibleEnumerations
 
 /-- An admissible enumeration lists the bucket sorted outermost-first. -/
 lemma pmap_eq_sortedBucket {m : Multisegment} {k : ℕ} {i : List ℕ}
@@ -713,4 +711,4 @@ lemma segments_indep (m : Multisegment) (k : ℕ) :
   rw [List.pmap_eq_map_attach] at h1 h2
   exact h1.trans h2.symm
 
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply segments_indep))
+attribute [grind →] segments_indep

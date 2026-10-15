@@ -1000,9 +1000,7 @@ instance (m : Multisegment) (i : List ℕ) : Decidable (i ∈ leadingIndices m) 
 end MW
 
 -- The index rule learns it: `m.segments[j]` is valid for `j ∈ i` with `i ∈ MW.leadingIndices m`.
-macro_rules
-  | `(tactic| get_elem_tactic_extensible) =>
-    `(tactic| (apply MW.lt_length_of_mem_leadingIndices <;> assumption))
+attribute [grind →] MW.lt_length_of_mem_leadingIndices
 
 namespace MW
 
@@ -1022,11 +1020,10 @@ lemma segments_indep (m : Multisegment) :
 
 end MW
 
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply MW.segments_indep))
+attribute [grind →] MW.segments_indep
 
-macro_rules
-  | `(tactic| auto_prop) =>
-    `(tactic| (apply MW.leadingIndices_nonempty; first | assumption | decide))
+-- `let i ∈ leadingIndices m; …` needs the set nonempty, which follows from `m.segments ≠ []`.
+attribute [grind ←] MW.leadingIndices_nonempty
 
 namespace MW
 
@@ -1039,7 +1036,17 @@ namespace MW
   have := hk.2
   omega
 
-attribute [grind →] lt_length_of_mem_leadingIndices
+/-- Conversely to `leadingIndices_nonempty`: a sequence of leading indices points into `m`,
+so `m` is nonempty. -/
+lemma ne_nil_of_leadingIndices_nonempty {m : Multisegment} (h : (leadingIndices m).Nonempty) :
+    m.segments ≠ [] := by
+  obtain ⟨x, hx⟩ := h
+  have := lt_length_of_mem_leadingIndices (List.getElem_mem (length_pos_of_mem_leadingIndices hx)) hx
+  exact List.ne_nil_of_length_pos (by omega)
+
+/-- `(leadingIndices m).Nonempty` is decided by `m.segments ≠ []` (for `decide` on examples). -/
+instance (m : Multisegment) : Decidable (leadingIndices m).Nonempty :=
+  decidable_of_iff (m.segments ≠ []) ⟨leadingIndices_nonempty m, ne_nil_of_leadingIndices_nonempty⟩
 
 /-- The first leading index points at the least segment, the head of `m`. -/
 lemma getElem_zero_eq_head {m : Multisegment} (hm : m.segments ≠ []) {x : List ℕ}
@@ -1067,7 +1074,7 @@ lemma a_le_a_last {m : Multisegment} {x : List ℕ} (hx : x ∈ leadingIndices m
   · exact le_of_lt (List.pairwise_iff_getElem.mp hpw 0 (x.length - 1)
       (by rw [length_segsAt]; omega) (by rw [length_segsAt]; omega) h1).1
 
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply MW.a_le_a_last; assumption))
+attribute [grind →] a_le_a_last
 
 /-- The begin of the last leading segment: `min m + k − 1` (the chain's begins are consecutive). -/
 lemma a_last_eq {m : Multisegment} (hm : m.segments ≠ []) {x : List ℕ}
@@ -1154,12 +1161,8 @@ lemma residual_eq (m : Multisegment) {x : List ℕ} (hx : x ∈ leadingIndices m
 `let i ∈ leadingIndices m; …` in `makeResidual` well defined. -/
 lemma residual_indep (m : Multisegment) :
     ∀ x (hx : x ∈ leadingIndices m) y (hy : y ∈ leadingIndices m),
-      (([m.segments[j] | j < m.segments.length, j ∉ x] ++
-          [segmentResidual m.segments[j] | j ∈ x]
-          : List Segment) : Multisegment)
-      = (([m.segments[j] | j < m.segments.length, j ∉ y] ++
-          [segmentResidual m.segments[j] | j ∈ y]
-          : List Segment) : Multisegment) := by
+      [m.segments[j] | j < m.segments.length, j ∉ x] + [segmentResidual m.segments[j] | j ∈ x]
+      = [m.segments[j] | j < m.segments.length, j ∉ y] + [segmentResidual m.segments[j] | j ∈ y] := by
   intro x hx y hy
   exact (residual_eq m hx).trans (residual_eq m hy).symm
 
@@ -1189,5 +1192,4 @@ lemma deltaCirc_indep (m : Multisegment) :
 
 end MW
 
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply MW.residual_indep))
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply MW.deltaCirc_indep))
+attribute [grind →] MW.residual_indep MW.deltaCirc_indep

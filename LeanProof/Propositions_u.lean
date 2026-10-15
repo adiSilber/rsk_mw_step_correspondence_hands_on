@@ -1520,7 +1520,7 @@ lemma mdag_ne_nil' (m : Multisegment) {sₘ s_l : Segment}
   exact List.ne_nil_of_mem (starred_mem_mdag m (MW.greedyChain m).val.segments σ₀ hσ₀ hσ₀nd)
 
 -- `auto_prop` learns it, for statements about the RSK step of `m†`.
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply mdag_ne_nil' <;> assumption))
+attribute [grind →] mdag_ne_nil'
 
 /-- **(ε) The ladder is preserved by `makeResidual` along the leading chain.** -/
 lemma mdag_ladder_eq (m : Multisegment) (sₘ s_l : Segment)
@@ -1546,7 +1546,7 @@ lemma mdag_ne_nil (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_
   rw [mw_step_snd_eq m hm]
   exact mdag_ne_nil' m (List.head?_eq_some_head hm) (List.head?_eq_some_head _) h_min
 
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply mdag_ne_nil <;> assumption))
+attribute [grind →] mdag_ne_nil
 
 /-! ## Completing Lemma `pre1`: the two converse clauses -/
 

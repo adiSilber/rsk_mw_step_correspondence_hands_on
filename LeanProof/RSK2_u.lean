@@ -27,8 +27,17 @@ lemma fiber_a_le_succ_b (m : Multisegment) (k i : ℕ) (h : i + 1 < (fiber m k).
   simp only [subsegment, Segment.a, Segment.b] at hts ⊢
   omega
 
--- `auto_prop` uses it for `Segment (fiber m d)[i].a (fiber m d)[i + 1].b` in `bucketResidual`.
-macro_rules | `(tactic| auto_prop) => `(tactic| (apply fiber_a_le_succ_b <;> grind))
+-- `auto_prop` uses it for `Segment (fiber m d)[i].a (fiber m d)[i + 1].b` in `bucketResidual`:
+-- keyed on the `(fiber m k)[i + 1]` term; the bound `h` it then finds by itself.
+grind_pattern fiber_a_le_succ_b => (fiber m k)[i + 1]
+
+/-- `maximum [depth_of_segment m s | s ∈ m.segments]` (`maxDepth`, in `RSK3_t`) needs that set
+nonempty; it is, for `m.segments ≠ []`. Keyed on the term `m.segments` (a `grind` pattern
+cannot look inside the set-builder lambda). -/
+lemma depth_set_nonempty (m : Multisegment) (h : m.segments ≠ []) :
+    ({x | x ∈ [depth_of_segment m s | s ∈ m.segments]} : Set ℕ).Nonempty :=
+  nonempty_mem_of_ne_nil (comprehension_ne_nil _ h)
+grind_pattern depth_set_nonempty => Multisegment.segments m
 
 /-- A rung exists only at the depth of some segment, so below `m.segments.length`. -/
 lemma lt_length_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
