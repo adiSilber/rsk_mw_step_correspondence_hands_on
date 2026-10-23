@@ -7,6 +7,7 @@ import Mathlib.Order.Interval.Basic
 import Mathlib.Algebra.Order.Group.Int
 import LeanProof.Basic_t
 set_option linter.style.setOption false
+set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 
@@ -26,74 +27,25 @@ segments) are used by both `LeanProof.LadderMinimal` and
 --     simpa [a, b, sub_eq_add_neg] using Int.add_le_add_right s.fst_le_snd (-1)⟩
 
 
-instance : DecidableEq Segment := inferInstanceAs (DecidableEq (NonemptyInterval ℤ))
-
-instance : Repr Segment where
-  reprPrec s _ := reprPrec (s.a, s.b) 0
-
 /-- The explicit description of the lexicographic order on segments. -/
 lemma Segment.le_def (s₁ s₂ : Segment) :
     s₁ ≤ s₂ ↔ s₁.a < s₂.a ∨ (s₁.a = s₂.a ∧ s₁.b ≤ s₂.b) :=
-  Iff.rfl
-
-/-- Two segments agreeing on begin and end are equal. -/
-private lemma Segment.ext' {s t : Segment} (ha : s.a = t.a) (hb : s.b = t.b) : s = t :=
-  NonemptyInterval.ext (Prod.ext ha hb)
-
-/-- The lexicographic order on segments is a linear order. -/
-instance : LinearOrder Segment where
-  le := (· ≤ ·)
-  le_refl s := (Segment.le_def s s).mpr (Or.inr ⟨rfl, le_rfl⟩)
-  le_trans s t u h₁ h₂ := by
-    have h₁ := (Segment.le_def s t).mp h₁
-    have h₂ := (Segment.le_def t u).mp h₂
-    exact (Segment.le_def s u).mpr (by omega)
-  le_antisymm s t h₁ h₂ := by
-    have h₁ := (Segment.le_def s t).mp h₁
-    have h₂ := (Segment.le_def t s).mp h₂
-    exact Segment.ext' (by omega) (by omega)
-  le_total s t := by
-    rw [Segment.le_def, Segment.le_def]; omega
-  toDecidableLE s t := inferInstanceAs (Decidable (s.a < t.a ∨ (s.a = t.a ∧ s.b ≤ t.b)))
+  Prod.Lex.le_iff (x := (s₁.a, s₁.b)) (y := (s₂.a, s₂.b))
 
 /-- The explicit description of the strict lexicographic order on segments. -/
 lemma Segment.lt_def (s t : Segment) :
-    s < t ↔ s.a < t.a ∨ (s.a = t.a ∧ s.b < t.b) := by
-  change (s ≤ t ∧ ¬ t ≤ s) ↔ _
-  rw [Segment.le_def, Segment.le_def]; omega
+    s < t ↔ s.a < t.a ∨ (s.a = t.a ∧ s.b < t.b) :=
+  Prod.Lex.lt_iff (x := (s.a, s.b)) (y := (t.a, t.b))
 
-/-- Every list of segments is a multisegment, `Σ Δ`: its segments in increasing order (repeats
-kept). Used silently wherever a `Multisegment` is expected and a list is given. -/
-instance : Coe (List Segment) Multisegment where
-  coe l := ⟨l.insertionSort (· ≤ ·), List.pairwise_insertionSort _ _⟩
-
+/-- The list → multisegment reading of `Basic_t`, unfolded. -/
 @[simp] lemma coe_list_segments (l : List Segment) :
     (l : Multisegment).segments = l.insertionSort (· ≤ ·) := rfl
-
-/-- The sum `l₁ + l₂` of two lists of segments is a multisegment: their formal sum `Σ Δ`, the
-multisegment of all their segments. -/
-instance : HAdd (List Segment) (List Segment) Multisegment :=
-  ⟨fun l₁ l₂ => ((l₁ ++ l₂ : List Segment) : Multisegment)⟩
-
-@[simp] lemma list_add_list (l₁ l₂ : List Segment) :
-    (l₁ + l₂ : Multisegment) = ((l₁ ++ l₂ : List Segment) : Multisegment) := rfl
 
 @[trans]
 lemma ll_trans x y z : x ≪ y → y ≪ z → x ≪ z := by
   simp [(· ≪ ·)]; omega
 
-instance : Transitive (· ≪ ·) := ll_trans
-
-
-instance : ∀ (ms₀ ms₁ : Multisegment), Decidable (ms₀ ⊆ ms₁) := by
-  unfold subms; infer_instance
-
 /-! ### What `auto_prop` knows about segments (for `Segment a b`) -/
-
-/-- Every segment satisfies `a ≤ b`; `grind` learns it whenever it meets `s.a` or `s.b`. -/
-lemma Segment.a_le_b (s : Segment) : s.a ≤ s.b := s.fst_le_snd
-grind_pattern Segment.a_le_b => s.a
-grind_pattern Segment.a_le_b => s.b
 
 -- `grind` may unfold `⊆` and `≪` on segments.
 attribute [grind =] subsegment ll
@@ -131,7 +83,7 @@ lemma eq_of_sorted_eq {α} [LinearOrder α] {S T : Set α} [Fintype S] [Fintype 
 
 /-- Two segments with the same begin and end are equal. -/
 lemma Segment.ext_ab {s t : Segment} (ha : s.a = t.a) (hb : s.b = t.b) : s = t :=
-  Segment.ext' ha hb
+  NonemptyInterval.ext (Prod.ext ha hb)
 
 /-- The list comprehension `[x | x ∈ l]` is `l`. -/
 @[simp] lemma comprehension_id {α} (l : List α) : List.map (fun ⟨x, _⟩ => x) l.attach = l := by
@@ -142,22 +94,6 @@ lemma Segment.ext_ab {s t : Segment} (ha : s.a = t.a) (hb : s.b = t.b) : s = t :
     List.map (fun ⟨x, _⟩ => f x) l.attach = l.map f := by
   simp
 
-/-- `{f x | x ∈ l}` is finite: it is computed by `l.map f`. -/
-instance {α β} [DecidableEq β] (l : List α) (f : α → β) : Fintype {y | ∃ x ∈ l, f x = y} :=
-  Fintype.ofFinset (l.map f).toFinset (by simp)
-
--- From here on `maximum` is used only through the two lemmas above; keeping it opaque
--- stops the elaborator from unfolding it (and timing out) inside large terms.
-set_option allowUnsafeReducibility true in
-attribute [irreducible] maximum
-
--- Likewise `first` is used only through `first_mem`.
-set_option allowUnsafeReducibility true in
-attribute [irreducible] first
-
-/-- The set of members of a list is finite: it is computed by the list itself. -/
-instance {α} [DecidableEq α] (l : List α) : Fintype {x | x ∈ l} :=
-  Fintype.ofFinset l.toFinset (by simp)
 
 /-- The least element of a sorted list is its head. -/
 lemma first_eq_head {α} [LinearOrder α] (l : List α) (hl : l.Pairwise (· ≤ ·)) (h : l ≠ [])
@@ -210,16 +146,10 @@ lemma maximum_a_le_maximum_b (l : List Segment) (h₁ h₂) :
 
 /-- A set with a `Nonempty` instance is nonempty. `grind` tries it on every `S.Nonempty` it
 meets (a `grind` pattern cannot look inside the set-builder lambda, but instance search can);
-the instances below cover the set-builder sets of the `_t` files. -/
+the instances of `Fundamentals_t` cover the set-builder sets of the `_t` files. -/
 lemma Set.nonempty_of_inst {α} (S : Set α) [h : Nonempty S] : S.Nonempty :=
   Set.nonempty_coe_sort.mp h
 grind_pattern Set.nonempty_of_inst => Set.Nonempty S
-
-instance {α} (a : α) (l : List α) : Nonempty ↥{x | x ∈ a :: l} :=
-  (nonempty_mem_cons a l).to_subtype
-
-instance {α β} (s : α) (ss : List α) (f : α → β) : Nonempty ↥{y | ∃ x ∈ s :: ss, f x = y} :=
-  (nonempty_image_cons s ss f).to_subtype
 
 -- Keyed on the two `maximum` terms: their proof arguments `h₁`, `h₂` carry `l`.
 grind_pattern maximum_a_le_maximum_b => maximum _ h₁, maximum _ h₂
