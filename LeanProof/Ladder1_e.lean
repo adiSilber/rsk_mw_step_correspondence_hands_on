@@ -2,6 +2,7 @@ import LeanProof.Basic_t
 import LeanProof.Ladder1_t
 -- For the `Decidable` / `Fintype` instances that make `depthSet` evaluable.
 import LeanProof.Ladder1_u
+import LeanProof.Ladder2_t
 import Mathlib.Data.Finset.Sort
 
 set_option linter.style.setOption false

@@ -5,6 +5,7 @@ import Mathlib.Data.Fintype.Card
 import Mathlib.Data.Set.Finite.Basic
 
 set_option linter.style.setOption false
+set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 
@@ -32,6 +33,7 @@ private lemma exists_indices_iff {n : ℕ} {m : Multisegment} (P : Indices n m �
   ⟨fun ⟨⟨l, h⟩, hP⟩ => ⟨l, (mem_indexLists _ _ l).mpr ⟨h.1, h.2.2⟩, h, hP⟩,
     fun ⟨l, _, h, hP⟩ => ⟨⟨l, h⟩, hP⟩⟩
 
+/-- Membership in `depthSet` is decided by scanning `indexLists`. -/
 instance (m : Multisegment) (s : Segment) (j : ℕ) : Decidable (j ∈ depthSet m s) := by
   unfold depthSet
   exact decidable_of_iff _ (exists_indices_iff _).symm
@@ -88,6 +90,10 @@ lemma depthSet_eq_depthFinset (m : Multisegment) (s : Segment) :
     depthSet m s = ↑(depthFinset m s) := by
   ext j; simp [mem_depthFinset]
 
+/-- `depthSet m s` is finite: it is `depthFinset m s`. -/
+-- A `Fintype` instance, not a `Decidable` one: it carries a computed list. Allowed in a `_u`
+-- file because any two such instances agree, but it may be a little dangerous — to be checked
+-- (see TODO.md).
 instance (m : Multisegment) (s : Segment) : Fintype (depthSet m s) :=
   Fintype.ofFinset (depthFinset m s) (mem_depthFinset m s)
 
