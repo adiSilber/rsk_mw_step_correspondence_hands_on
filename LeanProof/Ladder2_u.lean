@@ -11,17 +11,12 @@ import Mathlib.Data.List.GetD
 
 
 set_option linter.style.setOption false
+set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 set_option linter.hashCommand false
 
 open scoped List
-
-private def subms_ladder (l : Ladder) (ms : Multisegment) := l.val ⊆ ms
-infix:90 " ⊆ " => subms_ladder
-
-instance : forall x, Decidable (isLadder x) := by
-  intro x; unfold isLadder; infer_instance
 
 lemma isLadder_sorted (segments : List Segment) :
     isLadder segments → segments.Pairwise (· ≤ ·) := by
@@ -44,7 +39,7 @@ lemma sorted_Sublist_append (R : α → α → Prop) [hasym : Std.Antisymm R]
     --
     simp; constructor
     · intro xl₁
-      rw [← hasym.antisymm a x] at hxl₀; tauto
+      rw [← hasym.antisymm a x (hrba x hxl₀) (_l₁ra x xl₁)] at hxl₀; tauto
     · grind
   -- back to the main goal
   trans a :: l₂
@@ -101,10 +96,10 @@ private def Ladder_extend (l : Ladder) s₀ s₁ :
   exact ⟨⟨app, isLadder_sorted _ app_isLadder⟩, app_isLadder⟩
 
 lemma Ladder_sublist_extend (ms : Multisegment)
-    (l : Ladder) (h : l ⊆ ms) s₀ s₁
+    (l : Ladder) (h : l.val ⊆ ms) s₀ s₁
     (hs0 : s₀ ∈ l.val.segments.head?)
     (hs01 : s₁ ≪ s₀) :
-    s₁ ∈ ms.segments → Ladder_extend l s₀ s₁ hs0 hs01 ⊆ ms := by
+    s₁ ∈ ms.segments → (Ladder_extend l s₀ s₁ hs0 hs01).val ⊆ ms := by
   intro hs1
   -- Reuse isLadder_extend to recover s₁ ≪ b for every b ∈ l.val.segments
   have hext : isLadder (s₁ :: l.val.segments) :=
@@ -489,7 +484,8 @@ An admissible enumeration of `𝔡⁻¹(k)` is a permutation of the list of indi
 lemma mem_admissibleEnumerations_iff {m : Multisegment} {k : ℕ} {i : List ℕ} :
     i ∈ admissibleEnumerations m k ↔
       ∃ h : i ∈ Indices i.length m,
-        (∀ n : Fin m.segments.length, (↑n ∈ i ↔ depth_of_segment m m.segments[n] = k)) ∧
+        (∀ n : Fin m.segments.length,
+          (↑n ∈ i ↔ depth_of_segment m m.segments[n] (List.getElem_mem _) = k)) ∧
         (∀ r (hr : r < i.length - 1), m.segments[i[r + 1]] ⊆ m.segments[i[r]]) := by
   constructor
   · rintro ⟨⟨l, hl⟩, h1, h2⟩
@@ -499,18 +495,20 @@ lemma mem_admissibleEnumerations_iff {m : Multisegment} {k : ℕ} {i : List ℕ}
   · rintro ⟨h, h1, h2⟩
     exact ⟨⟨i.length, h⟩, h1, fun r hr => h2 r (by change r + 1 < i.length at hr; omega)⟩
 
-instance (m : Multisegment) (k : ℕ) (i : List ℕ) :
-    Decidable (i ∈ admissibleEnumerations m k) :=
+/-- Membership in `admissibleEnumerations` is decided by `mem_admissibleEnumerations_iff`. -/
+instance (m : Multisegment) (k : ℕ) (i : List ℕ) : Decidable (i ∈ admissibleEnumerations m k) :=
   decidable_of_iff _ mem_admissibleEnumerations_iff.symm
 
 /-- The indices of depth `k`, in increasing order. -/
 private def fiberIdx (m : Multisegment) (k : ℕ) : List ℕ :=
   ((List.finRange m.segments.length).filter
-    (fun j : Fin m.segments.length => depth_of_segment m m.segments[j] = k)).map Fin.val
+    (fun j : Fin m.segments.length =>
+      depth_of_segment m m.segments[j] (List.getElem_mem _) = k)).map Fin.val
 
 private lemma mem_fiberIdx {m : Multisegment} {k n : ℕ} :
     n ∈ fiberIdx m k ↔
-      ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k ∧ j.val = n := by
+      ∃ j : Fin m.segments.length,
+        depth_of_segment m m.segments[j] (List.getElem_mem _) = k ∧ j.val = n := by
   simp [fiberIdx]
 
 private lemma nodup_fiberIdx (m : Multisegment) (k : ℕ) : (fiberIdx m k).Nodup :=
@@ -528,6 +526,10 @@ lemma perm_fiberIdx_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
   · rintro ⟨j, hj, rfl⟩
     exact (h1 j).mpr hj
 
+/-- `admissibleEnumerations m k` is finite: the admissible permutations of `fiberIdx m k`. -/
+-- A `Fintype` instance, not a `Decidable` one: it carries a computed list. Allowed in a `_u`
+-- file because any two such instances agree, but it may be a little dangerous — to be checked
+-- (see TODO.md).
 instance (m : Multisegment) (k : ℕ) : Fintype (admissibleEnumerations m k) :=
   Fintype.ofFinset
     (((fiberIdx m k).permutations.filter
@@ -604,7 +606,7 @@ lemma pairwise_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
 
 /-- If no segment has depth `k`, the only admissible enumeration of `𝔡⁻¹(k) = ∅` is `[]`. -/
 lemma eq_nil_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : List ℕ}
-    (h : ∀ j : Fin m.segments.length, depth_of_segment m m.segments[j] ≠ k)
+    (h : ∀ j : Fin m.segments.length, depth_of_segment m m.segments[j] (List.getElem_mem _) ≠ k)
     (hi : i ∈ admissibleEnumerations m k) : i = [] := by
   obtain ⟨⟨l, -, -, hlt⟩, h1, -⟩ := hi
   apply List.eq_nil_iff_forall_not_mem.mpr
@@ -612,14 +614,14 @@ lemma eq_nil_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : Lis
   exact h ⟨j, hlt _ hj⟩ ((h1 ⟨j, hlt _ hj⟩).mp hj)
 
 private lemma nil_mem_admissibleEnumerations {m : Multisegment} {k : ℕ}
-    (h : ∀ j : Fin m.segments.length, depth_of_segment m m.segments[j] ≠ k) :
+    (h : ∀ j : Fin m.segments.length, depth_of_segment m m.segments[j] (List.getElem_mem _) ≠ k) :
     [] ∈ admissibleEnumerations m k :=
   ⟨⟨0, by simp [Indices]⟩, fun n => by simpa using h n, fun r hr => absurd hr (by simp)⟩
 
 /-- If some segment has depth `k`, an admissible enumeration of `𝔡⁻¹(k)` exists: the
 indices of depth `k` sorted by nesting. -/
 private lemma admissibleEnumerations_nonempty_of_exists {m : Multisegment} {k : ℕ}
-    (h : ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k) :
+    (h : ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] (List.getElem_mem _) = k) :
     (admissibleEnumerations m k).Nonempty := by
   -- the depth-`k` indices are pairwise `⊆`-comparable
   have hcmp : ∀ x ∈ fiberIdx m k, ∀ y ∈ fiberIdx m k,
@@ -661,7 +663,8 @@ private lemma admissibleEnumerations_nonempty_of_exists {m : Multisegment} {k : 
 /-- Every fiber has an admissible enumeration (`[]` for an empty fiber). -/
 lemma admissibleEnumerations_nonempty (m : Multisegment) (k : ℕ) :
     (admissibleEnumerations m k).Nonempty := by
-  by_cases h : ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k
+  by_cases h : ∃ j : Fin m.segments.length,
+    depth_of_segment m m.segments[j] (List.getElem_mem _) = k
   · exact admissibleEnumerations_nonempty_of_exists h
   · push_neg at h
     exact ⟨[], nil_mem_admissibleEnumerations h⟩
@@ -682,8 +685,9 @@ attribute [grind →] lt_length_of_mem_of_mem_admissibleEnumerations
 lemma pmap_eq_sortedBucket {m : Multisegment} {k : ℕ} {i : List ℕ}
     (he : i ∈ admissibleEnumerations m k) (hlt : ∀ j ∈ i, j < m.segments.length) :
     i.pmap (fun j hj => m.segments[j]) hlt = (sortedBucket m k).map (·.val) := by
-  by_cases h : ∃ j : Fin m.segments.length, depth_of_segment m m.segments[j] = k
-  · apply List.Perm.eq_of_pairwise (le := fun s t => subsegment t s)
+  by_cases h : ∃ j : Fin m.segments.length,
+    depth_of_segment m m.segments[j] (List.getElem_mem _) = k
+  · refine List.Perm.eq_of_pairwise (le := fun s t => subsegment t s) ?_ ?_ ?_ ?_
     · intro a b _ _ h₁ h₂
       exact seg_ext (by simp only [subsegment] at *; omega) (by simp only [subsegment] at *; omega)
     · exact pairwise_of_mem he _
