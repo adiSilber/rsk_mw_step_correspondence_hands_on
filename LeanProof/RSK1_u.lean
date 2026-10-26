@@ -7,6 +7,7 @@ import LeanProof.Ladder2_u
 import LeanProof.RSK1_t
 
 set_option linter.style.setOption false
+set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 

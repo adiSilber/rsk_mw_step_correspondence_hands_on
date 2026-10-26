@@ -9,6 +9,7 @@ import LeanProof.RSK1_u
 import LeanProof.RSK2_t
 
 set_option linter.style.setOption false
+set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 
@@ -31,6 +32,9 @@ lemma fiber_a_le_succ_b (m : Multisegment) (k i : ℕ) (h : i + 1 < (fiber m k).
 -- keyed on the `(fiber m k)[i + 1]` term; the bound `h` it then finds by itself.
 grind_pattern fiber_a_le_succ_b => (fiber m k)[i + 1]
 
+-- The statement mirrors a `_t` term (a comprehension whose body needs the binder's membership
+-- proof), so it is read with the fundamental rule on, exactly as in `RSK3_t`.
+set_option autoProp.rule true in
 /-- `maximum [depth_of_segment m s | s ∈ m.segments]` (`maxDepth`, in `RSK3_t`) needs that set
 nonempty; it is, for `m.segments ≠ []`. Keyed on the term `m.segments` together with a
 `Set.Nonempty {…}` term (a `grind` pattern cannot look inside the set-builder lambda, so the
@@ -58,6 +62,9 @@ lemma lt_length_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
     exact lt_length_of_mem_depthSet (depth_of_segment_mem m s hsm)
 
 /-- The set of rungs is finite: it is computed from the depths below `m.segments.length`. -/
+-- A `Fintype` instance, not a `Decidable` one: it carries a computed list. Allowed in a `_u`
+-- file because any two such instances agree, but it may be a little dangerous — to be checked
+-- (see TODO.md).
 instance (m : Multisegment) : Fintype { r | ∃ k, bucketRung m k = some r } :=
   Fintype.ofFinset ((List.range m.segments.length).filterMap (bucketRung m)).toFinset
     (fun r => by
