@@ -8,6 +8,7 @@ import LeanProof.RSK3_t
 import Mathlib.Data.List.Sort
 
 set_option linter.style.setOption false
+set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 set_option linter.hashCommand false
@@ -23,7 +24,7 @@ Correctness of the definitions in `RSK3_t`: the assembled rungs form a ladder
 `ladderRungs` and `residual` — is trusted. -/
 
 lemma depth_le_maxDepth (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) :
-    depth_of_segment m s hs ≤ maxDepth m := by
+    depth_of_segment m s hs ≤ maxDepth m (List.ne_nil_of_mem hs) := by
   unfold maxDepth
   exact le_maximum _ _ (List.mem_map.mpr ⟨⟨s, hs⟩, by simp, rfl⟩)
 
@@ -135,6 +136,9 @@ lemma le_maxDepth_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
 lemma mem_ladderRungs {m : Multisegment} {r : Segment} :
     r ∈ ladderRungs m ↔ ∃ k, bucketRung m k = some r := Iff.rfl
 
+-- `Fintype` instances, not `Decidable` ones (the set of rungs, as `ladderRungs` and as the
+-- first component of `rsk_step`): allowed in a `_u` file because any two such instances agree,
+-- but they may be a little dangerous — to be checked (see TODO.md).
 instance (m : Multisegment) : Fintype (ladderRungs m) :=
   inferInstanceAs (Fintype { r | ∃ k, bucketRung m k = some r })
 
@@ -144,20 +148,20 @@ instance (m : Multisegment) (h : m.segments ≠ []) : Fintype (rsk_step m h).1 :
 /-- The proofs work with the rungs as a list, sorted: deepest-first, it is the rungs of depth
 `maxDepth`, …, `0`. -/
 lemma ladderRungs_eq (m : Multisegment) (hm : m.segments ≠ []) :
-    sorted (ladderRungs m) = (List.range (maxDepth m + 1)).reverse.filterMap (bucketRung m) := by
-  have hlt : ((List.range (maxDepth m + 1)).reverse.filterMap (bucketRung m)).Pairwise (· < ·) :=
+    sorted (ladderRungs m) = (List.range (maxDepth m hm + 1)).reverse.filterMap (bucketRung m) := by
+  have hlt : ((List.range (maxDepth m hm + 1)).reverse.filterMap (bucketRung m)).Pairwise (· < ·) :=
     (pairwise_rungs m _).imp fun {x y} h =>
       lt_of_le_of_ne ((Segment.le_def x y).mpr (Or.inl h.1)) (fun he => by
         subst he; exact lt_irrefl _ h.1)
-  unfold sorted ladderRungs
-  apply List.Perm.eq_of_pairwise (le := (· < ·))
+  unfold sorted
+  refine List.Perm.eq_of_pairwise (le := (· < ·)) ?_ ?_ ?_ ?_
   · intro a b _ _ h₁ h₂; exact absurd h₂ (lt_asymm h₁)
   · exact (Finset.sortedLT_sort _).pairwise
   · exact hlt
   · refine (List.perm_ext_iff_of_nodup (Finset.sort_nodup _ _)
       (hlt.imp ne_of_lt)).mpr fun r => ?_
     rw [Finset.mem_sort, Set.mem_toFinset, List.mem_filterMap]
-    simp only [Set.mem_setOf_eq, List.mem_reverse, List.mem_range]
+    simp only [mem_ladderRungs, List.mem_reverse, List.mem_range]
     exact ⟨fun ⟨k, hk⟩ => ⟨k, Nat.lt_succ_of_le (le_maxDepth_of_bucketRung hk), hk⟩,
       fun ⟨k, _, hk⟩ => ⟨k, hk⟩⟩
 
@@ -294,6 +298,7 @@ end RSK
 
 namespace RSK
 
+seal maximum first in
 /-- Membership in `bucketResidual`, unfolded: `w = [Δᵢ.a, Δᵢ₊₁.b]` for some position `i`. -/
 lemma mem_bucketResidual_iff {m : Multisegment} {d : ℕ} {w : Segment} :
     w ∈ bucketResidual m d ↔
@@ -318,6 +323,7 @@ lemma bucketResidual_source {m : Multisegment} {d : ℕ} {w : Segment}
   conv_lhs => rw [← List.take_append_drop j (fiber m d)]
   rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_getElem_cons (by omega)]
 
+seal maximum first in
 /-- Conversely, every split `fiber = l₁ ++ i :: t :: l₂` contributes `[i.a, t.b]`. -/
 lemma mem_bucketResidual_of_split {m : Multisegment} {d : ℕ} {i t : Segment}
     {l₁ l₂ : List Segment} (hsplit : fiber m d = l₁ ++ i :: t :: l₂) :
@@ -335,7 +341,7 @@ lemma mem_bucketResidual_of_split {m : Multisegment} {d : ℕ} {i t : Segment}
 /-- The residual's segments are the fibers' residuals, concatenated and sorted. -/
 lemma residual_segments (m : Multisegment) (h : m.segments ≠ []) :
     (residual m h).segments =
-      ((List.range (maxDepth m + 1)).flatMap (fun d => bucketResidual m d)).insertionSort
+      ((List.range (maxDepth m h + 1)).flatMap (fun d => bucketResidual m d)).insertionSort
         (· ≤ ·) := by
   simp [residual]
 
