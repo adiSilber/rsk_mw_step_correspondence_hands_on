@@ -6,3 +6,6 @@ MW.lean
 LeanProof/RSK.lean
 rsk_mw_minimal.pdf
 rsk_mw_minimal.tex
+
+# experiment: challenge/solution files for a proof checker, not part of the development
+comparator_fails_poc/

@@ -11,6 +11,7 @@ import Mathlib.Data.List.GetD
 
 
 set_option linter.style.setOption false
+set_option linter.style.longLine false
 set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
@@ -246,16 +247,10 @@ lemma bucket_sink (ms : Multisegment) d s₁ s₂
     <;> try tauto
   all_goals { apply ll_ne_depth ms at rl; omega }
 
-/-- Proof-side: the bucket sorted outermost-first by nesting (`y ⊆ x` ⇒ `x` before `y`).
-Public (like `MW.leadingChain`): the RSK proofs reason about this ordered list; it appears in
-no trusted statement. `RSK1_u` shows it lists the fiber in the order of `RSK.enumeration`. -/
-def sortedBucket (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
-  (bucket ms d).insertionSort (fun x y => y.val ⊆ x.val)
-
 @[simp] lemma mem_sortedBucket {ms : Multisegment} {d : ℕ} {x : {s : Segment // s ∈ ms.segments}} :
-    x ∈ sortedBucket ms d ↔ x ∈ bucket ms d := List.mem_insertionSort _
+    x ∈ ((bucket ms d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s))) ↔ x ∈ bucket ms d := List.mem_insertionSort _
 
-lemma sortedBucket_perm (ms : Multisegment) (d : ℕ) : sortedBucket ms d ~ bucket ms d :=
+lemma sortedBucket_perm (ms : Multisegment) (d : ℕ) : ((bucket ms d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s))) ~ bucket ms d :=
   List.perm_insertionSort _ _
 
 /-- Proof-side name for the contents of `bucket` (the depth-`d` filter). -/
@@ -270,17 +265,17 @@ directly. The trick: on the subtype `{x // x ∈ bucketRaw ms d}` the order *is*
 (`bucket_sink`), so we sort the `attach`ed list there and transport the result back
 along `List.map_insertionSort`. -/
 lemma bucket_pairwise (ms : Multisegment) (d : ℕ) :
-    (sortedBucket ms d).Pairwise
+    (((bucket ms d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).Pairwise
       (fun x y : {s : Segment // s ∈ ms.segments} => y.val ⊆ x.val) := by
   haveI : Std.Total (fun x y : {x // x ∈ bucketRaw ms d} => (y.val.val : Segment) ⊆ x.val.val) :=
     ⟨fun x y => bucket_sink ms d y.val x.val
       y.prop x.prop⟩
   haveI : IsTrans _ (fun x y : {x // x ∈ bucketRaw ms d} => (y.val.val : Segment) ⊆ x.val.val) :=
     ⟨fun x y z hxy hyz => by simp only [subsegment] at *; omega⟩
-  have key : sortedBucket ms d =
+  have key : ((bucket ms d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s))) =
       ((bucketRaw ms d).attach.insertionSort
         (fun x y => (y.val.val : Segment) ⊆ x.val.val)).map Subtype.val := by
-    rw [show sortedBucket ms d
+    rw [show ((bucket ms d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))
         = (bucketRaw ms d).insertionSort
             (fun x y : {s : Segment // s ∈ ms.segments} => y.val ⊆ x.val) from rfl,
       List.map_insertionSort _
@@ -293,13 +288,13 @@ lemma bucket_pairwise (ms : Multisegment) (d : ℕ) :
 /-- The bucket, projected to segments, is fully `⊇`-nested: each later element is `⊆`
 each earlier one. (The admissible-enumeration nesting `Δ_{ik1} ⊇ … ⊇ Δ_{ikl}`.) -/
 lemma bucket_nested (ms : Multisegment) (d : ℕ) :
-    ((sortedBucket ms d).map (·.val)).Pairwise (fun s t => subsegment t s) := by
+    ((((bucket ms d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val)).Pairwise (fun s t => subsegment t s) := by
   rw [List.pairwise_map]
   exact bucket_pairwise ms d
 
 /-- The bucket, projected to segments, is `a`-ascending. -/
 lemma bucket_sorted (ms : Multisegment) (d : ℕ) :
-    ((sortedBucket ms d).map (·.val)).Pairwise (·.a ≤ ·.a) :=
+    ((((bucket ms d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val)).Pairwise (·.a ≤ ·.a) :=
   (bucket_nested ms d).imp (fun h => h.1)
 
 /-- Consecutive list elements form a `zip`-with-tail pair. -/
@@ -684,7 +679,7 @@ attribute [grind →] lt_length_of_mem_of_mem_admissibleEnumerations
 /-- An admissible enumeration lists the bucket sorted outermost-first. -/
 lemma pmap_eq_sortedBucket {m : Multisegment} {k : ℕ} {i : List ℕ}
     (he : i ∈ admissibleEnumerations m k) (hlt : ∀ j ∈ i, j < m.segments.length) :
-    i.pmap (fun j hj => m.segments[j]) hlt = (sortedBucket m k).map (·.val) := by
+    i.pmap (fun j hj => m.segments[j]) hlt = (((bucket m k).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) := by
   by_cases h : ∃ j : Fin m.segments.length,
     depth_of_segment m m.segments[j] (List.getElem_mem _) = k
   · refine List.Perm.eq_of_pairwise (le := fun s t => subsegment t s) ?_ ?_ ?_ ?_
@@ -694,7 +689,7 @@ lemma pmap_eq_sortedBucket {m : Multisegment} {k : ℕ} {i : List ℕ}
     · exact bucket_nested m k
     · exact (perm_bucket_of_mem he _).trans ((sortedBucket_perm m k).map _).symm
   · push_neg at h
-    have hnil : (sortedBucket m k).map (·.val) = [] := by
+    have hnil : (((bucket m k).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) = [] := by
       apply List.eq_nil_iff_forall_not_mem.mpr
       intro s hs
       obtain ⟨⟨s, hsm⟩, hsb, rfl⟩ := List.mem_map.mp hs
