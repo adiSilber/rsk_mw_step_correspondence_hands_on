@@ -8,7 +8,6 @@ import LeanProof.RSK3_t
 import Mathlib.Data.List.Sort
 
 set_option linter.style.setOption false
-set_option linter.style.longLine false
 set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
@@ -32,10 +31,10 @@ lemma depth_le_maxDepth (m : Multisegment) (s : Segment) (hs : s ∈ m.segments)
 /-- The rung dominates its bucket coordinatewise, and each coordinate is attained. -/
 lemma bucketRung_spec (m : Multisegment) (d : ℕ) (r : Segment)
     (h : bucketRung m d = some r) :
-    (∀ x ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val), x.a ≤ r.a ∧ x.b ≤ r.b) ∧
-    (∃ x ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val), x.a = r.a) ∧
-    (∃ x ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val), x.b = r.b) := by
-  rcases hL : (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) with _ | ⟨s, ss⟩
+    (∀ x ∈ (Proof.sortedBucket m d).map (·.val), x.a ≤ r.a ∧ x.b ≤ r.b) ∧
+    (∃ x ∈ (Proof.sortedBucket m d).map (·.val), x.a = r.a) ∧
+    (∃ x ∈ (Proof.sortedBucket m d).map (·.val), x.b = r.b) := by
+  rcases hL : (Proof.sortedBucket m d).map (·.val) with _ | ⟨s, ss⟩
   · simp [bucketRung, fiber_eq, hL] at h
   · simp only [bucketRung, fiber_eq, hL, Option.some.injEq] at h
     subst h
@@ -53,7 +52,7 @@ lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)
     r_succ ≪ r_d := by
   obtain ⟨dom_d, _, _⟩ := bucketRung_spec m d r_d hr_d
   obtain ⟨_, ⟨sa, hsa_mem, hsa⟩, ⟨sb, hsb_mem, hsb⟩⟩ := bucketRung_spec m (d + 1) r_succ hr_succ
-  have key : ∀ x ∈ (((bucket m (d + 1)).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val), x ≪ r_d := by
+  have key : ∀ x ∈ (Proof.sortedBucket m (d + 1)).map (·.val), x ≪ r_d := by
     intro x hx
     obtain ⟨xs, hxs_bk, rfl⟩ := List.mem_map.mp hx
     have hxd : depth_of_segment m xs.val xs.property = d + 1 := by simpa [bucket] using hxs_bk
@@ -64,8 +63,8 @@ lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)
 
 /-- A nonempty bucket yields a rung. -/
 lemma bucketRung_some_of_mem (m : Multisegment) (d : ℕ) (x : Segment)
-    (hx : x ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val)) : ∃ r, bucketRung m d = some r := by
-  rcases hL : (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) with _ | ⟨s, ss⟩
+    (hx : x ∈ (Proof.sortedBucket m d).map (·.val)) : ∃ r, bucketRung m d = some r := by
+  rcases hL : (Proof.sortedBucket m d).map (·.val) with _ | ⟨s, ss⟩
   · rw [hL] at hx; simp at hx
   · exact ⟨_, by simp only [bucketRung, fiber_eq, hL]; rfl⟩
 
@@ -73,7 +72,7 @@ lemma bucketRung_some_of_mem (m : Multisegment) (d : ℕ) (x : Segment)
 The bucket below is nonempty because the head of bucket `d+1` has a predecessor at depth `d`. -/
 lemma bucketRung_pred (m : Multisegment) (d : ℕ) (r : Segment)
     (hr : bucketRung m (d + 1) = some r) : ∃ r_d, bucketRung m d = some r_d ∧ r ≪ r_d := by
-  rcases hL : (((bucket m (d + 1)).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) with _ | ⟨s, _⟩
+  rcases hL : (Proof.sortedBucket m (d + 1)).map (·.val) with _ | ⟨s, _⟩
   · simp [bucketRung, fiber_eq, hL] at hr
   obtain ⟨xs, hxs_bk, _⟩ := List.mem_map.mp (hL ▸ List.mem_cons_self : s ∈ _)
   have hxs_d : depth_of_segment m xs.val xs.property = d + 1 := by simpa [bucket] using hxs_bk
@@ -193,20 +192,20 @@ lemma ladderRungs_isLadder (m : Multisegment) : isLadder (sorted (ladderRungs m)
 
 /-- A bucket element lies in `m` at depth `d`. -/
 lemma mem_bucket_depth (m : Multisegment) (d : ℕ) (x : Segment)
-    (hx : x ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val)) :
+    (hx : x ∈ (Proof.sortedBucket m d).map (·.val)) :
     ∃ (hxm : x ∈ m.segments), depth_of_segment m x hxm = d := by
   obtain ⟨⟨y, hy⟩, hybk, rfl⟩ := List.mem_map.mp hx
   exact ⟨hy, by simp [bucket] at hybk; exact hybk⟩
 
 /-- A depth-`d` segment of `m` lies in bucket `d`. -/
 lemma mem_bucket_of_depth (m : Multisegment) (d : ℕ) (x : Segment) (hxm : x ∈ m.segments)
-    (hd : depth_of_segment m x hxm = d) : x ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) :=
+    (hd : depth_of_segment m x hxm = d) : x ∈ (Proof.sortedBucket m d).map (·.val) :=
   List.mem_map.mpr ⟨⟨x, hxm⟩, by simp [bucket, hd], rfl⟩
 
 /-- Consecutive bucket elements are nested. -/
 lemma bucket_split_pair_subset (m : Multisegment) (d : ℕ) (s t : Segment)
     (l₁ l₂ : List Segment)
-    (hsplit : (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) = l₁ ++ s :: t :: l₂) : t ⊆ s := by
+    (hsplit : (Proof.sortedBucket m d).map (·.val) = l₁ ++ s :: t :: l₂) : t ⊆ s := by
   have hnested := bucket_nested m d
   rw [hsplit] at hnested
   have hp := (List.pairwise_append.mp hnested).2.1
@@ -217,8 +216,8 @@ lemma bucket_split_pair_subset (m : Multisegment) (d : ℕ) (s t : Segment)
 element is nested strictly between `s` and its successor `t`. -/
 lemma bucket_split_immediate_nest (m : Multisegment) (d : ℕ) (s t : Segment)
     (l₁ l₂ : List Segment)
-    (hsplit : (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) = l₁ ++ s :: t :: l₂)
-    (u : Segment) (hu : u ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val))
+    (hsplit : (Proof.sortedBucket m d).map (·.val) = l₁ ++ s :: t :: l₂)
+    (u : Segment) (hu : u ∈ (Proof.sortedBucket m d).map (·.val))
     (hus : u ≠ s) (hut : u ≠ t) : ¬ (u ⊆ s ∧ t ⊆ u) := by
   have hnested := bucket_nested m d
   rw [hsplit] at hu hnested
@@ -243,23 +242,23 @@ lemma bucket_split_immediate_nest (m : Multisegment) (d : ℕ) (s t : Segment)
 /-- Lemma 2.2(1), with an explicit consecutive split instead of `bucketSucc`. -/
 lemma depth_lt_between_split (m : Multisegment) (d : ℕ) (i t : Segment)
     (l₁ l₂ : List Segment)
-    (hsplit : (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hsplit : (Proof.sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
     (j : Segment) (hj : j ∈ m.segments) (htj : t ⊆ j) (hji : j ⊆ i)
     (hjnei : j ≠ i) (hjnet : j ≠ t) :
     depth_of_segment m j hj < d := by
-  have hi_bk : i ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) := by rw [hsplit]; simp
-  have ht_bk : t ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) := by rw [hsplit]; simp
+  have hi_bk : i ∈ (Proof.sortedBucket m d).map (·.val) := by rw [hsplit]; simp
+  have ht_bk : t ∈ (Proof.sortedBucket m d).map (·.val) := by rw [hsplit]; simp
   obtain ⟨hi_m, hi_d⟩ := mem_bucket_depth m d i hi_bk
   obtain ⟨ht_m, ht_d⟩ := mem_bucket_depth m d t ht_bk
   by_contra hge
   push_neg at hge
   rcases eq_or_lt_of_le hge with heq | hlt
-  · have hjbk : j ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) := mem_bucket_of_depth m d j hj heq.symm
+  · have hjbk : j ∈ (Proof.sortedBucket m d).map (·.val) := mem_bucket_of_depth m d j hj heq.symm
     exact bucket_split_immediate_nest m d i t l₁ l₂ hsplit j hjbk hjnei hjnet ⟨hji, htj⟩
   · obtain ⟨j', hj', hj'd, h1, h2⟩ := exists_lower_ll _ m j hj rfl d hlt
     obtain ⟨hjia, hjib⟩ := hji
     obtain ⟨htja, htjb⟩ := htj
-    have hj'bk : j' ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) := mem_bucket_of_depth m d j' hj' hj'd
+    have hj'bk : j' ∈ (Proof.sortedBucket m d).map (·.val) := mem_bucket_of_depth m d j' hj' hj'd
     have hj'i : j' ⊆ i := depth_subset_of_a_lt m i j' hi_m hj' (by omega) (by omega)
     have htj' : t ⊆ j' := depth_subset_of_b_lt m t j' ht_m hj' (by omega) (by omega)
     have hne_i : j' ≠ i := by rintro rfl; omega
@@ -269,11 +268,11 @@ lemma depth_lt_between_split (m : Multisegment) (d : ℕ) (i t : Segment)
 /-- Lemma 2.2(2), with an explicit consecutive split instead of `bucketSucc`. -/
 lemma lemma_2_2_2_split (m : Multisegment) (d : ℕ) (i t : Segment)
     (l₁ l₂ : List Segment)
-    (hsplit : (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) = l₁ ++ i :: t :: l₂)
+    (hsplit : (Proof.sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
     (j : Segment) (hj : j ∈ m.segments) (ha : i.a < j.a) (hb : t.b < j.b) :
     depth_of_segment m j hj < d := by
-  have hi_bk : i ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) := by rw [hsplit]; simp
-  have ht_bk : t ∈ (((bucket m d).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) := by rw [hsplit]; simp
+  have hi_bk : i ∈ (Proof.sortedBucket m d).map (·.val) := by rw [hsplit]; simp
+  have ht_bk : t ∈ (Proof.sortedBucket m d).map (·.val) := by rw [hsplit]; simp
   obtain ⟨hi_m, hi_d⟩ := mem_bucket_depth m d i hi_bk
   obtain ⟨ht_m, ht_d⟩ := mem_bucket_depth m d t ht_bk
   by_contra hnot

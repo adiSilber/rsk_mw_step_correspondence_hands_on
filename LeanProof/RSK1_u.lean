@@ -7,7 +7,6 @@ import LeanProof.Ladder2_u
 import LeanProof.RSK1_t
 
 set_option linter.style.setOption false
-set_option linter.style.longLine false
 set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
@@ -19,7 +18,7 @@ namespace RSK
 `fiber m k` is exactly the bucket sorted outermost-first (`fiber_eq`): the bridge from the
 paper-style definition to the proof machinery built on `sortedBucket`. -/
 
-lemma fiber_eq (m : Multisegment) (k : ℕ) : fiber m k = (((bucket m k).insertionSort (fun s t => subsegment (Subtype.val t) (Subtype.val s)))).map (·.val) := by
+lemma fiber_eq (m : Multisegment) (k : ℕ) : fiber m k = (Proof.sortedBucket m k).map (·.val) := by
   unfold fiber
   rw [anyOf_eq (first_mem _ (admissibleEnumerations_nonempty m k))]
   have h := pmap_eq_sortedBucket (first_mem _ (admissibleEnumerations_nonempty m k))
