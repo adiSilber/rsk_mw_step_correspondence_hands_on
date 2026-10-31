@@ -33,9 +33,10 @@ register_option autoProp.rule : Bool := {
 namespace AutoProp
 open Lean Elab Term Meta
 
-/-- If `e` still expects a proof argument, the proposition it expects. -/
+/-- If `e` still expects a proof argument, the proposition it expects. (Only abbreviations are
+looked through: `a ≠ b` or `¬ p` is a statement, not a term waiting for a proof of `a = b`.) -/
 def missingProof? (e : Expr) : TermElabM (Option Expr) := do
-  let .forallE _ p _ _ ← whnf (← instantiateMVars (← inferType e)) | return none
+  let .forallE _ p _ _ ← whnfR (← instantiateMVars (← inferType e)) | return none
   return if ← isProp p then some p else none
 
 /-- A proof of `p` by `auto_prop`, found right now if possible; if `later`, it may also be
@@ -67,9 +68,26 @@ where
 type does not depend on them). -/
 partial def resultType (ty : Expr) : TermElabM Expr := do
   let ty ← instantiateMVars ty
-  if let .forallE _ p b _ ← whnf ty then
+  if let .forallE _ p b _ ← whnfR ty then
     if (← isProp p) && !b.hasLooseBVars then return ← resultType b
   return ty
+
+/-- The proofs `e` still expects, found by `auto_prop`. A proof may be left for later when the
+term is clearly not meant as a function: a type is expected, or the term is an object (not a
+proof) that is not a function once its proofs are supplied. -/
+def fillProofs (e : Expr) (expected? : Option Expr) : TermElabM Expr := do
+  let later ← match expected? with
+    | some _ => pure true
+    | none => do
+      let ty ← inferType e
+      let r ← whnf (← resultType ty)
+      pure (!(← isProp ty) && !r.isForall && !r.isMVar)
+  let mut e := e
+  repeat
+    let some p ← missingProof? e | break
+    let some h ← prove? p later | break
+    e := mkApp e h
+  return e
 
 /-- Fundamental rule: when an application `f a b` still expects proof arguments (and no
 function is expected), each missing proof is found by `auto_prop`. -/
@@ -79,37 +97,29 @@ function is expected), each missing proof is found by `auto_prop`. -/
   let expected? ← match expected? with
     | some t => do let t ← instantiateMVars t; pure (if t.isMVar then none else some t)
     | none => pure none
-  let mut e ← elabApp stx expected?
+  let e ← elabApp stx expected?
   if let some t := expected? then
     if (← whnf t).isForall then return e        -- a function is wanted: leave it alone
     -- the type once the proofs are supplied is the expected one: say so now, so that the
     -- parts of the term still waiting for their type can proceed before the proofs are sought
     discard <| observing? (isDefEq (← resultType (← inferType e)) t)
-  -- a proof may be left for later when the term is clearly not meant as a function: a type
-  -- is expected, or the term is an object (not a proof) that is not a function once its
-  -- proofs are supplied
-  let later ← match expected? with
-    | some _ => pure true
-    | none => do
-      let ty ← inferType e
-      let r ← whnf (← resultType ty)
-      pure (!(← isProp ty) && !r.isForall && !r.isMVar)
-  repeat
-    let some p ← missingProof? e | break
-    let some h ← prove? p later | break
-    e := mkApp e h
-  return e
+  fillProofs e expected?
 
-/-- The same rule for the head of a field access, `(f a b).field`: the head is read first (so
-its missing proofs are filled), then the field is taken. -/
+/-- The same rule for the head of a field access, `(f a b).field` or `(x.f).field`: the head
+is read first and, when it is an object, its missing proofs are filled; then the field is
+taken. (An application is already complete after reading; a proof is left alone.) -/
 @[term_elab proj] def elabProj' : TermElab := fun stx expected? => do
   unless (← getOptions).getBool `autoProp.rule true do throwUnsupportedSyntax
   let head := stx[0]
   let inner := if head.isOfKind ``Parser.Term.paren then head[1] else head
-  unless inner.isOfKind ``Parser.Term.app do throwUnsupportedSyntax
+  unless inner.isOfKind ``Parser.Term.app || inner.isOfKind ``Parser.Term.proj
+      || inner.isIdent do throwUnsupportedSyntax
   let e ← elabTerm inner none
-  let stx' := stx.setArg 0 (← exprToSyntax e)
-  elabTerm stx' expected?
+  let e' ← if inner.isOfKind ``Parser.Term.app || (← isProp (← inferType e)) then pure e
+    else fillProofs e none
+  -- a head that needed nothing is read as usual
+  if !inner.isOfKind ``Parser.Term.app && e' == e then throwUnsupportedSyntax
+  elabTerm (stx.setArg 0 (← exprToSyntax e')) expected?
 
 end AutoProp
 
@@ -147,12 +157,6 @@ attribute [grind] Function.Injective
 instance {α} [DecidableEq α] (l : List α) : Fintype {x | x ∈ l} := Fintype.ofFinset l.toFinset
 instance {α β} [DecidableEq β] (l : List α) (f : α → β) : Fintype {y | ∃ x ∈ l, f x = y} :=
   Fintype.ofFinset (l.map f).toFinset
-
-/-- The members of `a :: l`, and their images, form nonempty sets (witness `a`, `f a`). -/
-instance {α} (a : α) (l : List α) : Nonempty ↥{x | x ∈ a :: l} :=
-  Set.Nonempty.to_subtype (Set.nonempty_of_mem (s := {x | x ∈ a :: l}) (x := a))
-instance {α β} (s : α) (ss : List α) (f : α → β) : Nonempty ↥{y | ∃ x ∈ s :: ss, f x = y} :=
-  Set.Nonempty.to_subtype (Set.nonempty_of_mem (s := {y | ∃ x ∈ s :: ss, f x = y}) (x := f s))
 
 /-- The maximum of a finite, nonempty set. -/
 def maximum [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
@@ -199,12 +203,11 @@ macro "[" x:ident " ∈ " l:term " | " p:term "]" : term =>
   `(List.filter (fun ⟨$x, _⟩ => decide $p) (List.attach $l))
 
 /-- List comprehension `[f | b₁, …, bₙ]`: the values of `f` for each choice of the binders,
-in order, with repeats. A binder is `x ∈ l`, `(x, y) ∈ l`, `k ≤ n`, `k < n`, or a condition
-`p` (keeping only the choices for which it holds). Inside `f` (and in later binders) the facts
+in order, with repeats. A binder is `x ∈ l`, `k ≤ n`, `k < n`, or a condition `p` (keeping
+only the choices for which it holds; it comes last). Inside `f` (and in later binders) the facts
 `x ∈ l`, `k ≤ n`, `k < n` and `p` are available, so that `l'[x]`-like terms need no proof. -/
 declare_syntax_cat comprehension_binder
 syntax (name := memBinder) ident " ∈ " term : comprehension_binder
-syntax (name := pairBinder) "(" ident ", " ident ")" " ∈ " term : comprehension_binder
 syntax (name := leBinder) ident " ≤ " term : comprehension_binder
 syntax (name := ltBinder) ident " < " term : comprehension_binder
 syntax (name := condBinder) (priority := low) term : comprehension_binder
@@ -218,19 +221,9 @@ syntax (name := comprehension) "[" term " | " comprehension_binder,+ "]" : term
 macro_rules
   | `([$f | $x:ident ∈ $l, $bs,*]) =>
     `(List.flatMap (fun ⟨$x, hx⟩ => [$f | $bs,*]) (List.attach $l))
-macro_rules
-  | `([$f | ($x:ident, $y:ident) ∈ $l, $bs,*]) =>
-    `(List.flatMap (fun ⟨($x, $y), hx⟩ => [$f | $bs,*]) (List.attach $l))
 macro_rules | `([$f | $k:ident ≤ $n, $bs,*]) => `([$f | $k:ident ∈ List.range ($n + 1), $bs,*])
 macro_rules | `([$f | $k:ident < $n, $bs,*]) => `([$f | $k:ident ∈ List.range $n, $bs,*])
-macro_rules | `([$f | $p:term, $bs,*]) => `(if h : $p then [$f | $bs,*] else [])
 macro_rules | `([$f | $x:ident ∈ $l]) => `(List.map (fun ⟨$x, hx⟩ => $f) (List.attach $l))
-macro_rules
-  | `([$f | ($x:ident, $y:ident) ∈ $l]) =>
-    `(List.map (fun ⟨($x, $y), hx⟩ => $f) (List.attach $l))
 macro_rules | `([$f | $k:ident ≤ $n]) => `([$f | $k:ident ∈ List.range ($n + 1)])
 macro_rules | `([$f | $k:ident < $n]) => `([$f | $k:ident ∈ List.range $n])
 macro_rules | `([$f | $p:term]) => `(if h : $p then [$f] else [])
-
-
--- todo: write the autogenerate versions of maximum for other set functions
