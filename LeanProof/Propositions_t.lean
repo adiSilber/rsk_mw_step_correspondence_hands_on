@@ -6,4 +6,4 @@ import LeanProof.MW2_t
 import LeanProof.MW2_u
 
 def min_m_lt_min_lm (m : Multisegment) (h : m.segments ≠ []) : Prop :=
-  (m.segments.head h).a < ((sorted (RSK.ladderRungs m)).head (RSK.ladderRungs_ne_nil m h)).a
+  (m.segments.head h).a < ((sorted (ladderRungs m)).head).a

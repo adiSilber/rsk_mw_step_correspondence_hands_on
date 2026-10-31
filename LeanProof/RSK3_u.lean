@@ -292,6 +292,10 @@ lemma ladderRungs_ne_nil (m : Multisegment) (h : m.segments ≠ []) :
   apply List.ne_nil_of_mem (a := r)
   exact mem_sorted.mpr (mem_ladderRungs.mpr ⟨_, hr⟩)
 
+-- `auto_prop` may use it wherever `ladderRungs m` occurs: `(sorted (ladderRungs m)).head`
+-- then needs no proof. (`grind →` instead fires on every `m.segments ≠ []` and times out.)
+grind_pattern ladderRungs_ne_nil => ladderRungs m
+
 seal maximum first in
 /-- Membership in `bucketResidual`, unfolded: `w = [Δᵢ.a, Δᵢ₊₁.b]` for some position `i`. -/
 lemma mem_bucketResidual_iff {m : Multisegment} {d : ℕ} {w : Segment} :
