@@ -26,7 +26,7 @@ lemma isLadder_sorted (segments : List Segment) :
   exact (Segment.le_def a b).mpr (Or.inl aa)
 
 
-lemma sorted_Sublist_append (R : α → α → Prop) [hasym : Std.Antisymm R]
+lemma sorted_Sublist_append {α : Type*} (R : α → α → Prop) [hasym : Std.Antisymm R]
     (l l₀: List α) (sorted : l.Pairwise R) (a : α) :
     l₀ <+ l → a ∈ l → a ∉ l₀ → (∀ b, b ∈ l₀ → R a b) → a :: l₀ <+ l := by
   intros hsub hal hal₀ hrba
@@ -49,12 +49,12 @@ lemma sorted_Sublist_append (R : α → α → Prop) [hasym : Std.Antisymm R]
     · aesop
   · rw [hl₁₂]; aesop
 
-lemma Pairwise_append (l : List α) (a : α) R :
+lemma Pairwise_append {α : Type*} (l : List α) (a : α) R :
   l.Pairwise R -> (forall i, i ∈ l -> R i a) -> (l ++ [a]).Pairwise R := by
   intros h1 h2
   rw [List.pairwise_append]; aesop
 
-lemma Pairwise_ReflGen_rel_getHead (R : α → α → Prop) (l : List α) (a : α)
+lemma Pairwise_ReflGen_rel_getHead {α : Type*} (R : α → α → Prop) (l : List α) (a : α)
     (h₁ : List.Pairwise R l) (ha : a ∈ l) :
     Relation.ReflGen R (l.head <| List.ne_nil_of_mem ha) a := by
   cases l with

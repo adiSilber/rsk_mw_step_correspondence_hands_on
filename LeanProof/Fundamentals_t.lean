@@ -158,19 +158,20 @@ instance {α β} [DecidableEq β] (l : List α) (f : α → β) : Fintype {y | �
   Fintype.ofFinset (l.map f).toFinset
 
 /-- The maximum of a finite, nonempty set. -/
-def maximum [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
+def maximum {α : Type*} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
   S.toFinset.max' (Set.toFinset_nonempty.mpr h)
 
 /-- The first element of a finite, nonempty set. -/
-def first [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
+def first {α : Type*} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
   S.toFinset.min' (Set.toFinset_nonempty.mpr h)
 
 /-- The elements of a finite set, in increasing order. -/
-def sorted [LinearOrder α] (S : Set α) [Fintype S] : List α :=
+def sorted {α : Type*} [LinearOrder α] (S : Set α) [Fintype S] : List α :=
   S.toFinset.sort (· ≤ ·)
 
 /-- The elements of a list in increasing order, repeats kept. -/
-def List.increasing [LinearOrder α] (l : List α) : List α := l.insertionSort (· ≤ ·)
+def List.increasing {α : Type*} [LinearOrder α] (l : List α) : List α :=
+  l.insertionSort (· ≤ ·)
 -- `auto_prop` knows what it is, and (Mathlib) that an insertion sort is sorted.
 attribute [grind] List.increasing
 attribute [grind .] List.pairwise_insertionSort
@@ -178,7 +179,8 @@ attribute [grind .] List.pairwise_insertionSort
 /-- `let x ∈ S; e`: `e` for an arbitrary element `x` of `S`. It is well defined because `e`
 takes the same value at every element of `S` — a proof Lean demands (and `auto_prop` finds),
 together with `S` being nonempty. (To compute, `e` is evaluated at `first S`.) -/
-def anyOf [LinearOrder α] (S : Set α) [Fintype S] (f : (x : α) → x ∈ S → β) (h : S.Nonempty)
+def anyOf {α : Type*} {β : Sort*} [LinearOrder α] (S : Set α) [Fintype S]
+    (f : (x : α) → x ∈ S → β) (h : S.Nonempty)
     (_hf : ∀ x (hx : x ∈ S) y (hy : y ∈ S), f x hx = f y hy) : β :=
   f (first S h) (Set.mem_toFinset.mp (Finset.min'_mem _ _))
 
