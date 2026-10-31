@@ -28,25 +28,27 @@ lemma depth_le_maxDepth (m : Multisegment) (s : Segment) (hs : s ∈ m.segments)
 
 /-- The rung dominates its bucket coordinatewise, and each coordinate is attained. -/
 lemma bucketRung_spec (m : Multisegment) (d : ℕ) (r : Segment)
-    (h : bucketRung m d = some r) :
+    (h : Proof.bucketRung? m d = some r) :
     (∀ x ∈ (Proof.sortedBucket m d).map (·.val), x.a ≤ r.a ∧ x.b ≤ r.b) ∧
     (∃ x ∈ (Proof.sortedBucket m d).map (·.val), x.a = r.a) ∧
     (∃ x ∈ (Proof.sortedBucket m d).map (·.val), x.b = r.b) := by
-  rcases hL : (Proof.sortedBucket m d).map (·.val) with _ | ⟨s, ss⟩
-  · simp [bucketRung, fiber_eq, hL] at h
-  · simp only [bucketRung, fiber_eq, hL, Option.some.injEq] at h
-    subst h
-    rw [hL]
-    refine ⟨fun x hx => ⟨?_, ?_⟩, ?_, ?_⟩
-    · exact le_maximum {(x.a) | x ∈ s :: ss} (nonempty_image_cons _ _ _) ⟨x, hx, rfl⟩
-    · exact le_maximum {(x.b) | x ∈ s :: ss} (nonempty_image_cons _ _ _) ⟨x, hx, rfl⟩
-    · exact maximum_mem {(x.a) | x ∈ s :: ss} (nonempty_image_cons _ _ _)
-    · exact maximum_mem {(x.b) | x ∈ s :: ss} (nonempty_image_cons _ _ _)
+  obtain ⟨hne, rfl⟩ := bucketRung?_eq_some_iff.mp h
+  rw [← fiber_eq]
+  -- the `id` left by the `Segment a b` notation blocks the projection: strip it first
+  have ha : (bucketRung m d hne).a
+      = maximum {(x.a) | x ∈ fiber m d} (fiber_begins_nonempty m d hne) := by
+    simp only [bucketRung, Segment.a, id_eq]
+  have hb : (bucketRung m d hne).b
+      = maximum {(x.b) | x ∈ fiber m d} (fiber_ends_nonempty m d hne) := by
+    simp only [bucketRung, Segment.b, id_eq]
+  rw [ha, hb]
+  exact ⟨fun x hx => ⟨le_maximum _ _ ⟨x, hx, rfl⟩, le_maximum _ _ ⟨x, hx, rfl⟩⟩,
+    maximum_mem {(x.a) | x ∈ fiber m d} _, maximum_mem {(x.b) | x ∈ fiber m d} _⟩
 
 /-- Consecutive rungs are strictly `≪`: the depth-`(d+1)` rung sits below depth-`d`. -/
 lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)
-    (hr_d : bucketRung m d = some r_d)
-    (hr_succ : bucketRung m (d + 1) = some r_succ) :
+    (hr_d : Proof.bucketRung? m d = some r_d)
+    (hr_succ : Proof.bucketRung? m (d + 1) = some r_succ) :
     r_succ ≪ r_d := by
   obtain ⟨dom_d, _, _⟩ := bucketRung_spec m d r_d hr_d
   obtain ⟨_, ⟨sa, hsa_mem, hsa⟩, ⟨sb, hsb_mem, hsb⟩⟩ := bucketRung_spec m (d + 1) r_succ hr_succ
@@ -61,17 +63,17 @@ lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)
 
 /-- A nonempty bucket yields a rung. -/
 lemma bucketRung_some_of_mem (m : Multisegment) (d : ℕ) (x : Segment)
-    (hx : x ∈ (Proof.sortedBucket m d).map (·.val)) : ∃ r, bucketRung m d = some r := by
-  rcases hL : (Proof.sortedBucket m d).map (·.val) with _ | ⟨s, ss⟩
-  · rw [hL] at hx; simp at hx
-  · exact ⟨_, by simp only [bucketRung, fiber_eq, hL]; rfl⟩
+    (hx : x ∈ (Proof.sortedBucket m d).map (·.val)) : ∃ r, Proof.bucketRung? m d = some r := by
+  have hne : fiber m d ≠ [] := by rw [fiber_eq]; exact List.ne_nil_of_mem hx
+  exact ⟨_, bucketRung?_eq_some_iff.mpr ⟨hne, rfl⟩⟩
 
 /-- One step down: a depth-`(d+1)` rung implies a depth-`d` rung strictly above it.
 The bucket below is nonempty because the head of bucket `d+1` has a predecessor at depth `d`. -/
 lemma bucketRung_pred (m : Multisegment) (d : ℕ) (r : Segment)
-    (hr : bucketRung m (d + 1) = some r) : ∃ r_d, bucketRung m d = some r_d ∧ r ≪ r_d := by
+    (hr : Proof.bucketRung? m (d + 1) = some r) :
+    ∃ r_d, Proof.bucketRung? m d = some r_d ∧ r ≪ r_d := by
   rcases hL : (Proof.sortedBucket m (d + 1)).map (·.val) with _ | ⟨s, _⟩
-  · simp [bucketRung, fiber_eq, hL] at hr
+  · exact absurd (by rw [fiber_eq, hL] : fiber m (d + 1) = []) (fiber_ne_nil_of_bucketRung? hr)
   obtain ⟨xs, hxs_bk, _⟩ := List.mem_map.mp (hL ▸ List.mem_cons_self : s ∈ _)
   have hxs_d : depth_of_segment m xs.val xs.property = d + 1 := by simpa [bucket] using hxs_bk
   obtain ⟨t, ht_in, ht_d, _⟩ := exists_pred_at_depth m d xs.val xs.property hxs_d
@@ -81,8 +83,8 @@ lemma bucketRung_pred (m : Multisegment) (d : ℕ) (r : Segment)
 
 /-- Any deeper rung is strictly `≪` a shallower one — iterate `bucketRung_pred` down. -/
 lemma rung_lt_ll (m : Multisegment) :
-    ∀ (d : ℕ) (r : Segment), bucketRung m d = some r →
-      ∀ d', d' < d → ∃ r', bucketRung m d' = some r' ∧ r ≪ r' := by
+    ∀ (d : ℕ) (r : Segment), Proof.bucketRung? m d = some r →
+      ∀ d', d' < d → ∃ r', Proof.bucketRung? m d' = some r' ∧ r ≪ r' := by
   intro d
   induction d with
   | zero => intro r _ d' hd'; exact absurd hd' (Nat.not_lt_zero d')
@@ -100,12 +102,12 @@ lemma range_reverse_succ (n : ℕ) :
 
 /-- The rungs listed deepest-first are pairwise `≪`. -/
 lemma pairwise_rungs (m : Multisegment) (n : ℕ) :
-    ((List.range n).reverse.filterMap (bucketRung m)).Pairwise (· ≪ ·) := by
+    ((List.range n).reverse.filterMap (Proof.bucketRung? m)).Pairwise (· ≪ ·) := by
   induction n with
   | zero => simp
   | succ n ih =>
     rw [range_reverse_succ]
-    rcases hn : bucketRung m n with _ | r_n
+    rcases hn : Proof.bucketRung? m n with _ | r_n
     · simp only [List.filterMap_cons, hn]; exact ih
     · simp only [List.filterMap_cons, hn]
       refine List.pairwise_cons.2 ⟨fun y hy => ?_, ih⟩
@@ -117,12 +119,12 @@ lemma pairwise_rungs (m : Multisegment) (n : ℕ) :
 
 /-- A rung exists only if `m` is nonempty. -/
 lemma ne_nil_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
-    (h : bucketRung m k = some r) : m.segments ≠ [] :=
+    (h : Proof.bucketRung? m k = some r) : m.segments ≠ [] :=
   List.ne_nil_of_length_pos (by have := lt_length_of_bucketRung h; omega)
 
 /-- A rung exists only at depths `≤ maxDepth`. -/
 lemma le_maxDepth_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
-    (h : bucketRung m k = some r) : k ≤ maxDepth m (ne_nil_of_bucketRung h) := by
+    (h : Proof.bucketRung? m k = some r) : k ≤ maxDepth m (ne_nil_of_bucketRung h) := by
   obtain ⟨-, ⟨x, hx, -⟩, -⟩ := bucketRung_spec m k r h
   obtain ⟨⟨y, hy⟩, hybk, rfl⟩ := List.mem_map.mp hx
   have hd : depth_of_segment m y hy = k := by simpa [bucket] using hybk
@@ -132,13 +134,18 @@ lemma le_maxDepth_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
 
 /-- `r ∈ 𝔩(m)` iff `r` is the rung of some fiber. -/
 lemma mem_ladderRungs {m : Multisegment} {r : Segment} :
-    r ∈ ladderRungs m ↔ ∃ k, bucketRung m k = some r := Iff.rfl
+    r ∈ ladderRungs m ↔ ∃ k, Proof.bucketRung? m k = some r :=
+  ⟨fun ⟨k, hk, hr⟩ => ⟨k, bucketRung?_eq_some_iff.mpr ⟨hk, hr⟩⟩,
+   fun ⟨k, hk⟩ => let ⟨h, hr⟩ := bucketRung?_eq_some_iff.mp hk; ⟨k, h, hr⟩⟩
 
 -- `Fintype` instances, not `Decidable` ones (the set of rungs, as `ladderRungs` and as the
 -- first component of `rsk_step`): allowed in a `_u` file because any two such instances agree,
 -- but they may be a little dangerous — to be checked (see TODO.md).
 instance (m : Multisegment) : Fintype (ladderRungs m) :=
-  inferInstanceAs (Fintype { r | ∃ k, bucketRung m k = some r })
+  Fintype.ofFinset ((List.range m.segments.length).filterMap (Proof.bucketRung? m)).toFinset
+    (fun r => by
+      simp only [List.mem_toFinset, List.mem_filterMap, List.mem_range, mem_ladderRungs]
+      exact ⟨fun ⟨k, _, hk⟩ => ⟨k, hk⟩, fun ⟨k, hk⟩ => ⟨k, lt_length_of_bucketRung hk, hk⟩⟩)
 
 instance (m : Multisegment) (h : m.segments ≠ []) : Fintype (rsk_step m h).1 :=
   inferInstanceAs (Fintype (ladderRungs m))
@@ -146,8 +153,10 @@ instance (m : Multisegment) (h : m.segments ≠ []) : Fintype (rsk_step m h).1 :
 /-- The proofs work with the rungs as a list, sorted: deepest-first, it is the rungs of depth
 `maxDepth`, …, `0`. -/
 lemma ladderRungs_eq (m : Multisegment) (hm : m.segments ≠ []) :
-    sorted (ladderRungs m) = (List.range (maxDepth m hm + 1)).reverse.filterMap (bucketRung m) := by
-  have hlt : ((List.range (maxDepth m hm + 1)).reverse.filterMap (bucketRung m)).Pairwise (· < ·) :=
+    sorted (ladderRungs m)
+      = (List.range (maxDepth m hm + 1)).reverse.filterMap (Proof.bucketRung? m) := by
+  have hlt : ((List.range (maxDepth m hm + 1)).reverse.filterMap (Proof.bucketRung? m)).Pairwise
+      (· < ·) :=
     (pairwise_rungs m _).imp fun {x y} h =>
       lt_of_le_of_ne ((Segment.le_def x y).mpr (Or.inl h.1)) (fun he => by
         subst he; exact lt_irrefl _ h.1)

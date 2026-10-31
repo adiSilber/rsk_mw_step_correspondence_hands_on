@@ -29,9 +29,9 @@ lemmas (`ladderRungs_isLadder`, Lemma 2.2, Corollary 2.3) live in `RSK3_u`. -/
 def maxDepth (m : Multisegment) (h : m.segments ≠ []) : ℕ :=
   maximum [depth_of_segment m s | s ∈ m.segments]
 
-/-- `𝔩(m)`: the rungs of all fibers. -/
+/-- `𝔩(m)`: the rungs of all nonempty fibers. -/
 def ladderRungs (m : Multisegment) : Set Segment :=
-  { r | ∃ k, bucketRung m k = some r }
+  {bucketRung m d | (d : ℕ) (_ : fiber m d ≠ [])}
 
 /-- Paper (2.1a): `Δ'_i = [b(Δ_i), e(Δ_{i^∨})]` where `Δ_{i^∨} = Δ_{i+1}` is
 the next segment of the fiber `𝔡⁻¹(d)` (in the order of our enumeration). -/

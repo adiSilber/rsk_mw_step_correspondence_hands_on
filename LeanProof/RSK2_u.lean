@@ -44,27 +44,33 @@ lemma depth_set_nonempty (m : Multisegment) (h : m.segments ≠ []) :
 grind_pattern depth_set_nonempty =>
   Multisegment.segments m, Set.Nonempty {x | x ∈ [depth_of_segment m s | s ∈ m.segments]}
 
+namespace Proof
+/-- Proof-side: the rung as an `Option`, `none` for an empty fiber. The proofs speak of
+`bucketRung? m d = some r`; `RSK2_t` has `bucketRung m d h`, with the fiber's nonemptiness `h`. -/
+def bucketRung? (m : Multisegment) (d : ℕ) : Option Segment :=
+  if h : fiber m d ≠ [] then some (bucketRung m d h) else none
+end Proof
+
+lemma bucketRung?_eq_some_iff {m : Multisegment} {d : ℕ} {r : Segment} :
+    Proof.bucketRung? m d = some r ↔ ∃ h : fiber m d ≠ [], bucketRung m d h = r := by
+  unfold Proof.bucketRung?
+  split
+  · rename_i hne
+    exact ⟨fun h => ⟨hne, Option.some.inj h⟩, fun ⟨_, h⟩ => congrArg some h⟩
+  · rename_i hnil
+    exact ⟨fun h => (nomatch h), fun ⟨h, _⟩ => absurd h hnil⟩
+
+lemma fiber_ne_nil_of_bucketRung? {m : Multisegment} {d : ℕ} {r : Segment}
+    (h : Proof.bucketRung? m d = some r) : fiber m d ≠ [] :=
+  (bucketRung?_eq_some_iff.mp h).1
+
 /-- A rung exists only at the depth of some segment, so below `m.segments.length`. -/
 lemma lt_length_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
-    (h : bucketRung m k = some r) : k < m.segments.length := by
-  unfold bucketRung at h
-  split at h
-  · exact absurd h (by simp)
-  · rename_i s ss hfib
-    have hs : s ∈ fiber m k := by rw [hfib]; simp
-    rw [fiber_eq] at hs
-    obtain ⟨⟨s, hsm⟩, hsb, rfl⟩ := List.mem_map.mp hs
-    rw [mem_sortedBucket] at hsb
-    have hd : depth_of_segment m s hsm = k := by simpa [bucket] using hsb
-    rw [← hd]
-    exact lt_length_of_mem_depthSet (depth_of_segment_mem m s hsm)
-
-/-- The set of rungs is finite: it is computed from the depths below `m.segments.length`. -/
--- A `Fintype` instance, not a `Decidable` one: it carries a computed list. Allowed in a `_u`
--- file because any two such instances agree, but it may be a little dangerous — to be checked
--- (see TODO.md).
-instance (m : Multisegment) : Fintype { r | ∃ k, bucketRung m k = some r } :=
-  Fintype.ofFinset ((List.range m.segments.length).filterMap (bucketRung m)).toFinset
-    (fun r => by
-      simp only [List.mem_toFinset, List.mem_filterMap, List.mem_range, Set.mem_setOf_eq]
-      exact ⟨fun ⟨k, _, hk⟩ => ⟨k, hk⟩, fun ⟨k, hk⟩ => ⟨k, lt_length_of_bucketRung hk, hk⟩⟩)
+    (h : Proof.bucketRung? m k = some r) : k < m.segments.length := by
+  obtain ⟨s, hs⟩ := List.exists_mem_of_ne_nil _ (fiber_ne_nil_of_bucketRung? h)
+  rw [fiber_eq] at hs
+  obtain ⟨⟨s, hsm⟩, hsb, rfl⟩ := List.mem_map.mp hs
+  rw [mem_sortedBucket] at hsb
+  have hd : depth_of_segment m s hsm = k := by simpa [bucket] using hsb
+  rw [← hd]
+  exact lt_length_of_mem_depthSet (depth_of_segment_mem m s hsm)

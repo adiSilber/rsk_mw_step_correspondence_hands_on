@@ -31,12 +31,16 @@ def m_complex : Multisegment :=
 def m_repeated : Multisegment :=
   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩], by decide⟩
 
-#eval bucketRung m_complex 0  -- some (6, 200)
-#eval bucketRung m_complex 1  -- some (5, 100)
-#eval bucketRung m_complex 2  -- none (no segment at depth 2)
-#eval bucketRung m_repeated 0  -- some (2, 4)
-#eval bucketRung m_repeated 1  -- some (1, 3)
-#eval bucketRung m_repeated 2  -- none
+-- The rung needs the fiber nonempty, a proof `decide` cannot produce (it would have to run
+-- `fiber`), so the examples ask through `rung?`: `none` for an empty fiber.
+def rung? (m : Multisegment) (d : ℕ) : Option Segment :=
+  if h : fiber m d ≠ [] then some (bucketRung m d h) else none
+#eval rung? m_complex 0  -- some (6, 200)
+#eval rung? m_complex 1  -- some (5, 100)
+#eval rung? m_complex 2  -- none (no segment at depth 2)
+#eval rung? m_repeated 0  -- some (2, 4)
+#eval rung? m_repeated 1  -- some (1, 3)
+#eval rung? m_repeated 2  -- none
 
 #eval maxDepth m_complex  -- 1 (deepest segments sit at depth 1)
 #eval maxDepth m_repeated -- 1 (the repeated `(1,3)` segments can both precede `(2,4)`)

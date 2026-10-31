@@ -96,7 +96,7 @@ lemma residual_begin_ge (m : Multisegment) (sₘ : Segment)
 head first). -/
 lemma ladderHead_le_rung (m : Multisegment) (s_l : Segment)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hm : m.segments ≠ [])
-    (d : ℕ) (_hd : d ≤ maxDepth m) (r : Segment) (hr : bucketRung m d = some r) :
+    (d : ℕ) (_hd : d ≤ maxDepth m) (r : Segment) (hr : Proof.bucketRung? m d = some r) :
     s_l.a ≤ r.a := by
   have hr_mem : r ∈ sorted (ladderRungs m) := mem_sorted.mpr (mem_ladderRungs.mpr ⟨d, hr⟩)
   have hlad : (sorted (ladderRungs m)).Pairwise (· ≪ ·) := by
@@ -174,7 +174,7 @@ lemma minPreserved
 /-- Rung begins grow by at least the depth gap: the rung `n` levels shallower than depth
 `d + n` has begin at least `n` larger. -/
 lemma rung_a_gap (m : Multisegment) : ∀ (n d : ℕ) (r r' : Segment),
-    bucketRung m d = some r → bucketRung m (d + n) = some r' → r'.a + n ≤ r.a := by
+    Proof.bucketRung? m d = some r → Proof.bucketRung? m (d + n) = some r' → r'.a + n ≤ r.a := by
   intro n
   induction n with
   | zero =>
@@ -227,7 +227,7 @@ lemma chain_seg_lt_rung (m : Multisegment) (sₘ s_l : Segment)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (σ : Segment) (hσ : σ ∈ (Proof.greedyChain m).val.segments)
     (hσm : σ ∈ m.segments)
-    (r : Segment) (hr : bucketRung m (depth_of_segment m σ hσm) = some r) :
+    (r : Segment) (hr : Proof.bucketRung? m (depth_of_segment m σ hσm) = some r) :
     σ.a < r.a := by
   have hsₘm : sₘ ∈ m.segments := by rw [head?_eq_cons hsₘ]; exact List.mem_cons_self
   obtain ⟨j, hj⟩ := List.mem_iff_getElem?.mp hσ
@@ -1254,7 +1254,7 @@ lemma maxDepth_attained (M : Multisegment) (hM : M.segments ≠ []) :
 
 /-- Every depth up to `maxDepth` carries a rung. -/
 lemma rung_exists (M : Multisegment) (hM : M.segments ≠ []) (d : ℕ)
-    (hd : d ≤ maxDepth M) : ∃ r, bucketRung M d = some r := by
+    (hd : d ≤ maxDepth M) : ∃ r, Proof.bucketRung? M d = some r := by
   obtain ⟨x, hx, hxd⟩ := maxDepth_attained M hM
   rcases Nat.lt_or_ge d (maxDepth M) with hlt | hge
   · obtain ⟨x', hx', hx'd, -⟩ := exists_lower_ll (maxDepth M) M x hx hxd d hlt
@@ -1265,15 +1265,15 @@ lemma rung_exists (M : Multisegment) (hM : M.segments ≠ []) (d : ℕ)
 
 /-- Rung begins are antitone in depth (already with the exact gap). -/
 lemma rung_a_mono (M : Multisegment) (d t : ℕ) (hdt : d ≤ t)
-    (r_d r_t : Segment) (hr_d : bucketRung M d = some r_d)
-    (hr_t : bucketRung M t = some r_t) : r_t.a ≤ r_d.a := by
+    (r_d r_t : Segment) (hr_d : Proof.bucketRung? M d = some r_d)
+    (hr_t : Proof.bucketRung? M t = some r_t) : r_t.a ≤ r_d.a := by
   have := rung_a_gap M (t - d) d r_d r_t hr_d (by rw [Nat.add_sub_cancel' hdt]; exact hr_t)
   omega
 
 /-- Rung ends are antitone in depth. -/
 lemma rung_b_mono (M : Multisegment) (d t : ℕ) (hdt : d ≤ t)
-    (r_d r_t : Segment) (hr_d : bucketRung M d = some r_d)
-    (hr_t : bucketRung M t = some r_t) : r_t.b ≤ r_d.b := by
+    (r_d r_t : Segment) (hr_d : Proof.bucketRung? M d = some r_d)
+    (hr_t : Proof.bucketRung? M t = some r_t) : r_t.b ≤ r_d.b := by
   rcases Nat.lt_or_ge d t with hlt | hge
   · obtain ⟨r', hr', hll⟩ := rung_lt_ll M t r_t hr_t d hlt
     rw [hr_d] at hr'
@@ -1333,7 +1333,7 @@ lemma mdag_fiber_bounds (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (hmax : m.segments ≠ [])
-    (d : ℕ) (r_d : Segment) (hr_d : bucketRung m d = some r_d)
+    (d : ℕ) (r_d : Segment) (hr_d : Proof.bucketRung? m d = some r_d)
     (y : Segment)
     (hy' : y ∈ (Proof.residualAlong m (Proof.greedyChain m).val.segments).segments)
     (hyd : depth_of_segment (Proof.residualAlong m (Proof.greedyChain m).val.segments) y hy' = d) :
@@ -1391,7 +1391,7 @@ lemma mdag_fiber_attains (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (_ : m.segments ≠ [])
-    (d : ℕ) (r_d : Segment) (hr_d : bucketRung m d = some r_d) :
+    (d : ℕ) (r_d : Segment) (hr_d : Proof.bucketRung? m d = some r_d) :
     (∃ y, ∃ hy' : y ∈ (Proof.residualAlong m (Proof.greedyChain m).val.segments).segments,
       depth_of_segment (Proof.residualAlong m (Proof.greedyChain m).val.segments) y hy' = d ∧
       y.a = r_d.a) ∧
@@ -1498,8 +1498,8 @@ lemma mdag_rung_eq (m : Multisegment) (sₘ s_l : Segment)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (hmax : m.segments ≠ [])
     (d : ℕ) (hd : d ≤ maxDepth m) :
-    bucketRung (Proof.residualAlong m (Proof.greedyChain m).val.segments) d
-      = bucketRung m d := by
+    Proof.bucketRung? (Proof.residualAlong m (Proof.greedyChain m).val.segments) d
+      = Proof.bucketRung? m d := by
   obtain ⟨r_d, hr_d⟩ := rung_exists m hmax d hd
   obtain ⟨⟨yA, hyA', hyAd, hyAa⟩, ⟨yB, hyB', hyBd, hyBb⟩⟩ :=
     mdag_fiber_attains m sₘ s_l hsₘ hs_l hmin hmax d r_d hr_d
