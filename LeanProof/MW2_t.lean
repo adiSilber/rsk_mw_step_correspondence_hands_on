@@ -15,19 +15,16 @@ Paper §MW: for a nonzero multisegment `m`, with `i₁, …, i_k` a sequence of 
 segment `Δ^MW(m) = [b(Δ_{i₁}), b(Δ_{i₁}) + k − 1]`.
 -/
 
-namespace MW
-
 def leadingChain (m : Multisegment) (h : m.segments ≠ []) : List Segment :=
   let i ∈ leadingIndices m; [m.segments[j] | j ∈ i]
 
 def makeResidual (m : Multisegment) (h : m.segments ≠ []) : Multisegment :=
   let i ∈ leadingIndices m;
-  [m.segments[j] | j < m.segments.length, j ∉ i] + [segmentResidual m.segments[j] | j ∈ i]
+  [m.segments[j] | j < m.segments.length, j ∉ i]
+    ++ [segmentResidual m.segments[j] | j ∈ i, m.segments[j].a < m.segments[j].b]
 
 def deltaCirc (m : Multisegment) (h : m.segments ≠ []) : Segment :=
   let i ∈ leadingIndices m; Segment m.segments[i[0]].a m.segments[i[i.length - 1]].a
 
 def mw_step (m : Multisegment) (h : m.segments ≠ []) : Segment × Multisegment :=
   (deltaCirc m, makeResidual m)
-
-end MW

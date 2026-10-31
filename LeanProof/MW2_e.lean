@@ -11,7 +11,6 @@ set_option linter.style.whitespace false
 set_option linter.hashCommand false
 
 namespace MW2Examples
-open MW
 
 def m_full : Multisegment := [Segment 1 3, Segment 2 4, Segment 3 5, Segment 4 6]
 def m_break : Multisegment := [Segment 1 3, Segment 2 4, Segment 5 7]
