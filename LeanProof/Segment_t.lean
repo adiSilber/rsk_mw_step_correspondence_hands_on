@@ -13,12 +13,8 @@ segments, is in `Basic_t`; what `auto_prop` needs to know about segments first i
 
 def Segment := NonemptyInterval ℤ
 
-namespace Segment
-
-def a (s : Segment) : ℤ := s.fst
-def b (s : Segment) : ℤ := s.snd
-
-end Segment
+def Segment.a (s : Segment) : ℤ := s.fst
+def Segment.b (s : Segment) : ℤ := s.snd
 
 /-- `Segment a b` is the segment `[a, b]`; the proof of `a ≤ b` is found automatically. -/
 macro_rules | `(Segment $a:term $b:term) => `(id (α := Segment) ⟨⟨$a, $b⟩, by auto_prop⟩)

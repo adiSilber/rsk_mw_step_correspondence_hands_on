@@ -30,6 +30,18 @@ Things we decided not to do yet, but would like to make better.
   elaborate `{ field₁ := a, …, proofField := by auto_prop : T }`. It needs `decide` added to
   `auto_prop` for the sortedness of concrete lists. Not applied because it is the longest
   piece in `Fundamentals_t`.
+- **The layer goes stale with Mathlib** (2026-10-31). `Fundamentals_t` is meant to be copied
+  into other projects, but it is written against one Mathlib pin (here the `v4.28.0` tag of
+  2026-02-16), and Mathlib keeps renaming and emptying modules: in a pin from 2026-03 its
+  `import Mathlib.Order.Synonym` is already a deprecation warning (the content moved to
+  `Mathlib.Order.Lex`), and `grind` changes with every Lean release. So a copy in a project with
+  a newer pin warns or breaks, two copies drift apart, and the proofs that `auto_prop` finds
+  today may not be found tomorrow. Problem to solve: how to keep one layer relevant across
+  versions. Pieces of an answer: import only what the layer's own constructs need (the
+  `Synonym` import is a leftover of the segment order, now in `Segment_u`); keep one source
+  (a small lake package, or a git submodule) instead of copies; state the pin it was last
+  checked against in the file header; upgrade this project as a step of its own, with its
+  own commit, and record what `grind` stopped finding.
 - Automatically generated versions of `maximum` for other set functions (`minimum`, …).
 - **`let x ∈ S; e` for sets without an order** (2026-10-31). `anyOf` evaluates `e` at
   `first S`, so it asks for `[LinearOrder α]` and `[Fintype S]`, which the mathematics does not
