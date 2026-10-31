@@ -17,6 +17,24 @@ Things we decided not to do yet, but would like to make better.
   piece in `Fundamentals_t`.
 - Automatically generated versions of `maximum` for other set functions (`minimum`, …).
 
+## `_u` files
+
+- **`Fintype` instances in `_u` files — to be checked** (2026-10-23). `Ladder1_u` (`depthSet`),
+  `Ladder2_u` (`admissibleEnumerations`), `MW1_u` (`leadingIndices`), `RSK2_u` and `RSK3_u` (the
+  rungs). A `Decidable` instance is a yes/no procedure with a proof; a `Fintype` instance is more:
+  a computed list of the elements with a proof that it is complete. Any two such instances agree,
+  so they should not be able to change what a `_t` term means, but this has not been looked at
+  carefully: check that no `_t` definition depends on which list is computed, and that the lists
+  the `_e` files print are the intended ones.
+- **How to deal with dangerous instances.** Some instances give a `_t` term its meaning rather
+  than a way to compute it: the reading of a list as a multisegment (`Coe`), the order on
+  segments (`LinearOrder`), a `+` if we ever had one again, `Repr` for printing. Such an
+  instance in a `_u` file would change what `_t` text means. Today the rule is informal: those
+  live in `_t` (or `Segment_u` for `Repr`), and a `_u` file may contain an instance only of a
+  class whose instances are all equal (`Decidable`, `Fintype`). Think about how to make this
+  checkable — a list of allowed classes, a linter, or a convention a reader can verify at a
+  glance — and whether `Repr` in a `_u` file is really harmless.
+
 ## `Basic_t`
 
 - `open scoped List` is there only for `<+` in `subms`; writing `ms₀.segments.Sublist

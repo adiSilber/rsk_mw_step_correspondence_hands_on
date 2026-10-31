@@ -43,14 +43,19 @@ The parts are layered with a strict import discipline:
   instances, and `MW1_e` uses `MW1_u` to demonstrate the greedy scan). Nothing
   imports an `_e` file, so this adds nothing to the trusted surface.
 
-Every definition in a `_u` file is `private`, so no lemma statement outside
-that file can depend on it — with three sanctioned exceptions: `sortedBucket` (public in
-`Ladder2_u`, the bucket sorted by nesting; `RSK1_u` proves `RSK.fiber m k` equals it), and
-`MW.extendChain.go` / `MW.greedyChain` / `MW.residualAlong` (public in `MW1_u`: the greedy
-scan that finds a sequence of leading indices, and the computation of the residual along it;
-`MW2_u` proves `MW.leadingChain`, `MW.makeResidual` and `MW.mw_step` equal them).
-They are objects the proposition layer reasons about, and they appear in **no** trusted
-statement.
+Definitions in a `_u` file are `private`, unless a later `_u` file needs them. Such a
+public proof-side definition lives in the namespace `Proof`, which is **never opened**, so it
+can only be meant by its full name — e.g. `Proof.sortedBucket` (in `Ladder2_u`: the bucket
+sorted by nesting; `RSK1_u` proves `fiber m k` equals it). No `_t` or `_e` file names a
+`Proof.*` definition, so none appears in a trusted statement, and a `_u` file can never change
+what a `_t` statement means by adding one. (The full name is the protection, not the file:
+Lean imports are transitive, so a `_t` file sees every definition of the `_u` files below it.)
+Two greps check the rule; both must print nothing:
+
+```sh
+grep -rnE '^\s*open\b.*\bProof\b' LeanProof/                                # nothing opens Proof
+grep -nE '(^|[^A-Za-z0-9_.])Proof\.' LeanProof/*_t.lean LeanProof/*_e.lean  # no _t/_e names Proof.*
+```
 
 "Earlier" refers not to a single linear chain but to the dependency **tree**
 below.
@@ -67,9 +72,10 @@ Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i
                condition too),
                lists usable as sets, `p → q` keeps `p` in scope for `q`,
                `x ∈ s` converts `x` to the element type of `s`; below everything
-Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, ≪, ⊆,
-               lex order, Indices (index lists into a multisegment); Basic_u: lists of
-               segments are multisegments (coercion), `l₁ + l₂` is their formal sum
+Segment        segments (= NonemptyInterval ℤ), `Segment a b`; Segment_u: what auto_prop
+               knows about them (a, b unfold; an interval is determined by its ends; a ≤ b)
+Basic          lex order on segments, lists of segments read as multisegments (coercion),
+               multisegments, ≪, ⊆, Indices (index lists into a multisegment)
 ├── Ladder1    depthSet (the paper's depth set, by set comprehension);
 │   │          Ladder1_u proves it finite by computing it (depthFinset)
 │   └── Ladder2   depth_of_segment (= max of depthSet), isLadder, bucket, Ladder,
@@ -87,20 +93,21 @@ Basic          segments (= NonemptyInterval ℤ), `Segment a b`, multisegments, 
                result does not depend on it)
                (MW depends on Basic only — RSK and MW are independent)
 
-RSK + MW ──► Propositions   min_m_lt_min_lm, cond_rsk_residual_nonempty,
-                            and all proof machinery (Lemma 2.1/2.2 API,
-                            Δ°-preservation, ladder preservation, the
-                            derived-pair counting calculus and telescoping)
-             └── Corollary  deltaCirc_eq_of_residual, mw_preserves_ladder,
-                            mw_residual_commute, corollary_3_4
-```
+RSK + MW ──► Lemmas_u   proofs only — everything `corollary_3_4` needs beyond the trusted
+                        definitions (Lemma 2.1/2.2 API, Δ°-preservation, ladder preservation,
+                        the derived-pair counting calculus and telescoping), ending with
+                        deltaCirc_eq_of_residual, mw_preserves_ladder, mw_residual_commute
+             └── Corollary  corollary_3_4, with its side condition `min m < min L(m)`
+                            written inline; Corollary_e tries the condition on examples
 
 Exact file-level imports (within the project):
 
 | file             | imports                                                        |
 |------------------|----------------------------------------------------------------|
 | `Fundamentals_t` | —                                                              |
-| `Basic_t`        | `Fundamentals_t`                                               |
+| `Segment_t`      | `Fundamentals_t`                                               |
+| `Segment_u`      | `Segment_t`                                                    |
+| `Basic_t`        | `Fundamentals_t`, `Segment_t`, `Segment_u`                     |
 | `Basic_u`        | `Basic_t`                                                      |
 | `Basic_e`        | `Basic_t`, `Basic_u`                                           |
 | `Ladder1_t`      | `Fundamentals_t`, `Basic_t`, `Basic_u`                         |
@@ -124,12 +131,11 @@ Exact file-level imports (within the project):
 | `MW2_t`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`                         |
 | `MW2_u`          | the above + `MW2_t`                                            |
 | `MW2_e`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u`       |
-| `Propositions_t` | `RSK3_t`, `RSK3_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u`           |
-| `Propositions_u` | everything above it                                            |
-| `Propositions_e` | `Propositions_t`                                               |
-| `Corollary_t`    | `Propositions_t`, `Propositions_u`                             |
+| `Lemmas_u`       | everything above it                                            |
+| `Corollary_t`    | `Lemmas_u`                                                     |
+| `Corollary_e`    | `Basic_t`, `RSK3_t`, `RSK3_u`                                  |
 
-`LeanProof/RSK.lean` is a legacy self-contained prototype; it is not imported
+`LeanProof/lean` is a legacy self-contained prototype; it is not imported
 by the root module.
 
 ## Building and checking

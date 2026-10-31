@@ -158,6 +158,12 @@ instance {α} [DecidableEq α] (l : List α) : Fintype {x | x ∈ l} := Fintype.
 instance {α β} [DecidableEq β] (l : List α) (f : α → β) : Fintype {y | ∃ x ∈ l, f x = y} :=
   Fintype.ofFinset (l.map f).toFinset
 
+/-- The members of `a :: l`, and their images, form nonempty sets (witness `a`, `f a`). -/
+instance {α} (a : α) (l : List α) : Nonempty ↥{x | x ∈ a :: l} :=
+  Set.Nonempty.to_subtype (Set.nonempty_of_mem (s := {x | x ∈ a :: l}) (x := a))
+instance {α β} (s : α) (ss : List α) (f : α → β) : Nonempty ↥{y | ∃ x ∈ s :: ss, f x = y} :=
+  Set.Nonempty.to_subtype (Set.nonempty_of_mem (s := {y | ∃ x ∈ s :: ss, f x = y}) (x := f s))
+
 /-- The maximum of a finite, nonempty set. -/
 def maximum [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
   S.toFinset.max' (Set.toFinset_nonempty.mpr h)
