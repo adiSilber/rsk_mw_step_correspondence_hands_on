@@ -12,11 +12,11 @@ set_option linter.style.whitespace false
 Paper §MW: the leading indices `i₁, …, i_k` of a multisegment `m`.
 -/
 
-namespace MW
-
 abbrev chainLink (s₁ s₂ : Segment) : Prop := s₁ ≪ s₂ ∧ s₂.a = s₁.a + 1
 
-abbrev isChain (segments : List Segment) : Prop := segments.IsChain chainLink
+/-- A chain `Δ₁, …, Δₖ`: each segment strictly precedes the next, which begins one step later. -/
+abbrev isChain (segments : List Segment) : Prop :=
+  ∀ i, i + 1 < segments.length → chainLink segments[i] segments[i + 1]
 
 def Chain := {ms : Multisegment // isChain ms.segments}
 
@@ -37,5 +37,3 @@ def leadingIndices (m : Multisegment) : Set (List ℕ) :=
         isFirst m m.segments[i[0]] ∧
         (∀ j : ℕ, j + 1 < k → isNext m m.segments[i[j]] m.segments[i[j + 1]]) ∧
         (∀ j : ℕ, j + 1 = k → isLast m m.segments[i[j]]) }
-
-end MW

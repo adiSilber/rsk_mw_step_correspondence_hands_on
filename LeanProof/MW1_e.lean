@@ -2,6 +2,7 @@ import LeanProof.Basic_t
 import LeanProof.Basic_u
 import LeanProof.MW1_t
 import LeanProof.MW1_u
+import LeanProof.MW2_t
 
 set_option linter.style.setOption false
 set_option linter.flexible false
@@ -9,7 +10,6 @@ set_option linter.style.whitespace false
 set_option linter.hashCommand false
 
 namespace MW1Examples
-open MW
 
 -- (1,3) → (2,4): 2 = 1+1 and 3 < 4 — chain link.
 #eval decide (chainLink (Segment 1 3) (Segment 2 4))   -- true
@@ -54,12 +54,8 @@ def m_twice : Multisegment := [Segment 1 1, Segment 1 1, Segment 2 2]
 #eval (leadingIndices m_twice).toFinset         -- {[0, 2], [1, 2]}
 #eval first (leadingIndices m_twice)            -- [0, 2]
 
-/-! ### The greedy scan (`MW1_u`): how a sequence of leading indices is found -/
--- Scanning [(2,4),(3,5)] from the chain [(1,3)]: both link.
-#eval extendChain.go [Segment 2 4, Segment 3 5] [Segment 1 3] (by simp)   -- [(1,3),(2,4),(3,5)]
--- Scanning [(2,4),(5,7)]: (2,4) links, (5,7) does not (a jumps 2 → 5).
-#eval extendChain.go [Segment 2 4, Segment 5 7] [Segment 1 3] (by simp)   -- [(1,3),(2,4)]
-#eval (greedyChain m_fork).val.segments    -- [(1, 2), (2, 3)]
-#eval (greedyChain m_twice).val.segments   -- [(1, 1), (2, 2)]
+/-! ### The greedy chain (`MW1_u`): the segments of a sequence of leading indices -/
+#eval (Proof.greedyChain m_fork).val.segments    -- [(1, 2), (2, 3)]
+#eval (Proof.greedyChain m_twice).val.segments   -- [(1, 1), (2, 2)]
 
 end MW1Examples
