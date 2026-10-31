@@ -11,23 +11,17 @@ Assembled from `mw_preserves_ladder`, `mw_residual_commute` and
 `deltaCirc_eq_of_residual` (`Lemmas_u`). -/
 theorem corollary_3_4
     (m : Multisegment) (hm : m.segments ≠ [])
-    (h_min : (m.segments.head hm).a < ((sorted (ladderRungs m)).head).a) :
+    (h_min : m.segments[0].a < (sorted (ladderRungs m))[0].a) :
     let KId_MW : Set Segment × Multisegment × Segment :=
       ((rsk_step (mw_step m hm).2).1,
        (rsk_step (mw_step m hm).2).2,
        (mw_step m hm).1)
     let IdMW_K : Set Segment × Multisegment × Segment :=
       ((rsk_step m).1,
-       (mw_step (rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).2,
-       (mw_step (rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).1)
+       (mw_step (rsk_step m).2).2,
+       (mw_step (rsk_step m).2).1)
     KId_MW = IdMW_K := by
   intro KId_MW IdMW_K
-  have h1 : (rsk_step m).1 = (rsk_step (mw_step m hm).2).1 :=
-    mw_preserves_ladder m hm h_min
-  have h2 : (rsk_step (mw_step m hm).2).2
-      = (mw_step (rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).2 :=
-    mw_residual_commute m hm h_min
-  have h3 : (mw_step m hm).1
-      = (mw_step (rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).1 :=
-    deltaCirc_eq_of_residual m hm h_min
-  exact congrArg₂ Prod.mk h1.symm (congrArg₂ Prod.mk h2 h3)
+  have h := min_m_lt_min_lm_of_index m hm h_min
+  exact congrArg₂ Prod.mk (mw_preserves_ladder m hm h).symm
+    (congrArg₂ Prod.mk (mw_residual_commute m hm h) (deltaCirc_eq_of_residual m hm h))

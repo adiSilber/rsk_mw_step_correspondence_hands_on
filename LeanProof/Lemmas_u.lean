@@ -5313,12 +5313,25 @@ lemma mw_residual_commute
 
 /-! # For `Corollary_t`
 
-`Corollary_t` writes the side condition out, and the rule that fills omitted proofs must then
-find `(mw_step m hm).2 ≠ 0` from that written-out form. This twin of `mdag_ne_nil` is
-registered here, at the end, so that no proof above can see it: with the inequality in reach,
-the arithmetic inside `grind` compares `ladderRungs` terms by unfolding them and times out. -/
-lemma mdag_ne_nil_inlined (m : Multisegment) (hm : m.segments ≠ [])
-    (h_min : (m.segments.head hm).a < ((sorted (ladderRungs m)).head).a) :
-    (mw_step m hm).2.segments ≠ [] := mdag_ne_nil m hm h_min
+`Corollary_t` writes the side condition out as `m.segments[0].a < (sorted (ladderRungs m))[0].a`.
+The lemma below turns that into the form the proofs above use, and the two twins let the rule
+that fills omitted proofs find `(rsk_step m hm).2 ≠ 0` and `(mw_step m hm).2 ≠ 0` from the
+written-out form. They are registered here, at the end, so that no proof above can see them:
+with the inequality in reach, the arithmetic inside `grind` compares `ladderRungs` terms by
+unfolding them and times out. -/
+lemma min_m_lt_min_lm_of_index (m : Multisegment) (hm : m.segments ≠ [])
+    (h_min : m.segments[0].a < (sorted (ladderRungs m))[0].a) : min_m_lt_min_lm m hm := by
+  unfold min_m_lt_min_lm
+  rw [List.head_eq_getElem, List.head_eq_getElem]
+  exact h_min
 
-attribute [grind →] mdag_ne_nil_inlined
+lemma rsk_residual_ne_nil_inlined (m : Multisegment) (hm : m.segments ≠ [])
+    (h_min : m.segments[0].a < (sorted (ladderRungs m))[0].a) :
+    (rsk_step m hm).2.segments ≠ [] :=
+  cond_rsk_residual_nonempty m hm (min_m_lt_min_lm_of_index m hm h_min)
+
+lemma mdag_ne_nil_inlined (m : Multisegment) (hm : m.segments ≠ [])
+    (h_min : m.segments[0].a < (sorted (ladderRungs m))[0].a) :
+    (mw_step m hm).2.segments ≠ [] := mdag_ne_nil m hm (min_m_lt_min_lm_of_index m hm h_min)
+
+attribute [grind →] rsk_residual_ne_nil_inlined mdag_ne_nil_inlined
