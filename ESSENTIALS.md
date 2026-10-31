@@ -12,12 +12,14 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
    `[f | j ∈ i, p]`), `maximum`, `sorted`, `let i ∈ S; …`, `m.segments[i]`,
    `∀ j, j + 1 < k → …`. A partial notion takes its condition as a hypothesis
    (`segmentResidual s (h : s.a < s.b)`, `maxDepth m (h : m.segments ≠ [])`), which callers
-   never write; a comprehension over such a notion silently ranges over the choices where it
-   is defined (`[segmentResidual m.segments[j] | j ∈ i]`). No `match`, `filter`, `foldl`,
-   `zip`, `erase`, `Option`, `insertionSort`, `head`, `↑`, or inline `by` proofs.
+   never write; a comprehension over such a notion names the condition as a binder
+   (`[segmentResidual m.segments[j] | j ∈ i, m.segments[j].a < m.segments[j].b]`), and inside
+   the comprehension that binder is the hypothesis the notion asks for. No `match`, `filter`,
+   `foldl`, `zip`, `erase`, `Option`, `insertionSort`, `head`, `↑`, or inline `by` proofs.
 
 3. **Proof obligations are invisible.** Omitted proof arguments and index bounds are found
-   by `auto_prop`; what it knows is taught in `_u` files, never written in `_t`.
+   by `auto_prop`; what it knows is taught in `_u` files, never written in `_t`
+   (`Fundamentals_t` teaches only the facts about its own constructs).
 
 4. **The language is separate from the project.** `Fundamentals_t` is the project-independent
    part (comprehensions, `maximum`/`first`/`sorted`, the proof-filling rules) and should be

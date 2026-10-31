@@ -13,6 +13,10 @@ Used by `Basic_t` (the proof omitted in the definition of the order on segments)
 -- give that `s ↦ (a s, b s)` is injective, the proof the linear order of `Basic_t` omits.
 attribute [grind] Segment.a Segment.b
 attribute [grind →] NonemptyInterval.ext
+-- What an injective function is, and that `toLex` is one: the order of `Basic_t` is the
+-- lexicographic order pulled back along `s ↦ toLex (a s, b s)`.
+attribute [grind] Function.Injective
+attribute [grind =] toLex_inj
 
 /-- Every segment satisfies `a ≤ b`; `grind` learns it whenever it meets `s.a` or `s.b`. -/
 lemma Segment.a_le_b (s : Segment) : s.a ≤ s.b := s.fst_le_snd

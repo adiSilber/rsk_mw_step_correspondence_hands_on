@@ -148,10 +148,9 @@ macro_rules | `($x ∈ $s) => `(mem_coe% $s $x)
 /-- A list can be used where a set is expected: the set of its members. -/
 instance {α} : Coe (List α) (Set α) := ⟨fun l => {x | x ∈ l}⟩
 
--- Facts `auto_prop` needs for the proofs omitted below and in `Basic_t`: membership in
--- `l.toFinset` and in `l.map f`, what an injective function is, and that `toLex` is one.
-attribute [grind =] List.mem_toFinset List.mem_map toLex_inj
-attribute [grind] Function.Injective
+-- Facts `auto_prop` needs for the proofs omitted below: membership in `l.toFinset` and in
+-- `l.map f`.
+attribute [grind =] List.mem_toFinset List.mem_map
 
 /-- The members of a list form a finite set (computed by `l.toFinset`); so do their images. -/
 instance {α} [DecidableEq α] (l : List α) : Fintype {x | x ∈ l} := Fintype.ofFinset l.toFinset
