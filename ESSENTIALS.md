@@ -42,12 +42,13 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
 8. **Formulas are `abbrev`, objects are `def`.** A Prop-valued definition is shorthand for
    its formula (and decidable for free); a type, number, list or step is a new object.
 
-9. **A multisegment is a sorted list,** so that `=` is equality of formal sums; every list of
-   segments is a multisegment through a coercion, and `l₁ + l₂` is the formal sum of two lists
-   (both in `Basic_u`).
+9. **A multisegment is a sorted list,** so that `=` is equality of formal sums. Every list of
+   segments is a multisegment through a coercion (`Basic_t`: increasing order, repeats kept),
+   and `l₁ ++ l₂` is the formal sum of two lists.
 
 10. **Hypotheses follow the paper.** `maxDepth`, `residual`, `rsk_step`, `mw_step` take
     `m.segments ≠ []` (the paper's `m ≠ 0`); no `0 ::` or empty-case conventions.
 
-11. **Deliberate deviations are recorded.** The ladder is listed deepest-first (not the
-    paper's order); the MW step is the mirror image, as in the paper's §MW.
+11. **Deliberate deviations are recorded.** None at present: the ladder is a set, as in the
+    paper, and the MW step follows the paper's §MW (itself the mirror image of the classical
+    algorithm).

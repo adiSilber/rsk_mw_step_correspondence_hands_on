@@ -26,6 +26,9 @@ namespace MW1Examples
 #eval decide (isChain [Segment 1 3, Segment 5 7])   -- false
 -- Not a chain: b doesn't strictly increase.
 #eval decide (isChain [Segment 1 5, Segment 2 4])   -- false
+-- A `Chain` is a multisegment with that property.
+#eval ((⟨[Segment 1 3, Segment 2 4, Segment 3 5], by decide⟩ : Chain)).val.segments
+-- [(1, 3), (2, 4), (3, 5)]
 
 /-! ### `segmentResidual`: ⁻Δ = [a+1, b], for a segment that is not a single point -/
 #eval segmentResidual (Segment 1 3)   -- (2, 3)
@@ -41,6 +44,8 @@ def m_fork : Multisegment := [Segment 1 2, Segment 1 4, Segment 2 3, Segment 2 5
 #eval decide (isNext m_fork (Segment 1 4) (Segment 2 5))   -- true  ((2,3) is not linked to (1,4))
 #eval decide (isLast m_fork (Segment 2 3))   -- true  (no segment begins at 3)
 #eval decide (isLast m_fork (Segment 1 2))   -- false
+#eval decide (isFirst m_fork (Segment 1 2))   -- true  (the least segment)
+#eval decide (isFirst m_fork (Segment 1 4))   -- false
 
 /-! ### `leadingIndices`: the sequences i₁, …, i_k of positions in `m` (paper (a)–(c)) -/
 #eval decide ([0, 2] ∈ leadingIndices m_fork)   -- true:  (1,2), (2,3)

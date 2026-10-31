@@ -76,3 +76,11 @@ def base_ladder : Ladder :=
 #eval (bucket m_repeated 1).map (·.val)
 -- empty multisegment — bucket 0 = []
 #eval (bucket ⟨[], by decide⟩ 0).map (·.val)
+
+-- `admissibleEnumerations m k`: the indices of the depth-`k` bucket, outermost first
+#eval decide ([2] ∈ admissibleEnumerations m_mixed 0)        -- true:  depth 0 is (2,5) alone
+#eval decide ([1, 0] ∈ admissibleEnumerations m_mixed 1)     -- true:  (1,4) ⊇ (1,3)
+#eval decide ([0, 1] ∈ admissibleEnumerations m_mixed 1)     -- false: inner before outer
+#eval decide ([0] ∈ admissibleEnumerations m_mixed 1)        -- false: (1,4) is missing
+#eval decide ([0, 1] ∈ admissibleEnumerations m_repeated 1)  -- true:  equal copies, either order
+#eval decide ([1, 0] ∈ admissibleEnumerations m_repeated 1)  -- true
