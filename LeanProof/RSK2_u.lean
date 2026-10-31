@@ -13,8 +13,6 @@ set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 
-namespace RSK
-
 /-! # RSK, part 2: proofs -/
 
 /-- Consecutive segments of the fiber are nested, so `[Δᵢ.a, Δᵢ₊₁.b]` is a segment. -/
@@ -70,5 +68,3 @@ instance (m : Multisegment) : Fintype { r | ∃ k, bucketRung m k = some r } :=
     (fun r => by
       simp only [List.mem_toFinset, List.mem_filterMap, List.mem_range, Set.mem_setOf_eq]
       exact ⟨fun ⟨k, _, hk⟩ => ⟨k, hk⟩, fun ⟨k, hk⟩ => ⟨k, lt_length_of_bucketRung hk, hk⟩⟩)
-
-end RSK

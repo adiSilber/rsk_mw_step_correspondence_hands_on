@@ -11,8 +11,6 @@ set_option linter.style.setOption false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 
-namespace RSK
-
 /-! # RSK, part 2: the rung of a fiber (trusted definitions) -/
 
 /-- The rung of `𝔡⁻¹(d)` (paper (2.2)): the largest begin point paired with the largest end
@@ -21,5 +19,3 @@ def bucketRung (m : Multisegment) (d : ℕ) : Option Segment :=
   match fiber m d with
   | []      => none
   | s :: ss => some (Segment (maximum {(x.a) | x ∈ s :: ss}) (maximum {(x.b) | x ∈ s :: ss}))
-
-end RSK

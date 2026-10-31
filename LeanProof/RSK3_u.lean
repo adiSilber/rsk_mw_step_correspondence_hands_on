@@ -13,8 +13,6 @@ set_option linter.flexible false
 set_option linter.style.whitespace false
 set_option linter.hashCommand false
 
-namespace RSK
-
 /-! # RSK algorithm — single step (proofs)
 
 Correctness of the definitions in `RSK3_t`: the assembled rungs form a ladder
@@ -294,10 +292,6 @@ lemma ladderRungs_ne_nil (m : Multisegment) (h : m.segments ≠ []) :
   apply List.ne_nil_of_mem (a := r)
   exact mem_sorted.mpr (mem_ladderRungs.mpr ⟨_, hr⟩)
 
-end RSK
-
-namespace RSK
-
 seal maximum first in
 /-- Membership in `bucketResidual`, unfolded: `w = [Δᵢ.a, Δᵢ₊₁.b]` for some position `i`. -/
 lemma mem_bucketResidual_iff {m : Multisegment} {d : ℕ} {w : Segment} :
@@ -344,5 +338,3 @@ lemma residual_segments (m : Multisegment) (h : m.segments ≠ []) :
       ((List.range (maxDepth m h + 1)).flatMap (fun d => bucketResidual m d)).insertionSort
         (· ≤ ·) := by
   simp [residual]
-
-end RSK

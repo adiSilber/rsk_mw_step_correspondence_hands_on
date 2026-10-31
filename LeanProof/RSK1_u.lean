@@ -11,8 +11,6 @@ set_option autoProp.rule false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 
-namespace RSK
-
 /-! # RSK, part 1: proofs
 
 `fiber m k` is exactly the bucket sorted outermost-first (`fiber_eq`): the bridge from the
@@ -25,5 +23,3 @@ lemma fiber_eq (m : Multisegment) (k : ℕ) : fiber m k = (Proof.sortedBucket m 
     (fun _ hj => lt_length_of_mem_admissibleEnumerations (first_mem _ _) _ hj)
   rw [List.pmap_eq_map_attach] at h
   exact h
-
-end RSK

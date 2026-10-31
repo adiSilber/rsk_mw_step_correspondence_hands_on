@@ -15,8 +15,6 @@ set_option linter.flexible false
 set_option linter.style.whitespace false
 set_option linter.hashCommand false
 
-namespace RSK
-
 /-! # RSK algorithm — single step (trusted definitions)
 
 One step of the RSK / MW algorithm: given a multisegment `m`, produce the
@@ -54,5 +52,3 @@ def residual (m : Multisegment) (h : m.segments ≠ []) : Multisegment :=
 the residual. -/
 def rsk_step (m : Multisegment) (h : m.segments ≠ []) : Set Segment × Multisegment :=
   (ladderRungs m, residual m)
-
-end RSK

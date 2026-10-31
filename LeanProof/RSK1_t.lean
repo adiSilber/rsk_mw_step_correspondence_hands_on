@@ -10,8 +10,6 @@ set_option linter.style.setOption false
 set_option linter.flexible false
 set_option linter.style.whitespace false
 
-namespace RSK
-
 /-! # RSK, part 1: the fibers (trusted definitions)
 
 Paper, §2: "For any `k = 0, …, d` choose an admissible enumeration of `𝔡⁻¹(k)`". -/
@@ -20,5 +18,3 @@ Paper, §2: "For any `k = 0, …, d` choose an admissible enumeration of `𝔡�
 enumeration (any one: they all list the same segments). -/
 def fiber (m : Multisegment) (k : ℕ) : List Segment :=
   let i ∈ admissibleEnumerations m k; [m.segments[j] | j ∈ i]
-
-end RSK

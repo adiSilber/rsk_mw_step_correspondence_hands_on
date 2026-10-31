@@ -22,9 +22,9 @@ def m_repeated : Multisegment :=
   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩], by decide⟩
 
 /-! ### `bucketRung`: (max b, max e) of `𝔡⁻¹(d)` -/
-#eval RSK.bucketRung m_complex 0   -- some (6, 200)
-#eval RSK.bucketRung m_complex 1   -- some (5, 100)
-#eval RSK.bucketRung m_complex 2   -- none
-#eval RSK.bucketRung m_repeated 1  -- some (1, 3)
+#eval bucketRung m_complex 0   -- some (6, 200)
+#eval bucketRung m_complex 1   -- some (5, 100)
+#eval bucketRung m_complex 2   -- none
+#eval bucketRung m_repeated 1  -- some (1, 3)
 
 end RSK2Examples

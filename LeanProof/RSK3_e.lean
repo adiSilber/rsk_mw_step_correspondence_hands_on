@@ -9,7 +9,7 @@ set_option linter.flexible false
 set_option linter.style.whitespace false
 set_option linter.hashCommand false
 
-namespace RSK
+namespace RSK3Examples
 
 -- Interwoven example: two nested chains, depths 0 and 1. Reused by the evals below.
 -- On a number line (left end = a, right end = b; ~1 char per 10 units):
@@ -62,4 +62,4 @@ def m_single : Multisegment := ⟨[⟨⟨7, 7⟩, by omega⟩], by simp⟩
 #eval ((rsk_step m_single).1.toFinset, (rsk_step m_single).2.segments)
   -- ({(7, 7)}, []) — a singleton segment: one rung, empty residual (edge case)
 
-end RSK
+end RSK3Examples
