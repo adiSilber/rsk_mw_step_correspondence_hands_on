@@ -10,7 +10,6 @@ import LeanProof.MW1_t
 import LeanProof.MW1_u
 import LeanProof.MW2_t
 import LeanProof.MW2_u
-import LeanProof.Propositions_t
 
 set_option linter.style.setOption false
 set_option linter.style.longLine false
@@ -22,6 +21,18 @@ set_option linter.hashCommand false
 set_option linter.style.show false
 
 open scoped List
+
+/-! # Lemmas for Corollary 3.4
+
+Everything `corollary_3_4` (`Corollary_t`) needs beyond the trusted definitions: proofs only,
+no definitions. The file ends with the three components it assembles —
+`deltaCirc_eq_of_residual`, `mw_preserves_ladder`, `mw_residual_commute`. -/
+
+/-- The side condition of Corollary 3.4, `min m < min L(m)`, under one name. `Corollary_t`
+writes it out; the proofs here keep it as an atom: with the inequality itself in context, the
+arithmetic inside `grind` compares `ladderRungs` terms by unfolding them and times out. -/
+private def min_m_lt_min_lm (m : Multisegment) (h : m.segments ≠ []) : Prop :=
+  (m.segments.head h).a < ((sorted (ladderRungs m)).head).a
 
 /-! # Machinery for `deltaCirc_eq_of_residual` (paper Prop. `lem: main2`)
 
@@ -5221,3 +5232,93 @@ lemma residual_commute_core (m : Multisegment) (sₘ s_l : Segment)
     (Proof.residualAlong (residual m hm) _).is_sorted
   intro a b _ _ h1 h2
   exact le_antisymm h1 h2
+
+
+/-! # The three components of Corollary 3.4 -/
+
+seal maximum first in
+/-- **Δ°(m) = Δ°(m′)** (paper Prop. `lem: main2`(2)): under `min m < min L(m)`, the MW
+segment of `m` equals the MW segment of its RSK residual `(rsk_step m).2`. Assembled
+from `minPreserved` (the head begins agree) and `chainLenPreserved` (the leading-chain
+lengths agree). -/
+lemma deltaCirc_eq_of_residual
+    (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
+    let Δ : Segment := (mw_step m hm).1
+    let Δ' : Segment :=
+      (mw_step (rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).1
+    Δ = Δ' := by
+  intro Δ Δ'
+  have hne' := cond_rsk_residual_nonempty m hm h_min
+  have hsₘ : m.segments.head? = some (m.segments.head hm) := List.head?_eq_some_head hm
+  have hs_l : (sorted (ladderRungs m)).head? =
+      some ((sorted (ladderRungs m)).head (ladderRungs_ne_nil m hm)) :=
+    List.head?_eq_some_head _
+  have hmin : (m.segments.head hm).a
+      < ((sorted (ladderRungs m)).head (ladderRungs_ne_nil m hm)).a := h_min
+  have hs_m' : (residual m).segments.head? =
+      some ((residual m).segments.head hne') := List.head?_eq_some_head hne'
+  apply mw_step_fst_eq m (residual m) hm hne'
+  · exact minPreserved m _ hsₘ _ hs_l hmin _ hs_m'
+  · exact chainLenPreserved m _ _ hsₘ hs_l hmin
+
+/-- **L(m) = L(m†)** (paper Prop. `main2`(3) via Lemma `pre1`): under `min m < min L(m)`,
+the RSK ladder survives one MW step unchanged. The depth function of the MW residual
+agrees with `m`'s except on *special* segments, which move up by exactly one level into
+the fiber of the chain predecessor — and neither coordinatewise fiber max is disturbed. -/
+lemma mw_preserves_ladder
+    (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
+    let l := (rsk_step m).1
+    let l' := (rsk_step (mw_step m hm).2).1
+    l = l' := by
+  intro l l'
+  have hsₘ : m.segments.head? = some (m.segments.head hm) := List.head?_eq_some_head hm
+  have hs_l : (sorted (ladderRungs m)).head? =
+      some ((sorted (ladderRungs m)).head (ladderRungs_ne_nil m hm)) :=
+    List.head?_eq_some_head _
+  have hmin : (m.segments.head hm).a
+      < ((sorted (ladderRungs m)).head (ladderRungs_ne_nil m hm)).a := h_min
+  have h := (mdag_ladder_eq m _ _ hsₘ hs_l hmin hm).symm
+  rw [← mw_step_snd_eq m hm] at h
+  exact eq_of_sorted_eq (S := ladderRungs m) (T := ladderRungs _) h
+
+/-- **(m†)′ = (m′)†** (paper Cor. `main`, third component): under `min m < min L(m)`,
+the two orders of taking the remainders agree —
+`m'`  is MW-step first, then the RSK step;
+`m''` is the RSK step first, then MW-step. -/
+lemma mw_residual_commute
+    (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
+    let m' : Multisegment := (rsk_step (mw_step m hm).2).2
+    let m'' : Multisegment :=
+      (mw_step (rsk_step m).2 (cond_rsk_residual_nonempty m hm h_min)).2
+    m' = m'' := by
+  intro m' m''
+  have hne' := cond_rsk_residual_nonempty m hm h_min
+  have hsₘ : m.segments.head? = some (m.segments.head hm) := List.head?_eq_some_head hm
+  have hs_l : (sorted (ladderRungs m)).head? =
+      some ((sorted (ladderRungs m)).head (ladderRungs_ne_nil m hm)) :=
+    List.head?_eq_some_head _
+  have hmin : (m.segments.head hm).a
+      < ((sorted (ladderRungs m)).head (ladderRungs_ne_nil m hm)).a := h_min
+  have h1 : (rsk_step (mw_step m hm).2).2
+      = residual (Proof.residualAlong m (Proof.greedyChain m).val.segments) := by
+    -- `simp` (not `rw`) because the nonemptiness proof depends on the term being rewritten
+    simp only [mw_step_snd_eq m hm]
+    rfl
+  have h2 : (mw_step (rsk_step m).2 hne').2
+      = Proof.residualAlong (residual m)
+          (Proof.greedyChain (residual m)).val.segments :=
+    mw_step_snd_eq (residual m) hne'
+  exact h1.trans ((Multisegment.eq_of_segments_eq
+    (residual_commute_core m _ _ hsₘ hs_l hmin)).trans h2.symm)
+
+/-! # For `Corollary_t`
+
+`Corollary_t` writes the side condition out, and the rule that fills omitted proofs must then
+find `(mw_step m hm).2 ≠ 0` from that written-out form. This twin of `mdag_ne_nil` is
+registered here, at the end, so that no proof above can see it: with the inequality in reach,
+the arithmetic inside `grind` compares `ladderRungs` terms by unfolding them and times out. -/
+lemma mdag_ne_nil_inlined (m : Multisegment) (hm : m.segments ≠ [])
+    (h_min : (m.segments.head hm).a < ((sorted (ladderRungs m)).head).a) :
+    (mw_step m hm).2.segments ≠ [] := mdag_ne_nil m hm h_min
+
+attribute [grind →] mdag_ne_nil_inlined

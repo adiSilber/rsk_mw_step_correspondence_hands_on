@@ -28,7 +28,6 @@ import LeanProof.MW1_e
 import LeanProof.MW2_t
 import LeanProof.MW2_u
 import LeanProof.MW2_e
-import LeanProof.Propositions_t
-import LeanProof.Propositions_u
-import LeanProof.Propositions_e
+import LeanProof.Lemmas_u
 import LeanProof.Corollary_t
+import LeanProof.Corollary_e
