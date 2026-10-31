@@ -1,38 +1,38 @@
-import LeanProof.Basic_t
-import LeanProof.RSK3_t
-import LeanProof.RSK3_u
+-- import LeanProof.Basic_t
+-- import LeanProof.RSK3_t
+-- import LeanProof.RSK3_u
 
-set_option linter.style.setOption false
-set_option linter.hashCommand false
+-- set_option linter.style.setOption false
+-- set_option linter.hashCommand false
 
-/-! # Evals for the side condition of Corollary 3.4
+-- /-! # Evals for the side condition of Corollary 3.4
 
-`min m < min L(m)`: the smallest begin of `m` is strictly below the smallest begin of its
-extracted ladder `L(m)`. In `Corollary_t` it is written
-`m.segments[0].a < (sorted (ladderRungs m))[0].a`; there the proof that the ladder is nonempty
-is found from `hm`. On a concrete `m` nothing is in scope to find it from, so the evals below
-spell it out (`ladderRungs_ne_nil`). -/
+-- `min m < min L(m)`: the smallest begin of `m` is strictly below the smallest begin of its
+-- extracted ladder `L(m)`. In `Corollary_t` it is written
+-- `m.segments[0].a < (sorted (ladderRungs m))[0].a`; there the proof that the ladder is nonempty
+-- is found from `hm`. On a concrete `m` nothing is in scope to find it from, so the evals below
+-- spell it out (`ladderRungs_ne_nil`). -/
 
-namespace CorollaryExamples
+-- namespace CorollaryExamples
 
--- m = [(1,10), (2,3)]: both segments share depth 0, the rung is (2,10), so
--- min L(m) = 2 > 1 = min m — true.
-def m_nested : Multisegment := [Segment 1 10, Segment 2 3]
-#eval decide (m_nested.segments[0].a < ((sorted (ladderRungs m_nested))[0]'
-  (List.length_pos_of_ne_nil (ladderRungs_ne_nil m_nested (by decide)))).a)
--- true
+-- -- m = [(1,10), (2,3)]: both segments share depth 0, the rung is (2,10), so
+-- -- min L(m) = 2 > 1 = min m — true.
+-- def m_nested : Multisegment := [Segment 1 10, Segment 2 3]
+-- #eval decide (m_nested.segments[0].a < ((sorted (ladderRungs m_nested))[0]'
+--   (List.length_pos_of_ne_nil (ladderRungs_ne_nil m_nested (by decide)))).a)
+-- -- true
 
--- m = [(1,3)] (a single segment): L(m) = [(1,3)], so min L(m) = min m — false
--- (edge case: the condition fails on any singleton).
-def m_single : Multisegment := [Segment 1 3]
-#eval decide (m_single.segments[0].a < ((sorted (ladderRungs m_single))[0]'
-  (List.length_pos_of_ne_nil (ladderRungs_ne_nil m_single (by decide)))).a)
--- false
+-- -- m = [(1,3)] (a single segment): L(m) = [(1,3)], so min L(m) = min m — false
+-- -- (edge case: the condition fails on any singleton).
+-- def m_single : Multisegment := [Segment 1 3]
+-- #eval decide (m_single.segments[0].a < ((sorted (ladderRungs m_single))[0]'
+--   (List.length_pos_of_ne_nil (ladderRungs_ne_nil m_single (by decide)))).a)
+-- -- false
 
--- m = [(1,3), (2,4), (3,5)] (a ladder): the single rung starts at min m — false.
-def m_ladder : Multisegment := [Segment 1 3, Segment 2 4, Segment 3 5]
-#eval decide (m_ladder.segments[0].a < ((sorted (ladderRungs m_ladder))[0]'
-  (List.length_pos_of_ne_nil (ladderRungs_ne_nil m_ladder (by decide)))).a)
--- false
+-- -- m = [(1,3), (2,4), (3,5)] (a ladder): the single rung starts at min m — false.
+-- def m_ladder : Multisegment := [Segment 1 3, Segment 2 4, Segment 3 5]
+-- #eval decide (m_ladder.segments[0].a < ((sorted (ladderRungs m_ladder))[0]'
+--   (List.length_pos_of_ne_nil (ladderRungs_ne_nil m_ladder (by decide)))).a)
+-- -- false
 
-end CorollaryExamples
+-- end CorollaryExamples

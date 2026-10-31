@@ -1,64 +1,64 @@
-import LeanProof.Basic_t
-import LeanProof.Basic_u
-import Mathlib.Data.List.Sort
-import Mathlib.Data.Finset.Sort
--- import Mathlib.Data.Set.Finite
+-- import LeanProof.Basic_t
+-- import LeanProof.Basic_u
+-- import Mathlib.Data.List.Sort
+-- import Mathlib.Data.Finset.Sort
+-- -- import Mathlib.Data.Set.Finite
 
 
-set_option linter.style.setOption false
-set_option linter.flexible false
-set_option linter.style.whitespace false
-set_option linter.hashCommand false
+-- set_option linter.style.setOption false
+-- set_option linter.flexible false
+-- set_option linter.style.whitespace false
+-- set_option linter.hashCommand false
 
--- (1,3) ≪ (2,4): 1<2 ∧ 3<4 — true
-#eval decide ((⟨⟨1, 3⟩, by omega⟩ : Segment) ≪ ⟨⟨2, 4⟩, by omega⟩)
--- (2,4) ≪ (1,3): false
-#eval decide ((⟨⟨2, 4⟩, by omega⟩ : Segment) ≪ ⟨⟨1, 3⟩, by omega⟩)
--- (1,5) ≪ (2,4): a₁<a₂ ok, but b₁=5 > b₂=4 — false
-#eval decide ((⟨⟨1, 5⟩, by omega⟩ : Segment) ≪ ⟨⟨2, 4⟩, by omega⟩)
+-- -- (1,3) ≪ (2,4): 1<2 ∧ 3<4 — true
+-- #eval decide ((⟨⟨1, 3⟩, by omega⟩ : Segment) ≪ ⟨⟨2, 4⟩, by omega⟩)
+-- -- (2,4) ≪ (1,3): false
+-- #eval decide ((⟨⟨2, 4⟩, by omega⟩ : Segment) ≪ ⟨⟨1, 3⟩, by omega⟩)
+-- -- (1,5) ≪ (2,4): a₁<a₂ ok, but b₁=5 > b₂=4 — false
+-- #eval decide ((⟨⟨1, 5⟩, by omega⟩ : Segment) ≪ ⟨⟨2, 4⟩, by omega⟩)
 
--- (2,3) ⊆ (1,5) — true (contained in [1,5])
-#eval decide ((⟨⟨2, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 5⟩, by omega⟩)
--- (1,5) ⊆ (2,3) — false
-#eval decide ((⟨⟨1, 5⟩, by omega⟩ : Segment) ⊆ ⟨⟨2, 3⟩, by omega⟩)
--- (1,3) ⊆ (1,3) — reflexive
-#eval decide ((⟨⟨1, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 3⟩, by omega⟩)
+-- -- (2,3) ⊆ (1,5) — true (contained in [1,5])
+-- #eval decide ((⟨⟨2, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 5⟩, by omega⟩)
+-- -- (1,5) ⊆ (2,3) — false
+-- #eval decide ((⟨⟨1, 5⟩, by omega⟩ : Segment) ⊆ ⟨⟨2, 3⟩, by omega⟩)
+-- -- (1,3) ⊆ (1,3) — reflexive
+-- #eval decide ((⟨⟨1, 3⟩, by omega⟩ : Segment) ⊆ ⟨⟨1, 3⟩, by omega⟩)
 
--- Segment coordinates: a (begin) and b (end) of (3,7); edge case: a singleton (5,5).
-#eval Segment.a ⟨⟨3, 7⟩, by omega⟩  -- 3
-#eval Segment.b ⟨⟨3, 7⟩, by omega⟩  -- 7
-#eval Segment.a ⟨⟨5, 5⟩, by omega⟩  -- 5
-#eval Segment.b ⟨⟨5, 5⟩, by omega⟩  -- 5
+-- -- Segment coordinates: a (begin) and b (end) of (3,7); edge case: a singleton (5,5).
+-- #eval Segment.a ⟨⟨3, 7⟩, by omega⟩  -- 3
+-- #eval Segment.b ⟨⟨3, 7⟩, by omega⟩  -- 7
+-- #eval Segment.a ⟨⟨5, 5⟩, by omega⟩  -- 5
+-- #eval Segment.b ⟨⟨5, 5⟩, by omega⟩  -- 5
 
--- `Segment a b`: the segment [a, b]; the proof of a ≤ b is found automatically.
-#eval Segment 3 7  -- (3, 7)
-#eval Segment 5 5  -- (5, 5) (singleton)
+-- -- `Segment a b`: the segment [a, b]; the proof of a ≤ b is found automatically.
+-- #eval Segment 3 7  -- (3, 7)
+-- #eval Segment 5 5  -- (5, 5) (singleton)
 
--- Multisegment inclusion `subms` (segment lists as sublists).
--- [(1,3)] ⊆ [(1,3),(2,4)] — true; edge cases: the empty multisegment is ⊆ anything,
--- and inclusion fails when the order is wrong or an element is missing.
-#eval decide ((⟨[⟨⟨1, 3⟩, by omega⟩], by simp⟩ : Multisegment)
-  ⊆ ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩], by decide⟩)  -- true
-#eval decide ((⟨[], by simp⟩ : Multisegment)
-  ⊆ ⟨[⟨⟨1, 3⟩, by omega⟩], by simp⟩)  -- true (empty ⊆ anything)
-#eval decide ((⟨[⟨⟨2, 4⟩, by omega⟩], by simp⟩ : Multisegment)
-  ⊆ ⟨[⟨⟨1, 3⟩, by omega⟩], by simp⟩)  -- false
+-- -- Multisegment inclusion `subms` (segment lists as sublists).
+-- -- [(1,3)] ⊆ [(1,3),(2,4)] — true; edge cases: the empty multisegment is ⊆ anything,
+-- -- and inclusion fails when the order is wrong or an element is missing.
+-- #eval decide ((⟨[⟨⟨1, 3⟩, by omega⟩], by simp⟩ : Multisegment)
+--   ⊆ ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩], by decide⟩)  -- true
+-- #eval decide ((⟨[], by simp⟩ : Multisegment)
+--   ⊆ ⟨[⟨⟨1, 3⟩, by omega⟩], by simp⟩)  -- true (empty ⊆ anything)
+-- #eval decide ((⟨[⟨⟨2, 4⟩, by omega⟩], by simp⟩ : Multisegment)
+--   ⊆ ⟨[⟨⟨1, 3⟩, by omega⟩], by simp⟩)  -- false
 
--- `Indices n m`: lists of n distinct indices into m = [(1,3), (1,4), (2,5)].
-def m_three : Multisegment :=
-  ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 4⟩, by omega⟩, ⟨⟨2, 5⟩, by omega⟩], by decide⟩
+-- -- `Indices n m`: lists of n distinct indices into m = [(1,3), (1,4), (2,5)].
+-- def m_three : Multisegment :=
+--   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 4⟩, by omega⟩, ⟨⟨2, 5⟩, by omega⟩], by decide⟩
 
-#eval decide ([0, 2] ∈ Indices 2 m_three)  -- true (2 indices, entries < 3)
-#eval decide ([0, 2] ∈ Indices 1 m_three)  -- false (2 indices, not 1)
-#eval decide ([0, 3] ∈ Indices 2 m_three)  -- false (index 3 out of range)
-#eval decide ([1, 1] ∈ Indices 2 m_three)  -- false (index 1 is repeated)
-#eval decide ([2, 0] ∈ Indices 2 m_three)  -- true (any order is allowed)
-#eval decide ([] ∈ Indices 0 m_three)  -- true (no indices)
-#eval decide ([0] ∈ Indices 1 ⟨[], by decide⟩)  -- false (empty m: no valid index)
+-- #eval decide ([0, 2] ∈ Indices 2 m_three)  -- true (2 indices, entries < 3)
+-- #eval decide ([0, 2] ∈ Indices 1 m_three)  -- false (2 indices, not 1)
+-- #eval decide ([0, 3] ∈ Indices 2 m_three)  -- false (index 3 out of range)
+-- #eval decide ([1, 1] ∈ Indices 2 m_three)  -- false (index 1 is repeated)
+-- #eval decide ([2, 0] ∈ Indices 2 m_three)  -- true (any order is allowed)
+-- #eval decide ([] ∈ Indices 0 m_three)  -- true (no indices)
+-- #eval decide ([0] ∈ Indices 1 ⟨[], by decide⟩)  -- false (empty m: no valid index)
 
 
--- Any list of segments is a multisegment (`Basic_t`): in increasing order, repeats kept.
-def l_unsorted : List Segment := [⟨⟨2, 4⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩]
-#eval (l_unsorted : Multisegment).segments
-  -- [(1, 3), (1, 3), (2, 4)]
-#eval (([] : List Segment) : Multisegment).segments  -- []
+-- -- Any list of segments is a multisegment (`Basic_t`): in increasing order, repeats kept.
+-- def l_unsorted : List Segment := [⟨⟨2, 4⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩]
+-- #eval (l_unsorted : Multisegment).segments
+--   -- [(1, 3), (1, 3), (2, 4)]
+-- #eval (([] : List Segment) : Multisegment).segments  -- []

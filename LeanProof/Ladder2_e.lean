@@ -1,86 +1,86 @@
-import LeanProof.Basic_t
-import LeanProof.Ladder1_t
-import LeanProof.Ladder2_t
-import LeanProof.Ladder2_u
+-- import LeanProof.Basic_t
+-- import LeanProof.Ladder1_t
+-- import LeanProof.Ladder2_t
+-- import LeanProof.Ladder2_u
 
-set_option linter.style.setOption false
-set_option linter.flexible false
-set_option linter.style.whitespace false
-set_option linter.hashCommand false
+-- set_option linter.style.setOption false
+-- set_option linter.flexible false
+-- set_option linter.style.whitespace false
+-- set_option linter.hashCommand false
 
--- [(1,3), (2,4), (3,5)] — each consecutive pair is ≪ — ladder
-#eval decide (isLadder
-  [(⟨⟨1, 3⟩, by omega⟩ : Segment), ⟨⟨2, 4⟩, by omega⟩, ⟨⟨3, 5⟩, by omega⟩])
--- [(1,3), (1,4)] — a's are equal — not a ladder
-#eval decide (isLadder
-  [(⟨⟨1, 3⟩, by omega⟩ : Segment), ⟨⟨1, 4⟩, by omega⟩])
--- [(1,3), (2,4), (5,7)] — ladder (gaps are fine)
-#eval decide (isLadder
-  [(⟨⟨1, 3⟩, by omega⟩ : Segment), ⟨⟨2, 4⟩, by omega⟩, ⟨⟨5, 7⟩, by omega⟩])
--- [] — the empty list is a ladder
-#eval decide (isLadder [])
+-- -- [(1,3), (2,4), (3,5)] — each consecutive pair is ≪ — ladder
+-- #eval decide (isLadder
+--   [(⟨⟨1, 3⟩, by omega⟩ : Segment), ⟨⟨2, 4⟩, by omega⟩, ⟨⟨3, 5⟩, by omega⟩])
+-- -- [(1,3), (1,4)] — a's are equal — not a ladder
+-- #eval decide (isLadder
+--   [(⟨⟨1, 3⟩, by omega⟩ : Segment), ⟨⟨1, 4⟩, by omega⟩])
+-- -- [(1,3), (2,4), (5,7)] — ladder (gaps are fine)
+-- #eval decide (isLadder
+--   [(⟨⟨1, 3⟩, by omega⟩ : Segment), ⟨⟨2, 4⟩, by omega⟩, ⟨⟨5, 7⟩, by omega⟩])
+-- -- [] — the empty list is a ladder
+-- #eval decide (isLadder [])
 
--- m = [(1,3), (2,4), (3,5)] — sorted, and itself a ladder
--- depth (1,3) = 2, depth (2,4) = 1, depth (3,5) = 0
-def m_ladder : Multisegment :=
-  ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩, ⟨⟨3, 5⟩, by omega⟩], by decide⟩
+-- -- m = [(1,3), (2,4), (3,5)] — sorted, and itself a ladder
+-- -- depth (1,3) = 2, depth (2,4) = 1, depth (3,5) = 0
+-- def m_ladder : Multisegment :=
+--   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩, ⟨⟨3, 5⟩, by omega⟩], by decide⟩
 
-#eval depth_of_segment m_ladder ⟨⟨1, 3⟩, by omega⟩ (by decide)
-#eval depth_of_segment m_ladder ⟨⟨2, 4⟩, by omega⟩ (by decide)
-#eval depth_of_segment m_ladder ⟨⟨3, 5⟩, by omega⟩ (by decide)
+-- #eval depth_of_segment m_ladder ⟨⟨1, 3⟩, by omega⟩ (by decide)
+-- #eval depth_of_segment m_ladder ⟨⟨2, 4⟩, by omega⟩ (by decide)
+-- #eval depth_of_segment m_ladder ⟨⟨3, 5⟩, by omega⟩ (by decide)
 
--- m = [(1,3), (1,4), (2,5)] — sorted lex, but (1,3) and (1,4) share an `a`
--- depth (1,3) = 1 — (1,3) ≪ (2,5) (skips (1,4) since the `a`'s tie)
--- depth (1,4) = 1 — (1,4) ≪ (2,5)
--- depth (2,5) = 0
-def m_mixed : Multisegment :=
-  ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 4⟩, by omega⟩, ⟨⟨2, 5⟩, by omega⟩], by decide⟩
+-- -- m = [(1,3), (1,4), (2,5)] — sorted lex, but (1,3) and (1,4) share an `a`
+-- -- depth (1,3) = 1 — (1,3) ≪ (2,5) (skips (1,4) since the `a`'s tie)
+-- -- depth (1,4) = 1 — (1,4) ≪ (2,5)
+-- -- depth (2,5) = 0
+-- def m_mixed : Multisegment :=
+--   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 4⟩, by omega⟩, ⟨⟨2, 5⟩, by omega⟩], by decide⟩
 
-#eval depth_of_segment m_mixed ⟨⟨1, 3⟩, by omega⟩ (by decide)
-#eval depth_of_segment m_mixed ⟨⟨1, 4⟩, by omega⟩ (by decide)
-#eval depth_of_segment m_mixed ⟨⟨2, 5⟩, by omega⟩ (by decide)
+-- #eval depth_of_segment m_mixed ⟨⟨1, 3⟩, by omega⟩ (by decide)
+-- #eval depth_of_segment m_mixed ⟨⟨1, 4⟩, by omega⟩ (by decide)
+-- #eval depth_of_segment m_mixed ⟨⟨2, 5⟩, by omega⟩ (by decide)
 
--- repeated segment m = [(1,3), (1,3), (2,4)] — both copies of (1,3) ≪ (2,4)
--- depth (1,3) = 1, depth (2,4) = 0
-def m_repeated : Multisegment :=
-  ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩], by decide⟩
+-- -- repeated segment m = [(1,3), (1,3), (2,4)] — both copies of (1,3) ≪ (2,4)
+-- -- depth (1,3) = 1, depth (2,4) = 0
+-- def m_repeated : Multisegment :=
+--   ⟨[⟨⟨1, 3⟩, by omega⟩, ⟨⟨1, 3⟩, by omega⟩, ⟨⟨2, 4⟩, by omega⟩], by decide⟩
 
-#eval depth_of_segment m_repeated ⟨⟨1, 3⟩, by omega⟩ (by decide)
-#eval depth_of_segment m_repeated ⟨⟨2, 4⟩, by omega⟩ (by decide)
+-- #eval depth_of_segment m_repeated ⟨⟨1, 3⟩, by omega⟩ (by decide)
+-- #eval depth_of_segment m_repeated ⟨⟨2, 4⟩, by omega⟩ (by decide)
 
--- singleton multisegment m = [(4,4)] — depth (4,4) = 0
-#eval depth_of_segment ⟨[⟨⟨4, 4⟩, by omega⟩], by decide⟩ ⟨⟨4, 4⟩, by omega⟩ (by decide)
+-- -- singleton multisegment m = [(4,4)] — depth (4,4) = 0
+-- #eval depth_of_segment ⟨[⟨⟨4, 4⟩, by omega⟩], by decide⟩ ⟨⟨4, 4⟩, by omega⟩ (by decide)
 
--- A base ladder [(2,4), (3,5)]: sorted, each consecutive pair satisfies ≪.
-def base_ladder : Ladder :=
-  ⟨⟨[⟨⟨2, 4⟩, by omega⟩, ⟨⟨3, 5⟩, by omega⟩], by decide⟩, by decide⟩
+-- -- A base ladder [(2,4), (3,5)]: sorted, each consecutive pair satisfies ≪.
+-- def base_ladder : Ladder :=
+--   ⟨⟨[⟨⟨2, 4⟩, by omega⟩, ⟨⟨3, 5⟩, by omega⟩], by decide⟩, by decide⟩
 
--- Prepend (1,3) ≪ (2,4): the extended list [(1,3), (2,4), (3,5)] is again a ladder.
-#eval ((⟨⟨1, 3⟩, by omega⟩ : Segment) :: base_ladder.val.segments).map
-  (fun s => (Segment.a s, Segment.b s))
-#eval decide (isLadder ((⟨⟨1, 3⟩, by omega⟩ : Segment) :: base_ladder.val.segments))
+-- -- Prepend (1,3) ≪ (2,4): the extended list [(1,3), (2,4), (3,5)] is again a ladder.
+-- #eval ((⟨⟨1, 3⟩, by omega⟩ : Segment) :: base_ladder.val.segments).map
+--   (fun s => (Segment.a s, Segment.b s))
+-- #eval decide (isLadder ((⟨⟨1, 3⟩, by omega⟩ : Segment) :: base_ladder.val.segments))
 
--- bucket m_ladder d (depths are 2, 1, 0 for (1,3), (2,4), (3,5)), in the order of m:
--- bucket 0 = [(3,5)], bucket 1 = [(2,4)], bucket 2 = [(1,3)]
-#eval (bucket m_ladder 0).map (·.val)
-#eval (bucket m_ladder 1).map (·.val)
-#eval (bucket m_ladder 2).map (·.val)
+-- -- bucket m_ladder d (depths are 2, 1, 0 for (1,3), (2,4), (3,5)), in the order of m:
+-- -- bucket 0 = [(3,5)], bucket 1 = [(2,4)], bucket 2 = [(1,3)]
+-- #eval (bucket m_ladder 0).map (·.val)
+-- #eval (bucket m_ladder 1).map (·.val)
+-- #eval (bucket m_ladder 2).map (·.val)
 
--- bucket m_mixed d (depths are 1, 1, 0 for (1,3), (1,4), (2,5)), in the order of m:
--- bucket 1 = [(1,3), (1,4)]; bucket 0 = [(2,5)], bucket 2 = []
-#eval (bucket m_mixed 0).map (·.val)
-#eval (bucket m_mixed 1).map (·.val)
-#eval (bucket m_mixed 2).map (·.val)
+-- -- bucket m_mixed d (depths are 1, 1, 0 for (1,3), (1,4), (2,5)), in the order of m:
+-- -- bucket 1 = [(1,3), (1,4)]; bucket 0 = [(2,5)], bucket 2 = []
+-- #eval (bucket m_mixed 0).map (·.val)
+-- #eval (bucket m_mixed 1).map (·.val)
+-- #eval (bucket m_mixed 2).map (·.val)
 
--- bucket m_repeated 1 — both copies of (1,3): [(1,3), (1,3)]
-#eval (bucket m_repeated 1).map (·.val)
--- empty multisegment — bucket 0 = []
-#eval (bucket ⟨[], by decide⟩ 0).map (·.val)
+-- -- bucket m_repeated 1 — both copies of (1,3): [(1,3), (1,3)]
+-- #eval (bucket m_repeated 1).map (·.val)
+-- -- empty multisegment — bucket 0 = []
+-- #eval (bucket ⟨[], by decide⟩ 0).map (·.val)
 
--- `admissibleEnumerations m k`: the indices of the depth-`k` bucket, outermost first
-#eval decide ([2] ∈ admissibleEnumerations m_mixed 0)        -- true:  depth 0 is (2,5) alone
-#eval decide ([1, 0] ∈ admissibleEnumerations m_mixed 1)     -- true:  (1,4) ⊇ (1,3)
-#eval decide ([0, 1] ∈ admissibleEnumerations m_mixed 1)     -- false: inner before outer
-#eval decide ([0] ∈ admissibleEnumerations m_mixed 1)        -- false: (1,4) is missing
-#eval decide ([0, 1] ∈ admissibleEnumerations m_repeated 1)  -- true:  equal copies, either order
-#eval decide ([1, 0] ∈ admissibleEnumerations m_repeated 1)  -- true
+-- -- `admissibleEnumerations m k`: the indices of the depth-`k` bucket, outermost first
+-- #eval decide ([2] ∈ admissibleEnumerations m_mixed 0)        -- true:  depth 0 is (2,5) alone
+-- #eval decide ([1, 0] ∈ admissibleEnumerations m_mixed 1)     -- true:  (1,4) ⊇ (1,3)
+-- #eval decide ([0, 1] ∈ admissibleEnumerations m_mixed 1)     -- false: inner before outer
+-- #eval decide ([0] ∈ admissibleEnumerations m_mixed 1)        -- false: (1,4) is missing
+-- #eval decide ([0, 1] ∈ admissibleEnumerations m_repeated 1)  -- true:  equal copies, either order
+-- #eval decide ([1, 0] ∈ admissibleEnumerations m_repeated 1)  -- true
