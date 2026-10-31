@@ -4,6 +4,21 @@ Things we decided not to do yet, but would like to make better.
 
 ## `Fundamentals_t`
 
+- **Binder capture in `[f | …, k < n, …]` — a meaning bug in trusted code** (2026-10-31). An
+  identifier before `<`, `≤` or `∈` in a comprehension always opens a new variable, even when
+  one of that name is in scope: `def test (i : ℕ) : List ℕ := [i | i < 3]` gives `[0, 1, 2]`
+  for every `i`, where a reader sees "`[i]` if `i < 3`". Lean is still sound; the `_t`
+  contract is not: a theorem about it would be a true theorem about the wrong object. Only an
+  unused-variable warning, and none if the outer `i` is used elsewhere. The six comprehension
+  sites in this project were checked (2026-10-31): no capture. Fix: the comprehension must
+  refuse an identifier that is already in scope — a macro cannot see the scope, an `elab` can.
+- **`f a` is read as a value where plain Lean reads a function** (2026-10-31). With
+  `f (n : ℕ) (_ : 0 < n) : ℕ`, `def g := f 1` gives `g : ℕ`; plain Lean gives
+  `g : 0 < 1 → ℕ`. The two readings differ silently only where nothing fixes the type
+  (a `let`, a pair, a list element); elsewhere one of them errors. Someone who knows the
+  signature of `f` expects our reading, but it is a departure from Lean, and it should be stated
+  in the README's description of the rule, or the rule should not fill when no type is
+  expected and the term is a function after filling.
 - **A type applied to arguments builds an element of it.** Today `Segment a b` works only
   through a `Segment`-specific macro in `Basic_t`. A general rule would make *any* structure
   name usable that way: the arguments fill its data fields in order, and its proof fields are
@@ -16,6 +31,22 @@ Things we decided not to do yet, but would like to make better.
   `auto_prop` for the sortedness of concrete lists. Not applied because it is the longest
   piece in `Fundamentals_t`.
 - Automatically generated versions of `maximum` for other set functions (`minimum`, …).
+- **`let x ∈ S; e` for sets without an order** (2026-10-31). `anyOf` evaluates `e` at
+  `first S`, so it asks for `[LinearOrder α]` and `[Fintype S]`, which the mathematics does not
+  need (only `S` nonempty and `e` constant on `S`, the two proofs it demands). In a project
+  whose sets are of group elements, functions or points the line is rejected. The general
+  definition is `f h.some h.some_mem` — noncomputable, so no `#eval` on anything built on it
+  (here that would be 38 evals, everything from `fiber`, `leadingChain`, `makeResidual`,
+  `deltaCirc` upward). Offer both under the same syntax: the computing one when the instances
+  exist, the noncomputable twin otherwise.
+- **`Decidable` in the comprehensions and in `auto_prop`** (2026-10-31). `[x ∈ l | p x]` and
+  the condition binder `[f | …, p]` need an instance `Decidable p`; for `=` on `ℝ`, continuity,
+  and the like there is none, and the definition fails with "failed to synthesize Decidable".
+  Such a project needs `open Classical` in its `_t` file and `noncomputable` on those
+  definitions — correct, but worth saying in the README. Also `auto_prop` tries `decide` before
+  `grind`; on a closed goal with large numbers (`Nat.Prime 1000003`, `∀ i < 10 ^ 6, …`) `decide`
+  can run for minutes before `grind` is tried. Consider a heartbeat bound on the `decide` step,
+  or `grind` first.
 
 ## `_u` files
 
