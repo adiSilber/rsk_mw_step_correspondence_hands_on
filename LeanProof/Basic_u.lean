@@ -84,10 +84,6 @@ lemma eq_of_sorted_eq {α} [LinearOrder α] {S T : Set α} [Fintype S] [Fintype 
 lemma Segment.ext_ab {s t : Segment} (ha : s.a = t.a) (hb : s.b = t.b) : s = t :=
   NonemptyInterval.ext (Prod.ext ha hb)
 
-/-- The list comprehension `[x | x ∈ l]` is `l`. -/
-@[simp] lemma comprehension_id {α} (l : List α) : List.map (fun ⟨x, _⟩ => x) l.attach = l := by
-  simp
-
 /-- The members of a nonempty list form a nonempty set. -/
 lemma nonempty_mem_of_ne_nil {α} {l : List α} (h : l ≠ []) : {x | x ∈ l}.Nonempty := by
   obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil l h

@@ -52,3 +52,12 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
 11. **Deliberate deviations are recorded.** None at present: the ladder is a set, as in the
     paper, and the MW step follows the paper's §MW (itself the mirror image of the classical
     algorithm).
+
+12. **Nothing is kept that nothing needs.** Every declaration is used: by another declaration,
+    by `corollary_3_4`, or by an `_e` eval; otherwise it is deleted. A `_t` definition the
+    corollary never reaches is extra vocabulary and goes too (`leadingChain`, 2026-11-01).
+    Claude checks this with `tools/Unused.lean`, a script that lists every constant of the
+    project and what mentions it; the script itself has not been reviewed and should be. Two
+    things leave no trace in it and are checked by hand: coercion instances, which are
+    unfolded where they are written, and `rfl` lemmas, which `simp` applies without
+    recording them.
