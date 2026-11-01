@@ -156,3 +156,365 @@ import LeanProof.Corollary_t
 Ships a `lean-beam` agent skill (`.claude/skills/lean-beam`) for fast,
 build-free Lean proof iteration: cheap speculative checks against the proof
 engine and zero-build module checkpoints instead of full rebuilds.
+
+## The trusted text
+
+The `_t` files of the project, complete, in dependency order: everything a reader checks
+against the paper (the language layer `Fundamentals_t` is not repeated here). The `_u` files
+add only proofs, the `_e` files only examples. Copied from the files on 2026-11-01; to
+refresh, delete from this heading down and run
+
+```sh
+for f in Segment Basic Ladder1 Ladder2 RSK1 RSK2 RSK3 MW1 MW2 Corollary; do
+  printf '\n### `%s_t.lean`\n\n```lean\n' $f; cat LeanProof/${f}_t.lean; printf '```\n'; done >> README.md
+```
+
+### `Segment_t.lean`
+
+```lean
+import Mathlib.Order.Interval.Basic
+import Mathlib.Algebra.Order.Group.Int
+import LeanProof.Fundamentals_t
+
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.whitespace false
+
+/-! # Segments (trusted definitions)
+
+A segment `[a, b]` is a nonempty interval of integers. Its order, and everything built on
+segments, is in `Basic_t`; what `auto_prop` needs to know about segments first is in `Segment_u`. -/
+
+def Segment := NonemptyInterval ℤ
+
+def Segment.a (s : Segment) : ℤ := s.fst
+def Segment.b (s : Segment) : ℤ := s.snd
+
+/-- `Segment a b` is the segment `[a, b]`; the proof of `a ≤ b` is found automatically. -/
+macro_rules | `(Segment $a:term $b:term) => `(id (α := Segment) ⟨⟨$a, $b⟩, by auto_prop⟩)
+```
+
+### `Basic_t.lean`
+
+```lean
+import Mathlib.Order.Interval.Lex
+import Mathlib.Data.List.Sublists
+import Mathlib.Data.Set.Lattice
+import Mathlib.Data.List.Pairwise
+import Mathlib.Logic.Relation
+import Mathlib.Order.Interval.Basic
+import Mathlib.Algebra.Order.Group.Int
+import LeanProof.Fundamentals_t
+import LeanProof.Segment_t
+import LeanProof.Segment_u
+
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.whitespace false
+
+open scoped List
+
+/-- Segments are compared lexicographically, by `a` then by `b`: `s ≤ t` iff `a(s) < a(t)`, or
+`a(s) = a(t)` and `b(s) ≤ b(t)`. (The order of `ℤ ×ₗ ℤ`, pulled back.) -/
+instance : LinearOrder Segment := LinearOrder.lift' (fun s => toLex (s.a, s.b))
+
+/-- Strict precedence: Δ₁ ≪ Δ₂ iff a₁ < a₂ and b₁ < b₂. -/
+abbrev ll (s1 s2 : Segment) : Prop := s1.a < s2.a ∧ s1.b < s2.b
+infix:90 " ≪ " => ll
+
+abbrev subsegment (s₁ s₂ : Segment) : Prop :=
+  s₁.a ≥ s₂.a ∧ s₁.b ≤ s₂.b
+infix:90 " ⊆ " => subsegment
+
+/-- A list of segments that is guaranteed to be sorted lexicographically. -/
+structure Multisegment where
+  segments : List Segment
+  is_sorted : segments.Pairwise (· ≤ ·)
+
+/-- `Σ Δ`: a list of segments is read as the multisegment of its segments in increasing order
+(repeats kept); used silently wherever a `Multisegment` is expected and a list is given. -/
+instance : Coe (List Segment) Multisegment := ⟨fun l => Multisegment.mk l.increasing⟩
+
+abbrev subms (ms₀ ms₁ : Multisegment) : Prop := ms₀.segments <+ ms₁.segments
+infix:90 " ⊆ " => subms
+
+/-- `n` distinct indices into `m`. -/
+def Indices (n : ℕ) (m : Multisegment) : Set (List ℕ) :=
+  { i | i.length = n ∧ i.Nodup ∧ ∀ k ∈ i, k < m.segments.length }
+```
+
+### `Ladder1_t.lean`
+
+```lean
+import LeanProof.Fundamentals_t
+import LeanProof.Basic_t
+import LeanProof.Basic_u
+import Mathlib.Data.Set.Defs
+
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.whitespace false
+
+/-- d(Δ) = max{j : ∃ i₀ = Δ, i₁, …, iⱼ ∈ I such that Δ_{iᵣ} ≪ Δ_{iᵣ₊₁}, r = 0, …, j − 1} -/
+def depthSet (m : Multisegment) (s : Segment) : Set ℕ :=
+  { j | ∃ i : Indices (j + 1) m,
+        m.segments[i.val[0]] = s ∧
+        ∀ r (_ : r < j), m.segments[i.val[r]] ≪ m.segments[i.val[r + 1]] }
+```
+
+### `Ladder2_t.lean`
+
+```lean
+import LeanProof.Basic_t
+import LeanProof.Basic_u
+import LeanProof.Ladder1_t
+import LeanProof.Ladder1_u
+import Mathlib.Data.Finset.Max
+
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.whitespace false
+
+/-- d(Δ) = max `depthSet m s` (finite by `Ladder1_u`, nonempty since `0` is in it). -/
+def depth_of_segment (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) : ℕ :=
+  maximum (depthSet m s)
+
+def isLadder (segments : List Segment) : Bool :=
+  segments.Pairwise (· ≪ ·)
+
+/-- `𝔡⁻¹(d)`: the segments of `ms` at depth `d`, in the order of `ms`, each with its proof of
+`∈ ms.segments`. (Their nested order comes from an admissible enumeration, see `RSK1_t`.) -/
+def bucket (ms : Multisegment) (d : ℕ) : List {s : Segment // s ∈ ms.segments} :=
+  [s ∈ ms.segments | depth_of_segment ms s = d]
+
+/-- A multisegment whose segments form a ladder (pairwise `≪`). -/
+def Ladder := {ms : Multisegment // isLadder ms.segments}
+
+/-- Paper, §2: "choose an admissible enumeration `{i₁, …, i_l}` of `𝔡⁻¹(k)`, namely such
+that `Δ_{i₁} ⊃ … ⊃ Δ_{i_l}`". This is the set of all such enumerations (here numbered
+`i₀, …, i_l`). -/
+def admissibleEnumerations (m : Multisegment) (k : ℕ) : Set (List ℕ) :=
+  { i |
+    -- i = i₀, …, i_l, distinct indices into m
+    ∃ l : {l : ℕ // (i ∈ Indices l m)},
+    -- {i₀, …, i_l} = 𝔡⁻¹(k)
+    (∀ n : Fin m.segments.length, (n ∈ i ↔ depth_of_segment m m.segments[n] = k)) ∧
+    -- Δ_{i₀} ⊃ … ⊃ Δ_{i_l}
+    (∀ r : ℕ, r + 1 < l → m.segments[i[r + 1]] ⊆ m.segments[i[r]]) }
+```
+
+### `RSK1_t.lean`
+
+```lean
+import LeanProof.Basic_t
+import LeanProof.Basic_u
+import LeanProof.Ladder1_t
+import LeanProof.Ladder1_u
+import LeanProof.Ladder2_t
+import LeanProof.Ladder2_u
+import Mathlib.Data.List.Lex
+
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.whitespace false
+
+/-! # RSK, part 1: the fibers (trusted definitions)
+
+Paper, §2: "For any `k = 0, …, d` choose an admissible enumeration of `𝔡⁻¹(k)`". -/
+
+/-- `Δ_{i^k_0} ⊇ … ⊇ Δ_{i^k_l}`: the segments of `𝔡⁻¹(k)` in the order of an admissible
+enumeration (any one: they all list the same segments). -/
+def fiber (m : Multisegment) (k : ℕ) : List Segment :=
+  let i ∈ admissibleEnumerations m k; [m.segments[j] | j ∈ i]
+```
+
+### `RSK2_t.lean`
+
+```lean
+import LeanProof.Basic_t
+import LeanProof.Basic_u
+import LeanProof.Ladder1_t
+import LeanProof.Ladder1_u
+import LeanProof.Ladder2_t
+import LeanProof.Ladder2_u
+import LeanProof.RSK1_t
+import LeanProof.RSK1_u
+
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.whitespace false
+
+/-! # RSK, part 2: the rung of a fiber (trusted definitions) -/
+
+/-- The rung of a nonempty fiber `𝔡⁻¹(d)` (paper (2.2)): the largest begin point paired with
+the largest end point. -/
+def bucketRung (m : Multisegment) (d : ℕ) (h : fiber m d ≠ []) : Segment :=
+  Segment (maximum {(x.a) | x ∈ fiber m d}) (maximum {(x.b) | x ∈ fiber m d})
+```
+
+### `RSK3_t.lean`
+
+```lean
+import LeanProof.Basic_t
+import LeanProof.Basic_u
+import LeanProof.Ladder1_t
+import LeanProof.Ladder1_u
+import LeanProof.Ladder2_t
+import LeanProof.Ladder2_u
+import LeanProof.RSK1_t
+import LeanProof.RSK1_u
+import LeanProof.RSK2_t
+import LeanProof.RSK2_u
+import Mathlib.Data.List.Sort
+
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.whitespace false
+set_option linter.hashCommand false
+
+/-! # RSK algorithm — single step (trusted definitions)
+
+One step of the RSK / MW algorithm: given a multisegment `m`, produce the
+maximal ladder rungs and the residual multisegment.
+
+Each bucket's rung is the coordinatewise max of its segments (`bucketRung`);
+`ladderRungs` is the set of them. The residual replaces each neighbouring pair
+`Δᵢ, Δᵢ₊₁` of a fiber by the derived segment `[Δᵢ.a, Δᵢ₊₁.b]`. The correctness
+lemmas (`ladderRungs_isLadder`, Lemma 2.2, Corollary 2.3) live in `RSK3_u`. -/
+
+/-- `d(m) = max_{i ∈ I} 𝔡(i)`, the depth of a nonzero multisegment. -/
+def maxDepth (m : Multisegment) (h : m.segments ≠ []) : ℕ :=
+  maximum [depth_of_segment m s | s ∈ m.segments]
+
+/-- `𝔩(m)`: the rungs of all nonempty fibers. -/
+def ladderRungs (m : Multisegment) : Set Segment :=
+  {bucketRung m d | (d : ℕ) (_ : fiber m d ≠ [])}
+
+/-- Paper (2.1a): `Δ'_i = [b(Δ_i), e(Δ_{i^∨})]` where `Δ_{i^∨} = Δ_{i+1}` is
+the next segment of the fiber `𝔡⁻¹(d)` (in the order of our enumeration). -/
+def bucketResidual (m : Multisegment) (d : ℕ) : List Segment :=
+  [Segment (fiber m d)[i].a (fiber m d)[i + 1].b | i < (fiber m d).length - 1]
+
+-- /-- `i^\vee`: the nesting successor of `s` in bucket `d` (the next, more-inner segment in
+-- admissible order); `none` if `s` is the innermost element. -/
+-- def bucketSucc (m : Multisegment) (d : ℕ) (s : Segment) : Option Segment :=
+--   let l := (bucket m d).map (·.val)
+--   ((l.zip l.tail).find? (fun p => decide (p.1 = s))).map (·.2)
+
+/-- `m′ = Σ_{i ∈ I′′} Δ'_i` (paper (2.1c)): all the derived segments, of all fibers. -/
+def residual (m : Multisegment) (h : m.segments ≠ []) : Multisegment :=
+  [s | k ≤ maxDepth m, s ∈ bucketResidual m k]
+
+/-- **One step of the RSK algorithm** on a nonzero multisegment: the extracted ladder and
+the residual. -/
+def rsk_step (m : Multisegment) (h : m.segments ≠ []) : Set Segment × Multisegment :=
+  (ladderRungs m, residual m)
+```
+
+### `MW1_t.lean`
+
+```lean
+import LeanProof.Basic_t
+import LeanProof.Basic_u
+import Mathlib.Data.List.Chain
+
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.whitespace false
+
+/-!
+# Mœglin–Waldspurger, part 1: leading indices (trusted definitions)
+
+Paper §MW: the leading indices `i₁, …, i_k` of a multisegment `m`.
+-/
+
+abbrev chainLink (s₁ s₂ : Segment) : Prop := s₁ ≪ s₂ ∧ s₂.a = s₁.a + 1
+
+/-- A chain `Δ₁, …, Δₖ`: each segment strictly precedes the next, which begins one step later. -/
+abbrev isChain (segments : List Segment) : Prop :=
+  ∀ i, i + 1 < segments.length → chainLink segments[i] segments[i + 1]
+
+def Chain := {ms : Multisegment // isChain ms.segments}
+
+def segmentResidual (s : Segment) (h : s.a < s.b) : Segment :=
+  Segment (s.a + 1) s.b
+
+abbrev isFirst (m : Multisegment) (s : Segment) : Prop :=
+  s ∈ m.segments ∧ ∀ t ∈ m.segments, s ≤ t
+
+abbrev isNext (m : Multisegment) (s t : Segment) : Prop :=
+  t ∈ m.segments ∧ chainLink s t ∧ ∀ u ∈ m.segments, chainLink s u → t ≤ u
+
+abbrev isLast (m : Multisegment) (s : Segment) : Prop :=
+  ∀ t ∈ m.segments, ¬ chainLink s t
+
+def leadingIndices (m : Multisegment) : Set (List ℕ) :=
+  { i : List ℕ | ∃ k : {k : ℕ // i ∈ Indices k m ∧ 0 < k},
+        isFirst m m.segments[i[0]] ∧
+        (∀ j : ℕ, j + 1 < k → isNext m m.segments[i[j]] m.segments[i[j + 1]]) ∧
+        (∀ j : ℕ, j + 1 = k → isLast m m.segments[i[j]]) }
+```
+
+### `MW2_t.lean`
+
+```lean
+import LeanProof.Basic_t
+import LeanProof.Basic_u
+import LeanProof.MW1_t
+import LeanProof.MW1_u
+
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.whitespace false
+
+/-!
+# Mœglin–Waldspurger, part 2: one step `MW(m) = (Δ^MW(m), m^MW)` (trusted definitions)
+
+Paper §MW: for a nonzero multisegment `m`, with `i₁, …, i_k` a sequence of leading indices
+(any one), the leading chain `Δ_{i₁}, …, Δ_{i_k}`, the multisegment `m^MW = Σ Δ_j^*` and the
+segment `Δ^MW(m) = [b(Δ_{i₁}), b(Δ_{i₁}) + k − 1]`.
+-/
+
+def makeResidual (m : Multisegment) (h : m.segments ≠ []) : Multisegment :=
+  let i ∈ leadingIndices m;
+  [m.segments[j] | j < m.segments.length, j ∉ i]
+    ++ [segmentResidual m.segments[j] | j ∈ i, m.segments[j].a < m.segments[j].b]
+
+def deltaCirc (m : Multisegment) (h : m.segments ≠ []) : Segment :=
+  let i ∈ leadingIndices m; Segment m.segments[i[0]].a m.segments[i[i.length - 1]].a
+
+def mw_step (m : Multisegment) (h : m.segments ≠ []) : Segment × Multisegment :=
+  (deltaCirc m, makeResidual m)
+```
+
+### `Corollary_t.lean`
+
+```lean
+import LeanProof.Lemmas_u
+
+seal maximum first in
+/-- **Corollary 3.4** (paper Cor. `main`): `(K × Id)(MW(m)) = (Id × MW)(K(m))` for
+`min m < min L(m)` — one MW step followed by one RSK step yields the same data as one
+RSK step followed by one MW step. Both sides are the triple
+(extracted ladder, remaining multisegment, MW segment):
+* left — `MW` first: the ladder and remainder of `m†`, with `Δ°(m)`;
+* right — `K` first: the ladder of `m`, with the MW step of `m′`.
+Assembled from `mw_preserves_ladder`, `mw_residual_commute` and
+`deltaCirc_eq_of_residual` (`Lemmas_u`). -/
+theorem corollary_3_4
+    (m : Multisegment) (hm : m.segments ≠ [])
+    (h_min : m.segments[0].a < (sorted (ladderRungs m))[0].a) :
+    let KId_MW : Set Segment × Multisegment × Segment :=
+      ((rsk_step (mw_step m hm).2).1,
+       (rsk_step (mw_step m hm).2).2,
+       (mw_step m hm).1)
+    let IdMW_K : Set Segment × Multisegment × Segment :=
+      ((rsk_step m).1,
+       (mw_step (rsk_step m).2).2,
+       (mw_step (rsk_step m).2).1)
+    KId_MW = IdMW_K := by
+  intro KId_MW IdMW_K
+  have h := min_m_lt_min_lm_of_index m hm h_min
+  exact congrArg₂ Prod.mk (mw_preserves_ladder m hm h).symm
+    (congrArg₂ Prod.mk (mw_residual_commute m hm h) (deltaCirc_eq_of_residual m hm h))
+```
