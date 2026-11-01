@@ -12,17 +12,11 @@ set_option linter.style.whitespace false
 /-!
 # Mœglin–Waldspurger, part 2: proofs
 
-The step in terms of the greedy chain of `MW1_u`: the leading chain is it (`leadingChain_eq`),
-the residual is the computation along it (`mw_step_snd_eq`), and `Δ^MW(m)` is
+The step in terms of the greedy chain of `MW1_u`: the residual is the computation along it
+(`mw_step_snd_eq`), and `Δ^MW(m)` is
 `[min m, min m + k − 1]` (`mw_step_fst_a`, `mw_step_fst_b`). This is what the propositions
 reason about.
 -/
-
-lemma leadingChain_eq (m : Multisegment) (hm : m.segments ≠ []) :
-    leadingChain m hm = (Proof.greedyChain m).val.segments := by
-  unfold leadingChain
-  rw [anyOf_eq (first_mem _ (leadingIndices_nonempty m hm))]
-  exact segments_of_leadingIndices m (first_mem _ _)
 
 lemma makeResidual_eq (m : Multisegment) (hm : m.segments ≠ []) :
     makeResidual m hm = Proof.residualAlong m (Proof.greedyChain m).val.segments := by

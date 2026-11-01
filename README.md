@@ -88,7 +88,7 @@ Basic          lex order on segments, lists of segments read as multisegments (c
 └── MW1        chainLink, isChain, Chain, segmentResidual (⁻Δ), isFirst, isNext, isLast,
     │          leadingIndices (the paper's (a)–(c)); MW1_u: the greedy scan finds one, and
     │          all give the same segments
-    └── MW2    leadingChain, makeResidual (m^MW), deltaCirc (Δ^MW), mw_step, by the paper's
+    └── MW2    makeResidual (m^MW), deltaCirc (Δ^MW), mw_step, by the paper's
                formulas over a sequence of leading indices (any one — MW1_u proves the
                result does not depend on it)
                (MW depends on Basic only — RSK and MW are independent)

@@ -19,13 +19,6 @@
 -- def m_single : Multisegment := [Segment 7 7]
 -- def m_twice : Multisegment := [Segment 1 1, Segment 1 1, Segment 2 3, Segment 4 6]
 
--- /-! ### `leadingChain`: Δ_{i₁}, …, Δ_{i_k} -/
--- #eval leadingChain m_full     -- [(1, 3), (2, 4), (3, 5), (4, 6)]: every segment links up
--- #eval leadingChain m_break    -- [(1, 3), (2, 4)]: no segment begins at 3
--- #eval leadingChain m_fork     -- [(1, 2), (2, 5)]: (1,2) is least, then (2,5) (5 > 2)
--- #eval leadingChain m_points   -- [(1, 1), (2, 2), (3, 3)]: singletons link up
--- #eval leadingChain m_single   -- [(7, 7)]
-
 -- /-! ### `makeResidual`, `deltaCirc`: m^MW and Δ^MW(m) -/
 -- #eval (makeResidual m_break).segments   -- [(2, 3), (3, 4), (5, 7)]
 -- #eval deltaCirc m_break                 -- (1, 2)

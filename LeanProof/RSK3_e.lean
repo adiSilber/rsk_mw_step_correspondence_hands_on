@@ -58,6 +58,9 @@
 -- #eval bucketResidual m_repeated 0  -- singleton bucket [(2,4)] → [] (no adjacent pair)
 -- #eval bucketResidual m_repeated 5  -- empty bucket → []
 
+-- -- The rungs of `rsk_step` are finite as `ladderRungs m` is (`RSK3_u`); `.toFinset` needs it.
+-- instance (m : Multisegment) (h : m.segments ≠ []) : Fintype (rsk_step m h).1 :=
+--   inferInstanceAs (Fintype (ladderRungs m))
 -- -- rsk_step: the extracted ladder together with the residual, in one step.
 -- #eval ((rsk_step m_repeated).1.toFinset, (rsk_step m_repeated).2.segments)
 --   -- ({(2, 4), (1, 3)}, [(1, 3)])

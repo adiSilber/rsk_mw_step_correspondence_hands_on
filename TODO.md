@@ -48,7 +48,7 @@ Things we decided not to do yet, but would like to make better.
   need (only `S` nonempty and `e` constant on `S`, the two proofs it demands). In a project
   whose sets are of group elements, functions or points the line is rejected. The general
   definition is `f h.some h.some_mem` — noncomputable, so no `#eval` on anything built on it
-  (here that would be 38 evals, everything from `fiber`, `leadingChain`, `makeResidual`,
+  (here that would be 38 evals, everything from `fiber`, `makeResidual`,
   `deltaCirc` upward). Offer both under the same syntax: the computing one when the instances
   exist, the noncomputable twin otherwise.
 - **`Decidable` in the comprehensions and in `auto_prop`** (2026-10-31). `[x ∈ l | p x]` and

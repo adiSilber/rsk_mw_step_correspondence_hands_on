@@ -85,20 +85,12 @@ private lemma mem_depthFinset (m : Multisegment) (s : Segment) (j : ℕ) :
   simp only [depthFinset, Finset.mem_filter, Finset.mem_range, and_iff_right_iff_imp]
   exact lt_length_of_mem_depthSet
 
-/-- The comprehension set equals the computed finite set. -/
-lemma depthSet_eq_depthFinset (m : Multisegment) (s : Segment) :
-    depthSet m s = ↑(depthFinset m s) := by
-  ext j; simp [mem_depthFinset]
-
 /-- `depthSet m s` is finite: it is `depthFinset m s`. -/
 -- A `Fintype` instance, not a `Decidable` one: it carries a computed list. Allowed in a `_u`
 -- file because any two such instances agree, but it may be a little dangerous — to be checked
 -- (see TODO.md).
 instance (m : Multisegment) (s : Segment) : Fintype (depthSet m s) :=
   Fintype.ofFinset (depthFinset m s) (mem_depthFinset m s)
-
-lemma depthSet_finite (m : Multisegment) (s : Segment) : (depthSet m s).Finite :=
-  Set.toFinite _
 
 /-- `0 ∈ depthSet m s`: the one-index list `[idxOf s]`. -/
 @[grind! .]

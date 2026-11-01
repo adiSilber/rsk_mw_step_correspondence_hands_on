@@ -2069,6 +2069,7 @@ lemma segPair_inj : Function.Injective segPair := by
 private def derivedPairs (l : List Segment) : List (ℤ × ℤ) :=
   (l.zip l.tail).map (fun p => (p.1.a, p.2.b))
 
+-- A `rfl` lemma: `simp` applies it without a trace in the proof term (used below).
 lemma derivedPairs_nil : derivedPairs [] = [] := rfl
 
 lemma derivedPairs_single (x : Segment) : derivedPairs [x] = [] := rfl
@@ -2669,30 +2670,6 @@ lemma chain_mem_depth_ne (m : Multisegment) (c σ : Segment)
   rcases pairwise_mem_rel _ (greedyChain_pairwise_ll m) c hc σ hσ hvne with h | h
   · have := ll_ne_depth m c σ hcm hσm h; omega
   · have := ll_ne_depth m σ c hσm hcm h; omega
-
-/-- A chain member strictly shallower than `σ` is at most as deep as its successor. -/
-lemma chain_depth_between (m : Multisegment) (u v : List Segment) (σ σ' : Segment)
-    (hsplit : (Proof.greedyChain m).val.segments = u ++ σ :: σ' :: v)
-    (c : Segment) (hc : c ∈ (Proof.greedyChain m).val.segments)
-    (hcm : c ∈ m.segments) (hσm : σ ∈ m.segments) (hσ'm : σ' ∈ m.segments)
-    (hlt : depth_of_segment m c hcm < depth_of_segment m σ hσm) :
-    depth_of_segment m c hcm ≤ depth_of_segment m σ' hσ'm := by
-  have hCll := greedyChain_pairwise_ll m
-  rw [hsplit] at hCll hc
-  rcases List.mem_append.mp hc with h1 | h2
-  · -- c precedes σ, so c ≪ σ and depth σ < depth c: contradiction
-    exfalso
-    have hll := (List.pairwise_append.mp hCll).2.2 c h1 σ (by simp)
-    have := ll_ne_depth m c σ hcm hσm hll
-    omega
-  · rcases List.mem_cons.mp h2 with rfl | h3
-    · omega
-    · rcases List.mem_cons.mp h3 with rfl | h4
-      · exact le_refl _
-      · have hp := (List.pairwise_append.mp hCll).2.1
-        have hll := (List.pairwise_cons.mp (List.pairwise_cons.mp hp).2).1 c h4
-        have := ll_ne_depth m σ' c hσ'm hcm hll
-        omega
 
 /-- Full count formula for `m†`: one copy of each chain value is removed, one starred
 copy of each non-singleton chain value is added. -/

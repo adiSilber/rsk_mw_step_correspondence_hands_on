@@ -29,8 +29,6 @@ proofs work with. -/
 lemma isChain_iff {l : List Segment} : isChain l ↔ l.IsChain chainLink :=
   (List.isChain_iff_getElem (R := chainLink)).symm
 
-instance (l : List Segment) : Decidable (isChain l) := decidable_of_iff _ isChain_iff.symm
-
 /-- The greedy scan: appends `s` to the chain whenever it forms a `chainLink` with the
 current last. It produces a sequence of leading indices (`greedyIdx_mem_leadingIndices`), and
 every sequence of leading indices gives the same segments (`segsAt_eq_greedy`). -/
@@ -424,15 +422,6 @@ lemma head_begin_le (m : Multisegment) (sₘ : Segment)
 
 /-! ## Bridging `mw_step` to `Proof.greedyChain` -/
 
-/-- The greedy scan skips the head itself (`¬ chainLink first first`). -/
-lemma go_cons_self (first : Segment) (rest : List Segment) :
-    extendChain.go (first :: rest) [first] (by simp) =
-      extendChain.go rest [first] (by simp) := by
-  rw [extendChain.go]
-  rw [dif_neg]
-  intro h
-  exact absurd h.1.1 (lt_irrefl first.a)
-
 /-- `Proof.greedyChain` is the greedy scan of the tail from the singleton head chain. -/
 lemma greedyChain_eq_go (m : Multisegment) (first : Segment) (rest : List Segment)
     (hseg : m.segments = first :: rest) :
@@ -446,15 +435,6 @@ lemma greedyChain_eq_go (m : Multisegment) (first : Segment) (rest : List Segmen
     rw [hseg] at heq
     obtain ⟨rfl, rfl⟩ := List.cons.inj heq
     rfl
-
-/-- The chain scanned by `mw_step` (full list from the singleton head) is exactly the
-leading chain. -/
-lemma go_full_eq (m : Multisegment) (x : Segment) (hx : m.segments.head? = some x)
-    (hne : [x] ≠ []) :
-    extendChain.go m.segments [x] hne = (Proof.greedyChain m).val.segments := by
-  have hseg := head?_eq_cons hx
-  rw [hseg, go_cons_self x m.segments.tail, greedyChain_eq_go m x m.segments.tail hseg]
-
 
 /-! ## Layer 1: greedy structure of `extendChain.go` -/
 
@@ -1015,10 +995,6 @@ instance (m : Multisegment) : Fintype (leadingIndices m) :=
         · rw [map_getElem?_eq_iff m i hb]
           exact segsAt_eq_segments m hi hb)
 
-/-- Membership in `leadingIndices` is decided through its finite set. -/
-instance (m : Multisegment) (i : List ℕ) : Decidable (i ∈ leadingIndices m) :=
-  decidable_of_iff (i ∈ (leadingIndices m).toFinset) Set.mem_toFinset
-
 -- The index rule learns it: `m.segments[j]` is valid for `j ∈ i` with `i ∈ leadingIndices m`.
 attribute [grind →] lt_length_of_mem_leadingIndices
 
@@ -1027,16 +1003,6 @@ leading segments depends only on `m`). -/
 lemma segments_of_leadingIndices (m : Multisegment) {i : List ℕ} (hi : i ∈ leadingIndices m) :
     [m.segments[j] | j ∈ i] = (Proof.greedyChain m).val.segments :=
   segsAt_eq_segments m hi (fun _ hj => lt_length_of_mem_leadingIndices hj hi)
-
-/-- The segments at a sequence of leading indices do not depend on the sequence: this is what
-makes `let i ∈ leadingIndices m; [m.segments[j] | j ∈ i]` well defined. -/
-lemma leading_segments_indep (m : Multisegment) :
-    ∀ x (hx : x ∈ leadingIndices m) y (hy : y ∈ leadingIndices m),
-      [m.segments[j] | j ∈ x] = [m.segments[j] | j ∈ y] := by
-  intro x hx y hy
-  exact (segments_of_leadingIndices m hx).trans (segments_of_leadingIndices m hy).symm
-
-attribute [grind →] leading_segments_indep
 
 -- `let i ∈ leadingIndices m; …` needs the set nonempty, which follows from `m.segments ≠ []`.
 attribute [grind ←] leadingIndices_nonempty
@@ -1049,20 +1015,6 @@ attribute [grind ←] leadingIndices_nonempty
   have hidx : x.length = k ∧ x.Nodup ∧ ∀ j ∈ x, j < m.segments.length := hk.1
   have := hk.2
   omega
-
-/-- Conversely to `leadingIndices_nonempty`: a sequence of leading indices points into `m`,
-so `m` is nonempty. -/
-lemma ne_nil_of_leadingIndices_nonempty {m : Multisegment} (h : (leadingIndices m).Nonempty) :
-    m.segments ≠ [] := by
-  obtain ⟨x, hx⟩ := h
-  have := lt_length_of_mem_leadingIndices
-    (List.getElem_mem (length_pos_of_mem_leadingIndices hx)) hx
-  exact List.ne_nil_of_length_pos (by omega)
-
-/-- `(leadingIndices m).Nonempty` is decided by `m.segments ≠ []` (for `decide` on examples). -/
-instance (m : Multisegment) : Decidable (leadingIndices m).Nonempty :=
-  decidable_of_iff (m.segments ≠ [])
-    ⟨leadingIndices_nonempty m, ne_nil_of_leadingIndices_nonempty⟩
 
 /-- The first leading index points at the least segment, the head of `m`. -/
 lemma getElem_zero_eq_head {m : Multisegment} (hm : m.segments ≠ []) {x : List ℕ}

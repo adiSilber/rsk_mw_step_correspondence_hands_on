@@ -20,6 +20,8 @@
 -- -- (1,3) → (2,3): a's ok, but b ties (3 → 3, must be strict) — not a chain link.
 -- #eval decide (chainLink (Segment 1 3) (Segment 2 3))   -- false
 
+-- -- `isChain` is decided through its `IsChain` form (`isChain_iff`, `MW1_u`); only evals need it.
+-- instance (l : List Segment) : Decidable (isChain l) := decidable_of_iff _ isChain_iff.symm
 -- -- A chain: a's go 1,2,3 and b's are strictly increasing.
 -- #eval decide (isChain [Segment 1 3, Segment 2 4, Segment 3 5])   -- true
 -- -- Not a chain: a's jump from 1 to 5 (must be consecutive).
@@ -48,6 +50,19 @@
 -- #eval decide (isFirst m_fork (Segment 1 4))   -- false
 
 -- /-! ### `leadingIndices`: the sequences i₁, …, i_k of positions in `m` (paper (a)–(c)) -/
+-- -- Deciding membership in `leadingIndices`, and its nonemptiness (`first` below asks for it);
+-- -- only the evals need these.
+-- instance (m : Multisegment) (i : List ℕ) : Decidable (i ∈ leadingIndices m) :=
+--   decidable_of_iff (i ∈ (leadingIndices m).toFinset) Set.mem_toFinset
+-- lemma ne_nil_of_leadingIndices_nonempty {m : Multisegment} (h : (leadingIndices m).Nonempty) :
+--     m.segments ≠ [] := by
+--   obtain ⟨x, hx⟩ := h
+--   have := lt_length_of_mem_leadingIndices
+--     (List.getElem_mem (length_pos_of_mem_leadingIndices hx)) hx
+--   exact List.ne_nil_of_length_pos (by omega)
+-- instance (m : Multisegment) : Decidable (leadingIndices m).Nonempty :=
+--   decidable_of_iff (m.segments ≠ [])
+--     ⟨leadingIndices_nonempty m, ne_nil_of_leadingIndices_nonempty⟩
 -- #eval decide ([0, 2] ∈ leadingIndices m_fork)   -- true:  (1,2), (2,3)
 -- #eval decide ([0, 3] ∈ leadingIndices m_fork)   -- false: (2,5) is not the least link
 -- #eval decide ([0] ∈ leadingIndices m_fork)      -- false: (1,2) is not last

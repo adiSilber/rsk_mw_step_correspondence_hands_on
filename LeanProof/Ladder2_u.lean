@@ -49,11 +49,6 @@ lemma sorted_Sublist_append {α : Type*} (R : α → α → Prop) [hasym : Std.A
     · aesop
   · rw [hl₁₂]; aesop
 
-lemma Pairwise_append {α : Type*} (l : List α) (a : α) R :
-  l.Pairwise R -> (forall i, i ∈ l -> R i a) -> (l ++ [a]).Pairwise R := by
-  intros h1 h2
-  rw [List.pairwise_append]; aesop
-
 lemma Pairwise_ReflGen_rel_getHead {α : Type*} (R : α → α → Prop) (l : List α) (a : α)
     (h₁ : List.Pairwise R l) (ha : a ∈ l) :
     Relation.ReflGen R (l.head <| List.ne_nil_of_mem ha) a := by
@@ -307,19 +302,7 @@ lemma bucket_sorted (ms : Multisegment) (d : ℕ) :
     ((Proof.sortedBucket ms d).map (·.val)).Pairwise (·.a ≤ ·.a) :=
   (bucket_nested ms d).imp (fun h => h.1)
 
-/-- Consecutive list elements form a `zip`-with-tail pair. -/
-lemma mem_zip_tail_of_split {α} (l₁ : List α) (a b : α) (l₂ : List α) :
-    (a, b) ∈ (l₁ ++ a :: b :: l₂).zip (l₁ ++ a :: b :: l₂).tail := by
-  induction l₁ with
-  | nil => simp [List.zip_cons_cons]
-  | cons c cs ih =>
-    rcases hX : cs ++ a :: b :: l₂ with _ | ⟨x, X⟩
-    · simp at hX
-    · have : (c :: cs ++ a :: b :: l₂) = c :: x :: X := by rw [List.cons_append, hX]
-      rw [this, List.tail_cons, List.zip_cons_cons, List.mem_cons]; right
-      have ih' := ih; rw [hX] at ih'; simpa using ih'
-
-/-- Converse of `mem_zip_tail_of_split`: a `zip`-with-tail pair is a consecutive pair. -/
+/-- A `zip`-with-tail pair is a consecutive pair. -/
 lemma zip_tail_split {α} (l : List α) (s t : α) (h : (s, t) ∈ l.zip l.tail) :
     ∃ l₁ l₂, l = l₁ ++ s :: t :: l₂ := by
   induction l with
@@ -461,24 +444,6 @@ lemma depth_subset_of_b_le (m : Multisegment) (s t : Segment) (hs : s ∈ m.segm
   · refine ⟨?_, hab⟩
     by_contra h; push_neg at h
     have := depth_le_of_coord_le m s t hs ht h.le (le_of_eq heq); omega
-
-/-- Lemma 2.1(6): between same-depth nested `s2 ⊆ s1`, any deeper `s` with `s2 ⊆ s ⊆ s1`
-can be matched at depth `depth s1` by some `s3` with `s2 ⊆ s3 ⊆ s1`. -/
-lemma depth_interp (m : Multisegment) (s1 s2 : Segment) (hs1 : s1 ∈ m.segments)
-    (hs2 : s2 ∈ m.segments) (hd12 : depth_of_segment m s1 hs1 = depth_of_segment m s2 hs2)
-    (s : Segment) (hs : s ∈ m.segments) (h2s : s2 ⊆ s) (hss1 : s ⊆ s1)
-    (hds : depth_of_segment m s1 hs1 ≤ depth_of_segment m s hs) :
-    ∃ (s3 : Segment) (hs3 : s3 ∈ m.segments),
-      s2 ⊆ s3 ∧ s3 ⊆ s1 ∧ depth_of_segment m s3 hs3 = depth_of_segment m s1 hs1 := by
-  rcases eq_or_lt_of_le hds with heq | hlt
-  · exact ⟨s, hs, h2s, hss1, heq.symm⟩
-  · obtain ⟨s3, hs3, hs3d, hss3⟩ := exists_lower_ll _ m s hs rfl _ hlt
-    obtain ⟨hsa, hsb⟩ := hss1
-    obtain ⟨h2a, h2b⟩ := h2s
-    obtain ⟨h3a, h3b⟩ := hss3
-    have hs31 : s3 ⊆ s1 := depth_subset_of_a_lt m s1 s3 hs1 hs3 (by omega) (by omega)
-    have h2s3 : s2 ⊆ s3 := depth_subset_of_b_lt m s2 s3 hs2 hs3 (by omega) (by omega)
-    exact ⟨s3, hs3, h2s3, hs31, hs3d⟩
 
 /-! ## Admissible enumerations: decidable and finite
 

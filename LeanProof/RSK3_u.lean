@@ -138,17 +138,14 @@ lemma mem_ladderRungs {m : Multisegment} {r : Segment} :
   ⟨fun ⟨k, hk, hr⟩ => ⟨k, bucketRung?_eq_some_iff.mpr ⟨hk, hr⟩⟩,
    fun ⟨k, hk⟩ => let ⟨h, hr⟩ := bucketRung?_eq_some_iff.mp hk; ⟨k, h, hr⟩⟩
 
--- `Fintype` instances, not `Decidable` ones (the set of rungs, as `ladderRungs` and as the
--- first component of `rsk_step`): allowed in a `_u` file because any two such instances agree,
--- but they may be a little dangerous — to be checked (see TODO.md).
+-- A `Fintype` instance, not a `Decidable` one (the set of rungs): allowed in a `_u` file
+-- because any two such instances agree, but it may be a little dangerous — to be checked
+-- (see TODO.md).
 instance (m : Multisegment) : Fintype (ladderRungs m) :=
   Fintype.ofFinset ((List.range m.segments.length).filterMap (Proof.bucketRung? m)).toFinset
     (fun r => by
       simp only [List.mem_toFinset, List.mem_filterMap, List.mem_range, mem_ladderRungs]
       exact ⟨fun ⟨k, _, hk⟩ => ⟨k, hk⟩, fun ⟨k, hk⟩ => ⟨k, lt_length_of_bucketRung hk, hk⟩⟩)
-
-instance (m : Multisegment) (h : m.segments ≠ []) : Fintype (rsk_step m h).1 :=
-  inferInstanceAs (Fintype (ladderRungs m))
 
 /-- The proofs work with the rungs as a list, sorted: deepest-first, it is the rungs of depth
 `maxDepth`, …, `0`. -/

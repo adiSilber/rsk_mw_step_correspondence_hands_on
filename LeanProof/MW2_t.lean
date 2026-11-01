@@ -15,9 +15,6 @@ Paper §MW: for a nonzero multisegment `m`, with `i₁, …, i_k` a sequence of 
 segment `Δ^MW(m) = [b(Δ_{i₁}), b(Δ_{i₁}) + k − 1]`.
 -/
 
-def leadingChain (m : Multisegment) (h : m.segments ≠ []) : List Segment :=
-  let i ∈ leadingIndices m; [m.segments[j] | j ∈ i]
-
 def makeResidual (m : Multisegment) (h : m.segments ≠ []) : Multisegment :=
   let i ∈ leadingIndices m;
   [m.segments[j] | j < m.segments.length, j ∉ i]

@@ -37,7 +37,9 @@ lemma Segment.lt_def (s t : Segment) :
     s < t ↔ s.a < t.a ∨ (s.a = t.a ∧ s.b < t.b) :=
   Prod.Lex.lt_iff (x := (s.a, s.b)) (y := (t.a, t.b))
 
-/-- The list → multisegment reading of `Basic_t`, unfolded. -/
+/-- The list → multisegment reading of `Basic_t`, unfolded. (A `rfl` lemma: `simp` applies it
+without a trace in the proof term, so no search for its name finds its uses — `RSK3_u` has
+one.) -/
 @[simp] lemma coe_list_segments (l : List Segment) :
     (l : Multisegment).segments = l.insertionSort (· ≤ ·) := rfl
 
@@ -65,9 +67,6 @@ lemma first_mem {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) 
     x ∈ sorted S ↔ x ∈ S := by
   simp [sorted]
 
-lemma sorted_eq_nil {α} [LinearOrder α] {S : Set α} [Fintype S] (h : S = ∅) : sorted S = [] := by
-  apply List.eq_nil_iff_forall_not_mem.mpr; intro x hx; simp [h] at hx
-
 /-- `let x ∈ S; e` is `e` at any member of `S`. -/
 lemma anyOf_eq {α β} [LinearOrder α] {S : Set α} [Fintype S] {f : (x : α) → x ∈ S → β}
     {h : S.Nonempty} {hf : ∀ x (hx : x ∈ S) y (hy : y ∈ S), f x hx = f y hy}
@@ -89,31 +88,6 @@ lemma Segment.ext_ab {s t : Segment} (ha : s.a = t.a) (hb : s.b = t.b) : s = t :
 @[simp] lemma comprehension_id {α} (l : List α) : List.map (fun ⟨x, _⟩ => x) l.attach = l := by
   simp
 
-/-- The list comprehension `[f x | x ∈ l]` is `l.map f`. -/
-@[simp] lemma comprehension_map {α β} (l : List α) (f : α → β) :
-    List.map (fun ⟨x, _⟩ => f x) l.attach = l.map f := by
-  simp
-
-
-/-- The least element of a sorted list is its head. -/
-lemma first_eq_head {α} [LinearOrder α] (l : List α) (hl : l.Pairwise (· ≤ ·)) (h : l ≠ [])
-    (hS : (l : Set α).Nonempty) : first l hS = l.head h := by
-  unfold first
-  cases l with
-  | nil => exact absurd rfl h
-  | cons a t =>
-    apply le_antisymm
-    · exact Finset.min'_le _ _ (by rw [Set.mem_toFinset]; exact List.mem_cons_self)
-    · apply Finset.le_min'
-      intro y hy
-      rw [Set.mem_toFinset] at hy
-      rcases List.mem_cons.mp hy with rfl | hy
-      · exact le_rfl
-      · exact (List.pairwise_cons.mp hl).1 y hy
-
-lemma nonempty_mem_cons {α} (a : α) (l : List α) : {x | x ∈ a :: l}.Nonempty :=
-  ⟨a, List.mem_cons_self⟩
-
 /-- The members of a nonempty list form a nonempty set. -/
 lemma nonempty_mem_of_ne_nil {α} {l : List α} (h : l ≠ []) : {x | x ∈ l}.Nonempty := by
   obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil l h
@@ -130,9 +104,6 @@ hypothesis `l.head? = some a`. -/
 lemma ne_nil_of_head?_eq_some {α} {l : List α} {a : α} (h : l.head? = some a) : l ≠ [] := by
   rintro rfl; simp at h
 
-lemma nonempty_image_cons {α β} (s : α) (ss : List α) (f : α → β) :
-    {y | ∃ x ∈ s :: ss, f x = y}.Nonempty := ⟨f s, s, List.mem_cons_self, rfl⟩
-
 /-- The largest begin point of a list of segments is at most its largest end point. -/
 lemma maximum_a_le_maximum_b (l : List Segment) (h₁ h₂) :
     maximum {(x.a) | x ∈ l} h₁ ≤ maximum {(x.b) | x ∈ l} h₂ := by
@@ -143,13 +114,6 @@ lemma maximum_a_le_maximum_b (l : List Segment) (h₁ h₂) :
 /-! ### Teaching `auto_prop` (= `grind`) the facts above — by attributes only
 
 `l[i] ∈ l`, and `l ≠ []` from `a ∈ l` or `0 < l.length`, `grind` knows by itself. -/
-
-/-- A set with a `Nonempty` instance is nonempty. `grind` tries it on every `S.Nonempty` it
-meets (a `grind` pattern cannot look inside the set-builder lambda, but instance search can);
-the instances of `Fundamentals_t` cover the set-builder sets of the `_t` files. -/
-lemma Set.nonempty_of_inst {α} (S : Set α) [h : Nonempty S] : S.Nonempty :=
-  Set.nonempty_coe_sort.mp h
-grind_pattern Set.nonempty_of_inst => Set.Nonempty S
 
 -- Keyed on the two `maximum` terms: their proof arguments `h₁`, `h₂` carry `l`.
 grind_pattern maximum_a_le_maximum_b => maximum _ h₁, maximum _ h₂
