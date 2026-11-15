@@ -15,14 +15,14 @@ The step in terms of the greedy chain of `MW1_u`: the residual is the computatio
 reason about.
 -/
 
-lemma makeResidual_eq (m : Multisegment) (hm : m.segments ≠ []) :
+private lemma makeResidual_eq (m : Multisegment) (hm : m.segments ≠ []) :
     makeResidual m hm = Proof.mdag m := by
   unfold makeResidual
   have hi := first_mem _ (leadingIndices_nonempty m hm)
   rw [anyOf_eq hi]
   exact residual_eq m hi
 
-lemma deltaCirc_a (m : Multisegment) (hm : m.segments ≠ []) :
+private lemma deltaCirc_a (m : Multisegment) (hm : m.segments ≠ []) :
     (deltaCirc m hm).a = (m.segments.head hm).a := by
   unfold deltaCirc
   have hi := first_mem _ (leadingIndices_nonempty m hm)
@@ -30,7 +30,7 @@ lemma deltaCirc_a (m : Multisegment) (hm : m.segments ≠ []) :
   change m.segments[(first (leadingIndices m) _)[0]].a = _
   rw [getElem_zero_eq_head hm hi]
 
-lemma deltaCirc_b (m : Multisegment) (hm : m.segments ≠ []) :
+private lemma deltaCirc_b (m : Multisegment) (hm : m.segments ≠ []) :
     (deltaCirc m hm).b
       = (m.segments.head hm).a + ↑((Proof.leadingChain m).length - 1) := by
   unfold deltaCirc

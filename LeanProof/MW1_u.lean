@@ -57,17 +57,17 @@ def residualAlong (m : Multisegment) (chain : List Segment) : Multisegment :=
 end Proof
 
 /-- A `chainLink` between two segments implies strict lex order. -/
-lemma chainLink_imp_lt (s₁ s₂ : Segment) (h : chainLink s₁ s₂) : s₁ < s₂ :=
+private lemma chainLink_imp_lt (s₁ s₂ : Segment) (h : chainLink s₁ s₂) : s₁ < s₂ :=
   (Segment.lt_def _ _).mpr (Or.inl h.1.1)
 
 /-- An `isChain` list is also lex-sorted under `≤`. -/
-lemma isChain_imp_sorted (l : List Segment) (h : isChain l) : l.Pairwise (· ≤ ·) := by
+private lemma isChain_imp_sorted (l : List Segment) (h : isChain l) : l.Pairwise (· ≤ ·) := by
   have h_lt : l.IsChain (· < ·) := (isChain_iff.mp h).imp chainLink_imp_lt
   exact h_lt.pairwise.imp le_of_lt
 
 /-- Snoc preserves `isChain` when the new last element has a `chainLink` from the
     previous last. -/
-lemma isChain_snoc (l : List Segment) (hne : l ≠ [])
+private lemma isChain_snoc (l : List Segment) (hne : l ≠ [])
     (h : isChain l) (x : Segment) (h_link : chainLink (l.getLast hne) x) :
     isChain (l ++ [x]) := by
   refine isChain_iff.mpr (List.IsChain.append (isChain_iff.mp h) (List.IsChain.singleton x) ?_)
@@ -78,7 +78,7 @@ lemma isChain_snoc (l : List Segment) (hne : l ≠ [])
   exact h_link
 
 /-- `extendChain.go` preserves `isChain`. -/
-lemma extendChain.go_isChain
+private lemma extendChain.go_isChain
     (m : List Segment) (chain : List Segment) (hne : chain ≠ [])
     (h_chain : isChain chain) : isChain (extendChain.go m chain hne) := by
   induction m generalizing chain hne h_chain with
@@ -153,7 +153,7 @@ lemma chain_get_a : ∀ (l : List Segment), isChain l →
         rw [hrec, hya]; omega
 
 /-- Every element of `extendChain.go ms chain hne` is in `chain` or in `ms`. -/
-lemma extendChain.go_mem (ms chain : List Segment) (hne : chain ≠ []) :
+private lemma extendChain.go_mem (ms chain : List Segment) (hne : chain ≠ []) :
     ∀ x ∈ extendChain.go ms chain hne, x ∈ chain ∨ x ∈ ms := by
   induction ms generalizing chain hne with
   | nil => intro x hx; left; rwa [extendChain.go] at hx
@@ -182,7 +182,7 @@ lemma greedyChain_subset (m : Multisegment) (x : Segment)
     · rw [heq]; exact List.mem_cons_of_mem _ hr
 
 /-- `extendChain.go` preserves the chain's head (it only appends). -/
-lemma extendChain.go_head (ms chain : List Segment) (hne : chain ≠ []) :
+private lemma extendChain.go_head (ms chain : List Segment) (hne : chain ≠ []) :
     (extendChain.go ms chain hne).head? = chain.head? := by
   induction ms generalizing chain hne with
   | nil => rw [extendChain.go]
@@ -219,7 +219,7 @@ lemma seg_b_le_of_le_of_a_eq {s t : Segment} (h : s ≤ t) (ha : s.a = t.a) : s.
   · exact h2
 
 /-- `go` only appends, so its result is at least as long as the starting chain. -/
-lemma go_length_ge (ms chain : List Segment) (hne : chain ≠ []) :
+private lemma go_length_ge (ms chain : List Segment) (hne : chain ≠ []) :
     chain.length ≤ (extendChain.go ms chain hne).length := by
   induction ms generalizing chain hne with
   | nil => rw [extendChain.go]
@@ -234,7 +234,7 @@ lemma go_length_ge (ms chain : List Segment) (hne : chain ≠ []) :
 from `chain`'s last element), then greedy produces a result ≥ `chain ++ alt` in length.
 The sortedness lets the earlier greedy pick `s` stand in for an alternative's head at the
 same begin (patience-sorting: the minimal-end choice never loses). -/
-lemma go_optimal : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
+private lemma go_optimal : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
     ∀ (chain : List Segment) (hne : chain ≠ []) (alt : List Segment),
       isChain alt → alt <+ ms →
       (∀ h : alt ≠ [], chainLink (chain.getLast hne) (alt.head h)) →
@@ -303,7 +303,7 @@ lemma go_optimal : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
 that starts at `m`'s head is no longer than the leading chain. Hence `Proof.greedyChain m`
 realizes the maximal consecutive-begin chain length from `min m` — the reusable half of
 Prop 3.3 that both directions of `chainLenPreserved` need. -/
-lemma greedyChain_length_ge (m : Multisegment) (c : List Segment)
+private lemma greedyChain_length_ge (m : Multisegment) (c : List Segment)
     (hc : isChain c) (hsub : c <+ m.segments) (hhead : c.head? = m.segments.head?) :
     c.length ≤ (Proof.leadingChain m).length := by
   cases c with
@@ -336,7 +336,7 @@ lemma greedyChain_length_ge (m : Multisegment) (c : List Segment)
 /-- Membership interface for greedy optimality: a chain whose elements all lie in `m` and
 whose head is `min m` is no longer than the leading chain. The sublist is recovered from
 nodup + sortedness, so callers need only supply membership. -/
-lemma greedyChain_length_ge' (m : Multisegment) (c : List Segment)
+private lemma greedyChain_length_ge' (m : Multisegment) (c : List Segment)
     (hc : isChain c) (hmem : ∀ x ∈ c, x ∈ m.segments) (hhead : c.head? = m.segments.head?) :
     c.length ≤ (Proof.leadingChain m).length := by
   have hlt : c.Pairwise (· < ·) := by
@@ -349,7 +349,7 @@ lemma greedyChain_length_ge' (m : Multisegment) (c : List Segment)
   exact greedyChain_length_ge m c hc hsub hhead
 
 /-- A list with `head? = some sₘ` is `sₘ :: tail`. -/
-lemma head?_cons_ex {sₘ : Segment} {l : List Segment} (h : l.head? = some sₘ) :
+private lemma head?_cons_ex {sₘ : Segment} {l : List Segment} (h : l.head? = some sₘ) :
     ∃ t, l = sₘ :: t := by
   cases hl : l with
   | nil => rw [hl] at h; simp at h
@@ -447,7 +447,7 @@ lemma greedyChain_eq_go (m : Multisegment) (first : Segment) (rest : List Segmen
 
 /-- The greedy scan only appends: its result is `chain ++ suffix` with the suffix
 drawn from the scanned list. -/
-lemma go_prefix (ms chain : List Segment) (hne : chain ≠ []) :
+private lemma go_prefix (ms chain : List Segment) (hne : chain ≠ []) :
     ∃ suf, extendChain.go ms chain hne = chain ++ suf ∧ ∀ y ∈ suf, y ∈ ms := by
   induction ms generalizing chain hne with
   | nil => exact ⟨[], by rw [extendChain.go]; simp, by simp⟩
@@ -472,7 +472,7 @@ lemma go_ne_nil (ms chain : List Segment) (hne : chain ≠ []) :
 
 /-- The last element of the greedy result is the initial chain's last, or comes from
 the scanned list. -/
-lemma go_getLast?_cases (ms chain : List Segment) (hne : chain ≠ []) :
+private lemma go_getLast?_cases (ms chain : List Segment) (hne : chain ≠ []) :
     (extendChain.go ms chain hne).getLast? = chain.getLast? ∨
     ∃ y ∈ ms, (extendChain.go ms chain hne).getLast? = some y := by
   induction ms generalizing chain hne with
@@ -491,7 +491,7 @@ lemma go_getLast?_cases (ms chain : List Segment) (hne : chain ≠ []) :
 
 /-- **Maximality of the greedy chain**: no element of the (sorted) scanned list chain-links
 from the result's last element. -/
-lemma go_last_no_link : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
+private lemma go_last_no_link : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
     ∀ (chain : List Segment) (hne : chain ≠ []),
     ∀ x ∈ ms, ∀ g, (extendChain.go ms chain hne).getLast? = some g →
       ¬ chainLink g x := by
@@ -542,7 +542,7 @@ lemma go_last_no_link : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
       · exact ih hrest_sorted chain hne x hx' g hg hlink
 
 /-- Index lookup at the split point: the left element. -/
-lemma getElem?_split_left {α : Type*} (u v : List α) (σ σ' : α) :
+private lemma getElem?_split_left {α : Type*} (u v : List α) (σ σ' : α) :
     (u ++ σ :: σ' :: v)[u.length]? = some σ := by
   rw [List.getElem?_append_right (le_refl u.length)]
   simp
@@ -556,7 +556,7 @@ lemma getElem?_split_right {α : Type*} (u v : List α) (σ σ' : α) :
 /-- **Greedy minimal-end property**: if `(σ, σ')` are consecutive in the greedy result at
 a position where `σ'` was appended from the scanned (sorted) list, then any `x` in the
 scanned list that chain-links from `σ` has end at least `σ'.b`. -/
-lemma go_min_end : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
+private lemma go_min_end : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
     ∀ (chain : List Segment) (hne : chain ≠ []) (u v : List Segment) (σ σ' : Segment),
       extendChain.go ms chain hne = u ++ σ :: σ' :: v →
       chain.length ≤ u.length + 1 →
@@ -662,7 +662,7 @@ lemma go_min_end : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
 /-! ## Layer 2a: leading-chain structure -/
 
 /-- No element of `m` chain-links from the leading chain's last element. -/
-lemma greedyChain_last_no_link (m : Multisegment) (x : Segment) (hx : x ∈ m.segments)
+private lemma greedyChain_last_no_link (m : Multisegment) (x : Segment) (hx : x ∈ m.segments)
     (g : Segment) (hg : (Proof.leadingChain m).getLast? = some g) :
     ¬ chainLink g x := by
   intro hlink
@@ -910,7 +910,7 @@ private lemma segsAt_greedyIdx (m : Multisegment) :
   · intro n h1 h2
     simp [segsAt, greedyIdx, List.getElem_idxOf]
 
-lemma greedyIdx_mem_leadingIndices (m : Multisegment) (hm : m.segments ≠ []) :
+private lemma greedyIdx_mem_leadingIndices (m : Multisegment) (hm : m.segments ≠ []) :
     greedyIdx m ∈ leadingIndices m := by
   rw [isLeading_segsAt_iff m _ (greedyIdx_bound m)]
   refine ⟨?_, ?_⟩
@@ -1007,7 +1007,8 @@ attribute [grind →] lt_length_of_mem_leadingIndices
 
 /-- Every sequence of leading indices gives the segments of the greedy chain (paper: the set of
 leading segments depends only on `m`). -/
-lemma segments_of_leadingIndices (m : Multisegment) {i : List ℕ} (hi : i ∈ leadingIndices m) :
+private lemma segments_of_leadingIndices (m : Multisegment) {i : List ℕ}
+    (hi : i ∈ leadingIndices m) :
     [m.segments[j] | j ∈ i] = Proof.leadingChain m :=
   segsAt_eq_segments m hi (fun _ hj => lt_length_of_mem_leadingIndices hj hi)
 
@@ -1030,14 +1031,14 @@ lemma getElem_zero_eq_head {m : Multisegment} (hm : m.segments ≠ []) {x : List
   exact le_antisymm (ha.2 _ (List.head_mem hm))
     (head_le_mem m _ (List.head?_eq_some_head hm) _ ha.1)
 
-lemma length_eq_greedy {m : Multisegment} {x : List ℕ} (hx : x ∈ leadingIndices m) :
+private lemma length_eq_greedy {m : Multisegment} {x : List ℕ} (hx : x ∈ leadingIndices m) :
     x.length = (Proof.leadingChain m).length := by
   have := congrArg List.length (segments_of_leadingIndices m hx)
   simpa using this
 
 /-- Along a sequence of leading indices the begins increase, so `[b(Δ_{i₁}), b(Δ_{i_k})]` is a
 segment. -/
-lemma a_le_a_last {m : Multisegment} {x : List ℕ} (hx : x ∈ leadingIndices m) :
+private lemma a_le_a_last {m : Multisegment} {x : List ℕ} (hx : x ∈ leadingIndices m) :
     m.segments[x[0]].a ≤ m.segments[x[x.length - 1]].a := by
   have H : ∀ j ∈ x, j < m.segments.length := fun _ hj => lt_length_of_mem_leadingIndices hj hx
   have hseg := segsAt_eq_segments m hx H
@@ -1138,7 +1139,7 @@ lemma residual_eq (m : Multisegment) {x : List ℕ} (hx : x ∈ leadingIndices m
 set_option autoProp.rule true in
 /-- `m^MW` does not depend on the sequence of leading indices: this is what makes
 `let i ∈ leadingIndices m; …` in `makeResidual` well defined. -/
-lemma residual_indep (m : Multisegment) :
+private lemma residual_indep (m : Multisegment) :
     ∀ x (hx : x ∈ leadingIndices m) y (hy : y ∈ leadingIndices m),
       (([m.segments[j] | j < m.segments.length, j ∉ x]
         ++ [segmentResidual m.segments[j] | j ∈ x, m.segments[j].a < m.segments[j].b]
@@ -1150,7 +1151,7 @@ lemma residual_indep (m : Multisegment) :
   exact (residual_eq m hx).trans (residual_eq m hy).symm
 
 /-- `Δ^MW(m)` does not depend on the sequence of leading indices either. -/
-lemma deltaCirc_indep (m : Multisegment) :
+private lemma deltaCirc_indep (m : Multisegment) :
     ∀ x (hx : x ∈ leadingIndices m) y (hy : y ∈ leadingIndices m),
       Segment m.segments[x[0]].a m.segments[x[x.length - 1]].a
         = Segment m.segments[y[0]].a m.segments[y[y.length - 1]].a := by

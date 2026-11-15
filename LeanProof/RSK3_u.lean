@@ -41,7 +41,7 @@ lemma bucketRung_spec (m : Multisegment) (d : ℕ) (r : Segment)
     maximum_mem {(x.a) | x ∈ fiber m d} _, maximum_mem {(x.b) | x ∈ fiber m d} _⟩
 
 /-- Consecutive rungs are strictly `≪`: the depth-`(d+1)` rung sits below depth-`d`. -/
-lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)
+private lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)
     (hr_d : Proof.bucketRung? m d = some r_d)
     (hr_succ : Proof.bucketRung? m (d + 1) = some r_succ) :
     r_succ ≪ r_d := by
@@ -91,12 +91,12 @@ lemma rung_lt_ll (m : Multisegment) :
       exact ⟨r', hr', ll_trans _ _ _ h_succ hr_d_lt⟩
     · subst heq; exact ⟨r_d, hr_d, h_succ⟩
 
-lemma range_reverse_succ (n : ℕ) :
+private lemma range_reverse_succ (n : ℕ) :
     (List.range (n + 1)).reverse = n :: (List.range n).reverse := by
   rw [List.range_succ, List.reverse_append, List.reverse_singleton]; rfl
 
 /-- The rungs listed deepest-first are pairwise `≪`. -/
-lemma pairwise_rungs (m : Multisegment) (n : ℕ) :
+private lemma pairwise_rungs (m : Multisegment) (n : ℕ) :
     ((List.range n).reverse.filterMap (Proof.bucketRung? m)).Pairwise (· ≪ ·) := by
   induction n with
   | zero => simp
@@ -113,12 +113,12 @@ lemma pairwise_rungs (m : Multisegment) (n : ℕ) :
       exact hr_lt
 
 /-- A rung exists only if `m` is nonempty. -/
-lemma ne_nil_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
+private lemma ne_nil_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
     (h : Proof.bucketRung? m k = some r) : m.segments ≠ [] :=
   List.ne_nil_of_length_pos (by have := lt_length_of_bucketRung h; omega)
 
 /-- A rung exists only at depths `≤ maxDepth`. -/
-lemma le_maxDepth_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
+private lemma le_maxDepth_of_bucketRung {m : Multisegment} {k : ℕ} {r : Segment}
     (h : Proof.bucketRung? m k = some r) : k ≤ maxDepth m (ne_nil_of_bucketRung h) := by
   obtain ⟨-, ⟨x, hx, -⟩, -⟩ := bucketRung_spec m k r h
   obtain ⟨⟨y, hy⟩, hybk, rfl⟩ := List.mem_map.mp hx
@@ -213,7 +213,7 @@ lemma bucket_split_pair_subset (m : Multisegment) (d : ℕ) (s t : Segment)
 
 /-- Full immediacy from an explicit consecutive split of a bucket: no other bucket
 element is nested strictly between `s` and its successor `t`. -/
-lemma bucket_split_immediate_nest (m : Multisegment) (d : ℕ) (s t : Segment)
+private lemma bucket_split_immediate_nest (m : Multisegment) (d : ℕ) (s t : Segment)
     (l₁ l₂ : List Segment)
     (hsplit : (Proof.sortedBucket m d).map (·.val) = l₁ ++ s :: t :: l₂)
     (u : Segment) (hu : u ∈ (Proof.sortedBucket m d).map (·.val))
@@ -299,7 +299,7 @@ grind_pattern ladderRungs_ne_nil => ladderRungs m
 
 seal maximum first in
 /-- Membership in `bucketResidual`, unfolded: `w = [Δᵢ.a, Δᵢ₊₁.b]` for some position `i`. -/
-lemma mem_bucketResidual_iff {m : Multisegment} {d : ℕ} {w : Segment} :
+private lemma mem_bucketResidual_iff {m : Multisegment} {d : ℕ} {w : Segment} :
     w ∈ bucketResidual m d ↔
       ∃ i, ∃ _ : i + 1 < (fiber m d).length,
         w.a = (fiber m d)[i].a ∧ w.b = (fiber m d)[i + 1].b := by

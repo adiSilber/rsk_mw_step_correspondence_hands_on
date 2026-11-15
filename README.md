@@ -44,7 +44,8 @@ The parts are layered with a strict import discipline:
   instances, and `MW1_e` uses `MW1_u` to demonstrate the greedy scan). Nothing
   imports an `_e` file, so this adds nothing to the trusted surface.
 
-Definitions in a `_u` file are `private`, unless a later `_u` file needs them. Such a
+Definitions and lemmas in a `_u` file are `private`, unless a later file needs them (`tools/Unused.lean`
+lists the public ones used only in their own file). Such a
 public proof-side definition lives in the namespace `Proof`, which is **never opened**, so it
 can only be meant by its full name — e.g. `Proof.sortedBucket` (in `Ladder2_u`: the bucket
 sorted by nesting; `RSK1_u` proves `fiber m k` equals it). No `_t` or `_e` file names a

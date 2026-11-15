@@ -61,3 +61,11 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
     things leave no trace in it and are checked by hand: coercion instances, which are
     unfolded where they are written, and `rfl` lemmas, which `simp` applies without
     recording them.
+
+13. **Private unless needed later.** A `_u` definition or lemma is `private` unless a later
+    file names it; a public proof-side definition lives in `namespace Proof` and is written
+    with its full name, which no `_t` or `_e` file ever does. Privacy is hygiene, not safety:
+    a private lemma can be rewritten or deleted without looking elsewhere, a name clash
+    between files is impossible, and a reader of a later file sees only what it may use.
+    List C of `tools/Unused.lean` reports the public `_u` declarations only their own file
+    mentions.

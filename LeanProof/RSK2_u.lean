@@ -9,7 +9,7 @@ set_option linter.style.whitespace false
 /-! # RSK, part 2: proofs -/
 
 /-- Consecutive segments of the fiber are nested, so `[Δᵢ.a, Δᵢ₊₁.b]` is a segment. -/
-lemma fiber_a_le_succ_b (m : Multisegment) (k i : ℕ) (h : i + 1 < (fiber m k).length) :
+private lemma fiber_a_le_succ_b (m : Multisegment) (k i : ℕ) (h : i + 1 < (fiber m k).length) :
     (fiber m k)[i].a ≤ (fiber m k)[i + 1].b := by
   have hnested : (fiber m k).Pairwise (fun s t => subsegment t s) := by
     rw [fiber_eq]; exact bucket_nested m k
@@ -31,7 +31,7 @@ nonempty; it is, for `m.segments ≠ []`. Keyed on the term `m.segments` togethe
 `Set.Nonempty {…}` term (a `grind` pattern cannot look inside the set-builder lambda, so the
 second key is only a shape): it fires only where such a set is being asked about, not in every
 proof that mentions `m.segments`. -/
-lemma depth_set_nonempty (m : Multisegment) (h : m.segments ≠ []) :
+private lemma depth_set_nonempty (m : Multisegment) (h : m.segments ≠ []) :
     ({x | x ∈ [depth_of_segment m s | s ∈ m.segments]} : Set ℕ).Nonempty :=
   nonempty_mem_of_ne_nil (comprehension_ne_nil _ h)
 grind_pattern depth_set_nonempty =>

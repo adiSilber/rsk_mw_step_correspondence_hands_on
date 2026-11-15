@@ -23,7 +23,7 @@ lemma isLadder_sorted (segments : List Segment) :
   exact (Segment.le_def a b).mpr (Or.inl aa)
 
 
-lemma sorted_Sublist_append {α : Type*} (R : α → α → Prop) [hasym : Std.Antisymm R]
+private lemma sorted_Sublist_append {α : Type*} (R : α → α → Prop) [hasym : Std.Antisymm R]
     (l l₀: List α) (sorted : l.Pairwise R) (a : α) :
     l₀ <+ l → a ∈ l → a ∉ l₀ → (∀ b, b ∈ l₀ → R a b) → a :: l₀ <+ l := by
   intros hsub hal hal₀ hrba
@@ -46,7 +46,7 @@ lemma sorted_Sublist_append {α : Type*} (R : α → α → Prop) [hasym : Std.A
     · aesop
   · rw [hl₁₂]; aesop
 
-lemma Pairwise_ReflGen_rel_getHead {α : Type*} (R : α → α → Prop) (l : List α) (a : α)
+private lemma Pairwise_ReflGen_rel_getHead {α : Type*} (R : α → α → Prop) (l : List α) (a : α)
     (h₁ : List.Pairwise R l) (ha : a ∈ l) :
     Relation.ReflGen R (l.head <| List.ne_nil_of_mem ha) a := by
   cases l with
@@ -57,7 +57,7 @@ lemma Pairwise_ReflGen_rel_getHead {α : Type*} (R : α → α → Prop) (l : Li
     · exact .refl
     · exact .single ((List.pairwise_cons.mp h₁).1 a hmem)
 
-lemma isLadder_extend l (hl : isLadder l) s₀ s₁ :
+private lemma isLadder_extend l (hl : isLadder l) s₀ s₁ :
     s₀ ∈ l.head? → s₁ ≪ s₀ →
     isLadder (s₁ :: l) := by
   intro h_head h_ll
@@ -87,7 +87,7 @@ private def Ladder_extend (l : Ladder) s₀ s₁ :
     apply isLadder_extend <;> aesop (add simp l.prop)
   exact ⟨⟨app, isLadder_sorted _ app_isLadder⟩, app_isLadder⟩
 
-lemma Ladder_sublist_extend (ms : Multisegment)
+private lemma Ladder_sublist_extend (ms : Multisegment)
     (l : Ladder) (h : l.val ⊆ ms) s₀ s₁
     (hs0 : s₀ ∈ l.val.segments.head?)
     (hs01 : s₁ ≪ s₀) :
@@ -117,7 +117,7 @@ lemma depth_of_segment_mem (m : Multisegment) (s : Segment) (hs : s ∈ m.segmen
   exact maximum_mem _ _
 
 /-- The depth bounds every element of `depthSet`. -/
-lemma le_depth_of_segment {m : Multisegment} {s : Segment} (hs : s ∈ m.segments) {j : ℕ}
+private lemma le_depth_of_segment {m : Multisegment} {s : Segment} (hs : s ∈ m.segments) {j : ℕ}
     (hj : j ∈ depthSet m s) : j ≤ depth_of_segment m s hs := by
   unfold depth_of_segment
   exact le_maximum _ _ hj
@@ -143,7 +143,7 @@ private lemma ll_of_chain {m : Multisegment} {j : ℕ} (i : List ℕ) (hlen : i.
 
 /-- A member `j` of `depthSet m s` gives a ladder sublist of `m`, headed by `s`, of
 length `j + 1`. -/
-lemma exists_ladder_of_mem_depthSet {m : Multisegment} {s : Segment} {j : ℕ}
+private lemma exists_ladder_of_mem_depthSet {m : Multisegment} {s : Segment} {j : ℕ}
     (hj : j ∈ depthSet m s) :
     ∃ l : List Segment, l <+ m.segments ∧ s ∈ l.head? ∧ isLadder l ∧ l.length = j + 1 := by
   obtain ⟨⟨i, hlen, _, hi⟩, h0, hchain⟩ := hj
@@ -167,7 +167,7 @@ lemma exists_ladder_of_mem_depthSet {m : Multisegment} {s : Segment} {j : ℕ}
 
 /-- Conversely, a ladder sublist of `m` headed by `s` gives the member
 `l.length - 1` of `depthSet m s` (indices `idxOf` of its segments). -/
-lemma mem_depthSet_of_ladder {m : Multisegment} {s : Segment} (l : List Segment)
+private lemma mem_depthSet_of_ladder {m : Multisegment} {s : Segment} (l : List Segment)
     (hsub : l <+ m.segments) (hhead : s ∈ l.head?) (hl : isLadder l) :
     l.length - 1 ∈ depthSet m s := by
   have hne : l ≠ [] := by rintro rfl; simp at hhead
@@ -223,7 +223,7 @@ have hlen : (Ladder_extend L₂ s₂ s₁ hL₂_head hll).val.segments.length =
             L₂.val.segments.length + 1 := rfl
 omega
 
-lemma segment_rel_cases (s₁ s₂ : Segment) :
+private lemma segment_rel_cases (s₁ s₂ : Segment) :
     s₁ ≪ s₂  ∨  s₂ ≪ s₁  ∨  s₁ ⊆ s₂  ∨  s₂ ⊆ s₁ := by
   simp [(· ≪ ·), subsegment] at *; omega
 
@@ -252,7 +252,8 @@ end Proof
 @[simp] lemma mem_sortedBucket {ms : Multisegment} {d : ℕ} {x : {s : Segment // s ∈ ms.segments}} :
     x ∈ Proof.sortedBucket ms d ↔ x ∈ bucket ms d := List.mem_insertionSort _
 
-lemma sortedBucket_perm (ms : Multisegment) (d : ℕ) : Proof.sortedBucket ms d ~ bucket ms d :=
+private lemma sortedBucket_perm (ms : Multisegment) (d : ℕ) :
+    Proof.sortedBucket ms d ~ bucket ms d :=
   List.perm_insertionSort _ _
 
 /-- Proof-side name for the contents of `bucket` (the depth-`d` filter). -/
@@ -266,7 +267,7 @@ each earlier one.
 directly. The trick: on the subtype `{x // x ∈ bucketRaw ms d}` the order *is* total
 (`bucket_sink`), so we sort the `attach`ed list there and transport the result back
 along `List.map_insertionSort`. -/
-lemma bucket_pairwise (ms : Multisegment) (d : ℕ) :
+private lemma bucket_pairwise (ms : Multisegment) (d : ℕ) :
     (Proof.sortedBucket ms d).Pairwise
       (fun x y : {s : Segment // s ∈ ms.segments} => y.val ⊆ x.val) := by
   haveI : Std.Total (fun x y : {x // x ∈ bucketRaw ms d} => (y.val.val : Segment) ⊆ x.val.val) :=
@@ -448,7 +449,7 @@ An admissible enumeration of `𝔡⁻¹(k)` is a permutation of the list of indi
 (`fiberIdx`), so the set of them is computed by filtering those permutations. -/
 
 /-- Membership in `admissibleEnumerations`, with `l` determined by the length of `i`. -/
-lemma mem_admissibleEnumerations_iff {m : Multisegment} {k : ℕ} {i : List ℕ} :
+private lemma mem_admissibleEnumerations_iff {m : Multisegment} {k : ℕ} {i : List ℕ} :
     i ∈ admissibleEnumerations m k ↔
       ∃ h : i ∈ Indices i.length m,
         (∀ n : Fin m.segments.length,
@@ -482,7 +483,7 @@ private lemma nodup_fiberIdx (m : Multisegment) (k : ℕ) : (fiberIdx m k).Nodup
   ((List.nodup_finRange _).filter _).map Fin.val_injective
 
 /-- An admissible enumeration is a permutation of the indices of depth `k`. -/
-lemma perm_fiberIdx_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
+private lemma perm_fiberIdx_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
     (h : i ∈ admissibleEnumerations m k) : i ~ fiberIdx m k := by
   obtain ⟨⟨l, hlen, hnd, hlt⟩, h1, -⟩ := h
   refine (List.perm_ext_iff_of_nodup hnd (nodup_fiberIdx m k)).mpr fun n => ?_
@@ -560,19 +561,19 @@ private lemma pmap_eq_map_Δ {m : Multisegment} {i : List ℕ}
     simp [Δ_eq (hlt _ (List.getElem_mem (by simpa using h₁)))]
 
 /-- An admissible enumeration lists the segments of the bucket (as a multiset). -/
-lemma perm_bucket_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
+private lemma perm_bucket_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
     (h : i ∈ admissibleEnumerations m k) (hlt : ∀ j ∈ i, j < m.segments.length) :
     i.pmap (fun j hj => m.segments[j]) hlt ~ (bucket m k).map (·.val) := by
   rw [pmap_eq_map_Δ]; exact perm_bucket_of_mem_Δ h
 
 /-- An admissible enumeration lists its segments outermost-first. -/
-lemma pairwise_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
+private lemma pairwise_of_mem {m : Multisegment} {k : ℕ} {i : List ℕ}
     (h : i ∈ admissibleEnumerations m k) (hlt : ∀ j ∈ i, j < m.segments.length) :
     (i.pmap (fun j hj => m.segments[j]) hlt).Pairwise (fun s t => subsegment t s) := by
   rw [pmap_eq_map_Δ]; exact pairwise_of_mem_Δ h
 
 /-- If no segment has depth `k`, the only admissible enumeration of `𝔡⁻¹(k) = ∅` is `[]`. -/
-lemma eq_nil_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : List ℕ}
+private lemma eq_nil_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : List ℕ}
     (h : ∀ j : Fin m.segments.length, depth_of_segment m m.segments[j] (List.getElem_mem _) ≠ k)
     (hi : i ∈ admissibleEnumerations m k) : i = [] := by
   obtain ⟨⟨l, -, -, hlt⟩, h1, -⟩ := hi
@@ -641,7 +642,7 @@ attribute [grind .] admissibleEnumerations_nonempty
 
 /-! ## The segments listed by an admissible enumeration do not depend on it -/
 
-lemma lt_length_of_mem_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : List ℕ}
+private lemma lt_length_of_mem_of_mem_admissibleEnumerations {m : Multisegment} {k : ℕ} {i : List ℕ}
     {j : ℕ} (hj : j ∈ i) (h : i ∈ admissibleEnumerations m k) : j < m.segments.length :=
   lt_length_of_mem_admissibleEnumerations h j hj
 
@@ -673,7 +674,7 @@ lemma pmap_eq_sortedBucket {m : Multisegment} {k : ℕ} {i : List ℕ}
 
 /-- Any two admissible enumerations list the same segments: this is what makes
 `let i ∈ admissibleEnumerations m k; [m.segments[j] | j ∈ i]` well defined. -/
-lemma segments_indep (m : Multisegment) (k : ℕ) :
+private lemma segments_indep (m : Multisegment) (k : ℕ) :
     ∀ x (hx : x ∈ admissibleEnumerations m k) y (hy : y ∈ admissibleEnumerations m k),
       [m.segments[j] | j ∈ x] = [m.segments[j] | j ∈ y] := by
   intro x hx y hy

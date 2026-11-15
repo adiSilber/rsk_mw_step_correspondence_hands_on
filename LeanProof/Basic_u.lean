@@ -41,7 +41,7 @@ lemma Segment.lt_def (s t : Segment) :
 /-- The list → multisegment reading of `Basic_t`, unfolded. (A `rfl` lemma: `simp` applies it
 without a trace in the proof term, so no search for its name finds its uses — `RSK3_u` has
 one.) -/
-@[simp] lemma coe_list_segments (l : List Segment) :
+@[simp] private lemma coe_list_segments (l : List Segment) :
     (l : Multisegment).segments = l.insertionSort (· ≤ ·) := rfl
 
 @[trans]
@@ -102,7 +102,7 @@ lemma ne_nil_of_head?_eq_some {α} {l : List α} {a : α} (h : l.head? = some a)
   rintro rfl; simp at h
 
 /-- The largest begin point of a list of segments is at most its largest end point. -/
-lemma maximum_a_le_maximum_b (l : List Segment) (h₁ h₂) :
+private lemma maximum_a_le_maximum_b (l : List Segment) (h₁ h₂) :
     maximum {(x.a) | x ∈ l} h₁ ≤ maximum {(x.b) | x ∈ l} h₂ := by
   obtain ⟨x, hx, hxa⟩ := maximum_mem {(x.a) | x ∈ l} h₁
   rw [← hxa]

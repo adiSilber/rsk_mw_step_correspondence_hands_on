@@ -42,7 +42,7 @@ component: `Δ°(m) = Δ°(m')`. This file proves the two halves:
 
 /-- Every residual segment has a *source*: a position-adjacent bucket pair `(i, t)`
 with `w = ⟨i.a, t.b⟩`. -/
-lemma residual_source (m : Multisegment) (hm : m.segments ≠ []) (w : Segment)
+private lemma residual_source (m : Multisegment) (hm : m.segments ≠ []) (w : Segment)
     (hw : w ∈ (residual m).segments) :
     ∃ (d : ℕ) (i t : Segment) (l₁ l₂ : List Segment),
       d ≤ maxDepth m ∧ (Proof.sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂ ∧
@@ -56,7 +56,7 @@ lemma residual_source (m : Multisegment) (hm : m.segments ≠ []) (w : Segment)
   exact ⟨d, i, t, l₁, l₂, Nat.lt_succ_iff.mp (List.mem_range.mp hd), hsplit, hwa, hwb⟩
 
 /-- A residual segment of any in-range bucket lands in the residual. -/
-lemma mem_residual_of_bucket (m : Multisegment) (hm : m.segments ≠ []) {d : ℕ}
+private lemma mem_residual_of_bucket (m : Multisegment) (hm : m.segments ≠ []) {d : ℕ}
     (hd : d ≤ maxDepth m)
     {w : Segment} (hw : w ∈ bucketResidual m d) : w ∈ (residual m).segments := by
   rw [residual_segments, (List.perm_insertionSort (· ≤ ·) _).mem_iff]
@@ -64,14 +64,14 @@ lemma mem_residual_of_bucket (m : Multisegment) (hm : m.segments ≠ []) {d : �
 
 /-- Every position-adjacent bucket pair emits its derived segment `⟨i.a, t.b⟩`
 into the bucket residual. -/
-lemma derived_mem_bucketResidual (m : Multisegment) (d : ℕ) (i t : Segment)
+private lemma derived_mem_bucketResidual (m : Multisegment) (d : ℕ) (i t : Segment)
     (l₁ l₂ : List Segment) (hsplit : (Proof.sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂) :
     ∃ w ∈ bucketResidual m d, w.a = i.a ∧ w.b = t.b := by
   rw [← fiber_eq] at hsplit
   exact mem_bucketResidual_of_split hsplit
 
 /-- Every begin-point in the residual is `≥ min m`. -/
-lemma residual_begin_ge (m : Multisegment) (sₘ : Segment)
+private lemma residual_begin_ge (m : Multisegment) (sₘ : Segment)
     (hsₘ : m.segments.head? = some sₘ) (s : Segment)
     (hs : s ∈ (residual m).segments) : sₘ.a ≤ s.a := by
   obtain ⟨d, i, t, l₁, l₂, hd, hsplit, hsa, hsb⟩ := residual_source m (by auto_prop) s hs
@@ -84,7 +84,7 @@ lemma residual_begin_ge (m : Multisegment) (sₘ : Segment)
 
 /-- The ladder's head begin is `≤` any rung's begin (the ladder is pairwise `≪`,
 head first). -/
-lemma ladderHead_le_rung (m : Multisegment) (s_l : Segment)
+private lemma ladderHead_le_rung (m : Multisegment) (s_l : Segment)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hm : m.segments ≠ [])
     (d : ℕ) (_hd : d ≤ maxDepth m) (r : Segment) (hr : Proof.bucketRung? m d = some r) :
     s_l.a ≤ r.a := by
@@ -101,7 +101,7 @@ lemma ladderHead_le_rung (m : Multisegment) (s_l : Segment)
 
 /-- A bucket holding a minimal segment `p` and another with strictly larger begin is
 `s0 :: s1 :: rest` (it is `a`-sorted), with the head's begin `≤ p.a`. -/
-lemma bucket_sorted_cons (m : Multisegment) (d : ℕ) {p x : Segment}
+private lemma bucket_sorted_cons (m : Multisegment) (d : ℕ) {p x : Segment}
     (hp : p ∈ (Proof.sortedBucket m d).map (·.val)) (hx : x ∈ (Proof.sortedBucket m d).map (·.val))
     (hlt : p.a < x.a) :
     ∃ s0 s1 rest, (Proof.sortedBucket m d).map (·.val) = s0 :: s1 :: rest ∧ s0.a ≤ p.a := by
@@ -118,7 +118,7 @@ lemma bucket_sorted_cons (m : Multisegment) (d : ℕ) {p x : Segment}
 /-- The residual attains `min m`. This is where `min m < min L(m)` is used: at
 `d₀ = depth(sₘ)` the bucket holds `sₘ` and its rung's begin is `≥ min L(m) > min m`,
 so it has `≥ 2` elements and the residual's first pair begins `≤ min m`. -/
-lemma residual_attains_min (m : Multisegment)
+private lemma residual_attains_min (m : Multisegment)
     (sₘ : Segment) (hsₘ : m.segments.head? = some sₘ)
     (s_l : Segment) (hs_l : (sorted (ladderRungs m)).head? = some s_l)
     (hmin : sₘ.a < s_l.a) :
@@ -138,7 +138,7 @@ lemma residual_attains_min (m : Multisegment)
   exact ⟨w, mem_residual_of_bucket m (by auto_prop) hd₀le hw_mem, by omega⟩
 
 /-- **(A) `min m = min m'`.** The smallest begin-point survives the RSK residual. -/
-lemma minPreserved
+private lemma minPreserved
     (m : Multisegment)
     (sₘ : Segment) (hsₘ : m.segments.head? = some sₘ)
     (s_l : Segment) (hs_l : (sorted (ladderRungs m)).head? = some s_l)
@@ -163,7 +163,7 @@ lemma minPreserved
 
 /-- Rung begins grow by at least the depth gap: the rung `n` levels shallower than depth
 `d + n` has begin at least `n` larger. -/
-lemma rung_a_gap (m : Multisegment) : ∀ (n d : ℕ) (r r' : Segment),
+private lemma rung_a_gap (m : Multisegment) : ∀ (n d : ℕ) (r r' : Segment),
     Proof.bucketRung? m d = some r → Proof.bucketRung? m (d + n) = some r' → r'.a + n ≤ r.a := by
   intro n
   induction n with
@@ -179,7 +179,7 @@ lemma rung_a_gap (m : Multisegment) : ∀ (n d : ℕ) (r r' : Segment),
     push_cast; omega
 
 /-- Along an MW chain (all members of `m`), depth drops by at least the index. -/
-lemma chain_depth_drop (m : Multisegment) : ∀ (l : List Segment), isChain l →
+private lemma chain_depth_drop (m : Multisegment) : ∀ (l : List Segment), isChain l →
     (∀ x ∈ l, x ∈ m.segments) →
     ∀ (j : ℕ) (s t : Segment) (hs : s ∈ m.segments) (ht : t ∈ m.segments),
       l[0]? = some s → l[j]? = some t →
@@ -212,7 +212,7 @@ lemma chain_depth_drop (m : Multisegment) : ∀ (l : List Segment), isChain l �
 
 /-- **(P1)** Every leading-chain segment is non-innermost in its bucket: its begin is
 strictly below the bucket rung's. -/
-lemma chain_seg_lt_rung (m : Multisegment) (sₘ s_l : Segment)
+private lemma chain_seg_lt_rung (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (σ : Segment) (hσ : σ ∈ Proof.leadingChain m)
@@ -241,7 +241,7 @@ lemma chain_seg_lt_rung (m : Multisegment) (sₘ s_l : Segment)
 
 /-- In an `a`-sorted list containing an element at begin `v` and an element with begin
 `> v`, there is a position-adjacent pair `(i, t)` with `i.a = v` and `v < t.a`. -/
-lemma exists_boundary_split : ∀ (L : List Segment), L.Pairwise (·.a ≤ ·.a) →
+private lemma exists_boundary_split : ∀ (L : List Segment), L.Pairwise (·.a ≤ ·.a) →
     ∀ (v : ℤ), (∃ p ∈ L, p.a = v) → (∃ x ∈ L, v < x.a) →
     ∃ l₁ i t l₂, L = l₁ ++ i :: t :: l₂ ∧ i.a = v ∧ v < t.a := by
   intro L
@@ -292,7 +292,7 @@ lemma exists_boundary_split : ∀ (L : List Segment), L.Pairwise (·.a ≤ ·.a)
 
 /-- Each leading-chain segment `σ` yields a *boundary pair* in its depth bucket: a
 position-adjacent `(i, t)` with `i.a = σ.a` and `σ.a < t.a`. -/
-lemma chain_seg_boundary (m : Multisegment) (sₘ s_l : Segment)
+private lemma chain_seg_boundary (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (σ : Segment) (hσ : σ ∈ Proof.leadingChain m)
@@ -309,7 +309,7 @@ lemma chain_seg_boundary (m : Multisegment) (sₘ s_l : Segment)
 /-- **End-monotonicity of the residual construction.** For position-adjacent bucket
 pairs `(i, t)` at depth `d` and `(i', t')` at depth `d' < d`, if `i'.a ≤ t.a` then
 `t.b < t'.b` — the residual-chain ends strictly increase. -/
-lemma succ_end_mono (m : Multisegment) (i i' t t' : Segment)
+private lemma succ_end_mono (m : Multisegment) (i i' t t' : Segment)
     (hi : i ∈ m.segments) (hi' : i' ∈ m.segments)
     (l1 l2 : List Segment)
     (hsp : (Proof.sortedBucket m (depth_of_segment m i hi)).map (·.val) = l1 ++ i :: t :: l2)
@@ -346,7 +346,7 @@ lemma succ_end_mono (m : Multisegment) (i i' t t' : Segment)
 /-- From a sub-chain of `m`'s leading chain, construct an MW-chain of the same length in
 the residual: each segment's boundary pair emits a derived segment, and the ends strictly
 increase by `succ_end_mono`. The head data is exposed for the chain-link induction. -/
-lemma forward_chain (m : Multisegment) (sₘ s_l : Segment)
+private lemma forward_chain (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a) :
     ∀ (l : List Segment), (∀ σ ∈ l, σ ∈ Proof.leadingChain m) → isChain l →
@@ -429,7 +429,7 @@ seal maximum first in
 residual is nonempty. Otherwise every bucket would be a singleton — in particular the
 bucket of the head's own depth would be `[head]`, making the head itself a ladder rung;
 but every rung begins at or after the first rung, contradicting `h_min`. -/
-lemma cond_rsk_residual_nonempty
+private lemma cond_rsk_residual_nonempty
     (m : Multisegment) (h : m.segments ≠ []) (h_min : min_m_lt_min_lm m h) :
     (residual m).segments ≠ [] := by
   intro hres
@@ -499,7 +499,7 @@ lemma cond_rsk_residual_nonempty
 
 /-- **Forward inequality**: the MW leading chain of `m` is no longer than that of the
 residual. -/
-lemma forward_len (m : Multisegment) (sₘ s_l : Segment)
+private lemma forward_len (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (s_m' : Segment) (hs_m' : (residual m).segments.head? = some s_m') :
@@ -527,7 +527,7 @@ satisfying `x.a = w.a`, `w.b ≤ x.b`, `d ≤ depth x` (`d` a source depth of `w
 the next residual element `w'` pulls back to `x'` — either its own source-outer `i'`
 (if that extends `x`), or a replacement from `exists_lower_ll` at the strictly smaller
 source depth `d' < d` (Corollary 2.3). -/
-lemma pullback_go (m : Multisegment) :
+private lemma pullback_go (m : Multisegment) :
     ∀ (l : List Segment) (w x : Segment) (d : ℕ),
       (∃ (i t : Segment) (l₁ l₂ : List Segment),
         (Proof.sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂ ∧ w.a = i.a ∧ w.b = t.b) →
@@ -610,7 +610,7 @@ lemma pullback_go (m : Multisegment) :
 
 /-- **Reverse inequality**: the MW leading chain of the residual is no longer than that
 of `m`. -/
-lemma reverse_len (m : Multisegment) (sₘ s_l : Segment)
+private lemma reverse_len (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a) :
     (Proof.leadingChain (residual m)).length
@@ -649,7 +649,7 @@ lemma reverse_len (m : Multisegment) (sₘ s_l : Segment)
       omega
 
 /-- **(B) The MW leading-chain length is preserved by the RSK residual.** -/
-lemma chainLenPreserved (m : Multisegment) (sₘ s_l : Segment)
+private lemma chainLenPreserved (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a) :
     (Proof.leadingChain (residual m)).length
@@ -663,7 +663,7 @@ lemma chainLenPreserved (m : Multisegment) (sₘ s_l : Segment)
 
 /-- The Δ° outputs of `mw_step` agree whenever the head begins and the leading-chain
 lengths agree. -/
-lemma mw_step_fst_eq (m m' : Multisegment) (hm : m.segments ≠ []) (hm' : m'.segments ≠ [])
+private lemma mw_step_fst_eq (m m' : Multisegment) (hm : m.segments ≠ []) (hm' : m'.segments ≠ [])
     (ha : (m'.segments.head hm').a = (m.segments.head hm).a)
     (hk : (Proof.leadingChain m').length
         = (Proof.leadingChain m).length) :
@@ -688,7 +688,7 @@ Layers:
 -/
 
 /-- Under `min m < min L(m)`, no leading-chain segment is a singleton. -/
-lemma chain_seg_nondegenerate (m : Multisegment) (sₘ s_l : Segment)
+private lemma chain_seg_nondegenerate (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (σ : Segment) (hσ : σ ∈ Proof.leadingChain m) : σ.a < σ.b := by
@@ -707,14 +707,14 @@ lemma chain_seg_nondegenerate (m : Multisegment) (sₘ s_l : Segment)
 /-! ## Layer 2b: structure of `makeResidual` membership -/
 
 /-- Membership in the MW residual, before sorting. -/
-lemma mem_makeResidual_iff (m : Multisegment) (Cl : List Segment) (x : Segment) :
+private lemma mem_makeResidual_iff (m : Multisegment) (Cl : List Segment) (x : Segment) :
     x ∈ (Proof.residualAlong m Cl).segments ↔
       x ∈ Cl.foldl List.erase m.segments ∨ x ∈ Cl.filterMap Proof.shorten := by
   simp only [Proof.residualAlong]
   rw [(List.perm_insertionSort (· ≤ ·) _).mem_iff, List.mem_append]
 
 /-- Erasing only removes: members of the fold are members of the base list. -/
-lemma mem_of_mem_foldl_erase : ∀ (Cl l : List Segment) (x : Segment),
+private lemma mem_of_mem_foldl_erase : ∀ (Cl l : List Segment) (x : Segment),
     x ∈ Cl.foldl List.erase l → x ∈ l := by
   intro Cl
   induction Cl with
@@ -725,7 +725,7 @@ lemma mem_of_mem_foldl_erase : ∀ (Cl l : List Segment) (x : Segment),
     exact List.mem_of_mem_erase (ih _ x hx)
 
 /-- A member whose value is not erased survives the fold. -/
-lemma mem_foldl_erase_of_not_mem : ∀ (Cl l : List Segment) (x : Segment),
+private lemma mem_foldl_erase_of_not_mem : ∀ (Cl l : List Segment) (x : Segment),
     x ∈ l → x ∉ Cl → x ∈ Cl.foldl List.erase l := by
   intro Cl
   induction Cl with
@@ -737,12 +737,12 @@ lemma mem_foldl_erase_of_not_mem : ∀ (Cl l : List Segment) (x : Segment),
     exact (List.mem_erase_of_ne (fun h => hnx (by simp [h]))).mpr hx
 
 /-- `segmentResidual` on a non-singleton. -/
-lemma segmentResidual_eq (σ : Segment) (h : σ.a < σ.b) :
+private lemma segmentResidual_eq (σ : Segment) (h : σ.a < σ.b) :
     Proof.shorten σ = some ⟨⟨σ.a + 1, σ.b⟩, by omega⟩ := by
   simp [Proof.shorten, segmentResidual, h]
 
 /-- Sources of residual chain segments. -/
-lemma mem_filterMap_residual {Cl : List Segment} {y : Segment}
+private lemma mem_filterMap_residual {Cl : List Segment} {y : Segment}
     (hy : y ∈ Cl.filterMap Proof.shorten) :
     ∃ σ ∈ Cl, σ.a < σ.b ∧ y.a = σ.a + 1 ∧ y.b = σ.b := by
   obtain ⟨σ, hσ, heq⟩ := List.mem_filterMap.mp hy
@@ -753,13 +753,13 @@ lemma mem_filterMap_residual {Cl : List Segment} {y : Segment}
   · simp [Proof.shorten, h] at heq
 
 /-- Non-singleton chain segments emit their left-shortened residual. -/
-lemma residual_mem_filterMap {Cl : List Segment} {σ : Segment} (hσ : σ ∈ Cl)
+private lemma residual_mem_filterMap {Cl : List Segment} {σ : Segment} (hσ : σ ∈ Cl)
     (h : σ.a < σ.b) :
     (⟨⟨σ.a + 1, σ.b⟩, by omega⟩ : Segment) ∈ Cl.filterMap Proof.shorten :=
   List.mem_filterMap.mpr ⟨σ, hσ, segmentResidual_eq σ h⟩
 
 /-- Source classification of MW-residual members. -/
-lemma mem_mdag_cases (m : Multisegment) (Cl : List Segment) (x : Segment)
+private lemma mem_mdag_cases (m : Multisegment) (Cl : List Segment) (x : Segment)
     (hx : x ∈ (Proof.residualAlong m Cl).segments) :
     x ∈ m.segments ∨ ∃ σ ∈ Cl, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b := by
   rw [mem_makeResidual_iff] at hx
@@ -768,12 +768,12 @@ lemma mem_mdag_cases (m : Multisegment) (Cl : List Segment) (x : Segment)
   · exact Or.inr (mem_filterMap_residual h)
 
 /-- An `m`-member whose value is off the chain survives into the MW residual. -/
-lemma survivor_mem_mdag (m : Multisegment) (Cl : List Segment) (x : Segment)
+private lemma survivor_mem_mdag (m : Multisegment) (Cl : List Segment) (x : Segment)
     (hx : x ∈ m.segments) (hnx : x ∉ Cl) : x ∈ (Proof.residualAlong m Cl).segments :=
   (mem_makeResidual_iff m Cl x).mpr (Or.inl (mem_foldl_erase_of_not_mem Cl _ x hx hnx))
 
 /-- A non-singleton chain segment's residual is in the MW residual. -/
-lemma starred_mem_mdag (m : Multisegment) (Cl : List Segment) (σ : Segment)
+private lemma starred_mem_mdag (m : Multisegment) (Cl : List Segment) (σ : Segment)
     (hσ : σ ∈ Cl) (h : σ.a < σ.b) :
     (⟨⟨σ.a + 1, σ.b⟩, by omega⟩ : Segment) ∈ (Proof.residualAlong m Cl).segments :=
   (mem_makeResidual_iff m Cl _).mpr (Or.inr (residual_mem_filterMap hσ h))
@@ -781,7 +781,7 @@ lemma starred_mem_mdag (m : Multisegment) (Cl : List Segment) (σ : Segment)
 /-! ## Layer 3: ladder transfer `depth_m ≤ depth_m†` -/
 
 /-- Prepend to a `≪`-pairwise list given a link to its head. -/
-lemma pairwise_ll_cons {l : List Segment} (hp : l.Pairwise (· ≪ ·))
+private lemma pairwise_ll_cons {l : List Segment} (hp : l.Pairwise (· ≪ ·))
     {h w : Segment} (hw : l.head? = some w) (hlink : h ≪ w) :
     (h :: l).Pairwise (· ≪ ·) := by
   have hcons := head?_eq_cons hw
@@ -794,7 +794,7 @@ lemma pairwise_ll_cons {l : List Segment} (hp : l.Pairwise (· ≪ ·))
   · exact ll_trans _ _ _ hlink ((List.pairwise_cons.mp hp).1 y hyt)
 
 /-- A `≪`-pairwise list of members of a multisegment is a sublist of it. -/
-lemma ladder_sublist_of_mem (M : Multisegment) (l : List Segment)
+private lemma ladder_sublist_of_mem (M : Multisegment) (l : List Segment)
     (hp : l.Pairwise (· ≪ ·)) (hmem : ∀ y ∈ l, y ∈ M.segments) : l <+ M.segments := by
   have hlt : l.Pairwise (· < ·) := hp.imp (fun {a b} h => (Segment.lt_def _ _).mpr (Or.inl h.1))
   have hnd : l.Nodup := hlt.imp (fun {a b} h => ne_of_lt h)
@@ -802,7 +802,7 @@ lemma ladder_sublist_of_mem (M : Multisegment) (l : List Segment)
   exact List.sublist_of_subperm_of_pairwise (List.subperm_of_subset hnd hmem) hle M.is_sorted
 
 /-- Depth of a value from an explicit `≪`-pairwise witness list of members. -/
-lemma depth_ge_of_ladder (M : Multisegment) (l : List Segment)
+private lemma depth_ge_of_ladder (M : Multisegment) (l : List Segment)
     (hp : l.Pairwise (· ≪ ·)) (hmem : ∀ y ∈ l, y ∈ M.segments)
     (x : Segment) (hx : l.head? = some x) (hxm : x ∈ M.segments) :
     l.length ≤ depth_of_segment M x hxm + 1 := by
@@ -814,7 +814,7 @@ lemma depth_ge_of_ladder (M : Multisegment) (l : List Segment)
     (by rw [Option.mem_def]; exact hx)
 
 /-- Extract a `≪`-pairwise member-witness list attaining the depth. -/
-lemma ladder_of_depth (M : Multisegment) (x : Segment) (hxm : x ∈ M.segments) :
+private lemma ladder_of_depth (M : Multisegment) (x : Segment) (hxm : x ∈ M.segments) :
     ∃ l : List Segment, l.Pairwise (· ≪ ·) ∧ (∀ y ∈ l, y ∈ M.segments) ∧
       l.head? = some x ∧ l.length = depth_of_segment M x hxm + 1 := by
   obtain ⟨L, hsub, hhead, hlen⟩ := depth_witness M x hxm
@@ -824,7 +824,7 @@ lemma ladder_of_depth (M : Multisegment) (x : Segment) (hxm : x ∈ M.segments) 
   · rwa [← Option.mem_def]
 
 /-- Predecessor split around a non-head member. -/
-lemma exists_pred_split {α : Type*} :
+private lemma exists_pred_split {α : Type*} :
     ∀ (l : List α) (x : α), x ∈ l → l.head? ≠ some x →
     ∃ u p v, l = u ++ p :: x :: v := by
   intro l
@@ -851,7 +851,7 @@ lemma exists_pred_split {α : Type*} :
 head sent to its starred value. Chain elements are replaced by their left-shortened
 residuals; when a chain element is followed at begin-distance one by a non-chain element,
 the successor is normalized to the chain's own successor (greedy minimal end). -/
-lemma ladder_transfer (m : Multisegment) (sₘ s_l : Segment)
+private lemma ladder_transfer (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a) :
     ∀ (n : ℕ) (l : List Segment), l.length = n → l.Pairwise (· ≪ ·) →
@@ -1005,7 +1005,7 @@ lemma ladder_transfer (m : Multisegment) (sₘ s_l : Segment)
             · intro hxC'; exact absurd hxC' hxC
 
 /-- **Transfer ≥, off-chain values**: a surviving value is at least as deep in `m†`. -/
-lemma depth_mdag_ge_notC (m : Multisegment) (sₘ s_l : Segment)
+private lemma depth_mdag_ge_notC (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (x : Segment) (hxm : x ∈ m.segments) (hxC : x ∉ Proof.leadingChain m)
@@ -1020,7 +1020,7 @@ lemma depth_mdag_ge_notC (m : Multisegment) (sₘ s_l : Segment)
   omega
 
 /-- **Transfer ≥, chain values**: the starred chain value is at least as deep in `m†`. -/
-lemma depth_mdag_ge_inC (m : Multisegment) (sₘ s_l : Segment)
+private lemma depth_mdag_ge_inC (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (σ : Segment) (hσC : σ ∈ Proof.leadingChain m)
@@ -1046,7 +1046,7 @@ lemma depth_mdag_ge_inC (m : Multisegment) (sₘ s_l : Segment)
 `m†`-element `w` over depth `D'' + 1` whose `m†`-predecessor `z` is a *special* survivor
 at depth `D''` with `D'' = depth_m z + 1`, the chain predecessor `σ₃` of the special
 witness produces a chain element with `depth_m σ₃ = D''` dominating `w`. -/
-lemma sigma3_argument (m : Multisegment) (sₘ s_l : Segment)
+private lemma sigma3_argument (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (D'' : ℕ)
@@ -1136,7 +1136,7 @@ lemma sigma3_argument (m : Multisegment) (sₘ s_l : Segment)
 /-- **Lemma `pre1`(1)–(2), upper bounds**: an `m†`-depth exceeds the source's `m`-depth by
 at most one, and exceeding it at all forces the source to be *special* — a same-begin
 proper subsegment of a chain element at the same depth. Chain sources never exceed. -/
-lemma mdag_depth_bound (m : Multisegment) (sₘ s_l : Segment)
+private lemma mdag_depth_bound (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a) :
     ∀ (D' : ℕ),
@@ -1234,7 +1234,7 @@ lemma mdag_depth_bound (m : Multisegment) (sₘ s_l : Segment)
 /-! ## Layer 5: fiber maxes and the ladder equality -/
 
 /-- A nonempty multisegment attains its `maxDepth`. -/
-lemma maxDepth_attained (M : Multisegment) (hM : M.segments ≠ []) :
+private lemma maxDepth_attained (M : Multisegment) (hM : M.segments ≠ []) :
     ∃ x, ∃ hx : x ∈ M.segments, depth_of_segment M x hx = maxDepth M := by
   have h0 : maxDepth M hM ∈ (↑[depth_of_segment M s | s ∈ M.segments] : Set ℕ) :=
     maximum_mem _ _
@@ -1242,7 +1242,7 @@ lemma maxDepth_attained (M : Multisegment) (hM : M.segments ≠ []) :
   exact ⟨x, hx, heq⟩
 
 /-- Every depth up to `maxDepth` carries a rung. -/
-lemma rung_exists (M : Multisegment) (hM : M.segments ≠ []) (d : ℕ)
+private lemma rung_exists (M : Multisegment) (hM : M.segments ≠ []) (d : ℕ)
     (hd : d ≤ maxDepth M) : ∃ r, Proof.bucketRung? M d = some r := by
   obtain ⟨x, hx, hxd⟩ := maxDepth_attained M hM
   rcases Nat.lt_or_ge d (maxDepth M) with hlt | hge
@@ -1253,14 +1253,14 @@ lemma rung_exists (M : Multisegment) (hM : M.segments ≠ []) (d : ℕ)
     exact bucketRung_some_of_mem M _ x (mem_bucket_of_depth M _ x hx hxd)
 
 /-- Rung begins are antitone in depth (already with the exact gap). -/
-lemma rung_a_mono (M : Multisegment) (d t : ℕ) (hdt : d ≤ t)
+private lemma rung_a_mono (M : Multisegment) (d t : ℕ) (hdt : d ≤ t)
     (r_d r_t : Segment) (hr_d : Proof.bucketRung? M d = some r_d)
     (hr_t : Proof.bucketRung? M t = some r_t) : r_t.a ≤ r_d.a := by
   have := rung_a_gap M (t - d) d r_d r_t hr_d (by rw [Nat.add_sub_cancel' hdt]; exact hr_t)
   omega
 
 /-- Rung ends are antitone in depth. -/
-lemma rung_b_mono (M : Multisegment) (d t : ℕ) (hdt : d ≤ t)
+private lemma rung_b_mono (M : Multisegment) (d t : ℕ) (hdt : d ≤ t)
     (r_d r_t : Segment) (hr_d : Proof.bucketRung? M d = some r_d)
     (hr_t : Proof.bucketRung? M t = some r_t) : r_t.b ≤ r_d.b := by
   rcases Nat.lt_or_ge d t with hlt | hge
@@ -1277,7 +1277,7 @@ lemma rung_b_mono (M : Multisegment) (d t : ℕ) (hdt : d ≤ t)
 /-- **Special segments are dominated by the witness's chain predecessor**: a special `y`
 (same begin, shorter end, same depth as chain element `σw`) has `y.a = σ₃.a + 1` and
 `y.b ≤ σ₃.b` for the chain predecessor `σ₃` of `σw`, which is strictly deeper than `σw`. -/
-lemma special_bounds (m : Multisegment) (sₘ s_l : Segment)
+private lemma special_bounds (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (_ : (sorted (ladderRungs m)).head? = some s_l) (_ : sₘ.a < s_l.a)
     (y : Segment) (hym : y ∈ m.segments)
@@ -1317,7 +1317,7 @@ lemma special_bounds (m : Multisegment) (sₘ s_l : Segment)
 
 /-- **Fiber upper bounds (α)**: every `m†`-element at `m†`-depth `d` is coordinatewise
 below the `m`-rung of depth `d`. -/
-lemma mdag_fiber_bounds (m : Multisegment) (sₘ s_l : Segment)
+private lemma mdag_fiber_bounds (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (hmax : m.segments ≠ [])
@@ -1375,7 +1375,7 @@ lemma mdag_fiber_bounds (m : Multisegment) (sₘ s_l : Segment)
 
 /-- **Fiber attainment (β)**: both rung coordinates of depth `d` are attained inside the
 `m†`-fiber of depth `d`. -/
-lemma mdag_fiber_attains (m : Multisegment) (sₘ s_l : Segment)
+private lemma mdag_fiber_attains (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (_ : m.segments ≠ [])
@@ -1449,7 +1449,7 @@ lemma mdag_fiber_attains (m : Multisegment) (sₘ s_l : Segment)
       exact ⟨xB, hxB', by omega, by omega⟩
 
 /-- **(γ) `maxDepth` is preserved.** -/
-lemma mdag_maxDepth_eq (m : Multisegment) (sₘ s_l : Segment)
+private lemma mdag_maxDepth_eq (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (hmax : m.segments ≠ [])
@@ -1481,7 +1481,7 @@ lemma mdag_maxDepth_eq (m : Multisegment) (sₘ s_l : Segment)
     omega
 
 /-- **(δ) Every rung is preserved.** -/
-lemma mdag_rung_eq (m : Multisegment) (sₘ s_l : Segment)
+private lemma mdag_rung_eq (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (hmax : m.segments ≠ [])
@@ -1511,7 +1511,7 @@ lemma mdag_rung_eq (m : Multisegment) (sₘ s_l : Segment)
 
 /-- Paper Lemma 1 (well-formedness), the `m†` half: under `min m < min L(m)`, `m†` is
 nonempty — the starred chain head lives there. -/
-lemma mdag_ne_nil' (m : Multisegment) {sₘ s_l : Segment}
+private lemma mdag_ne_nil' (m : Multisegment) {sₘ s_l : Segment}
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a) :
     (Proof.mdag m).segments ≠ [] := by
@@ -1527,7 +1527,7 @@ lemma mdag_ne_nil' (m : Multisegment) {sₘ s_l : Segment}
 attribute [grind →] mdag_ne_nil'
 
 /-- **(ε) The ladder is preserved by `makeResidual` along the leading chain.** -/
-lemma mdag_ladder_eq (m : Multisegment) (sₘ s_l : Segment)
+private lemma mdag_ladder_eq (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (hmax : m.segments ≠ []) :
@@ -1545,7 +1545,7 @@ lemma mdag_ladder_eq (m : Multisegment) (sₘ s_l : Segment)
 
 /-- Paper Lemma 1 (well-formedness), `m†` half, in terms of the MW step: under
 `min m < min L(m)` the MW residual is nonempty, so the RSK step applies to it. -/
-lemma mdag_ne_nil (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
+private lemma mdag_ne_nil (m : Multisegment) (hm : m.segments ≠ []) (h_min : min_m_lt_min_lm m hm) :
     (mw_step m hm).2.segments ≠ [] := by
   rw [mw_step_snd_eq m hm]
   exact mdag_ne_nil' m (List.head?_eq_some_head hm) (List.head?_eq_some_head _) h_min
@@ -1556,7 +1556,7 @@ attribute [grind →] mdag_ne_nil
 
 /-- **`pre1`(2), converse**: every special survivor moves up by *exactly* one: it sits
 strictly above the starred witness in `m†`, whose depth is at least the witness's. -/
-lemma special_moves_up (m : Multisegment) (sₘ s_l : Segment)
+private lemma special_moves_up (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (y : Segment) (hym : y ∈ m.segments)
@@ -1588,7 +1588,7 @@ lemma special_moves_up (m : Multisegment) (sₘ s_l : Segment)
 
 /-- **`pre1`(2), final clause**: if a special segment exists with witness `σ'`, then the
 chain predecessor of `σ'` sits exactly one level above `σ'`. -/
-lemma special_witness_gap (m : Multisegment) (sₘ s_l : Segment)
+private lemma special_witness_gap (m : Multisegment) (sₘ s_l : Segment)
     (_ : m.segments.head? = some sₘ)
     (_ : (sorted (ladderRungs m)).head? = some s_l) (_ : sₘ.a < s_l.a)
     (y : Segment) (hym : y ∈ m.segments)
@@ -1640,7 +1640,7 @@ lemma special_witness_gap (m : Multisegment) (sₘ s_l : Segment)
 /-! ## Toward the value identification of `Proof.greedyChain (residual m)` -/
 
 /-- Consecutive positions give a split. -/
-lemma split_of_getElem?_consecutive {α : Type*} :
+private lemma split_of_getElem?_consecutive {α : Type*} :
     ∀ (l : List α) (j : ℕ) (x y : α), l[j]? = some x → l[j + 1]? = some y →
     ∃ u v, l = u ++ x :: y :: v ∧ u.length = j := by
   intro l
@@ -1663,7 +1663,7 @@ lemma split_of_getElem?_consecutive {α : Type*} :
       exact ⟨h :: u, v, by rw [heq]; rfl, by simp [hlen]⟩
 
 /-- A split gives the element at the split position. -/
-lemma getElem?_of_split {α : Type*} (u v : List α) (x : α) (l : List α)
+private lemma getElem?_of_split {α : Type*} (u v : List α) (x : α) (l : List α)
     (h : l = u ++ x :: v) : l[u.length]? = some x := by
   subst h
   rw [List.getElem?_append_right (le_refl u.length)]
@@ -1672,7 +1672,7 @@ lemma getElem?_of_split {α : Type*} (u v : List α) (x : α) (l : List α)
 /-- In an `a`-sorted list, the begin-block boundary pair at a given begin is unique:
 two adjacent pairs whose left elements share a begin strictly below both right begins
 coincide. -/
-lemma boundary_unique (L : List Segment) (hsorted : L.Pairwise (·.a ≤ ·.a))
+private lemma boundary_unique (L : List Segment) (hsorted : L.Pairwise (·.a ≤ ·.a))
     (x y x' y' : Segment) (u v u' v' : List Segment)
     (hsp : L = u ++ x :: y :: v) (hsp' : L = u' ++ x' :: y' :: v')
     (hxx' : x.a = x'.a) (hxy : x.a < y.a) (hxy' : x'.a < y'.a) :
@@ -1748,7 +1748,7 @@ lemma boundary_unique (L : List Segment) (hsorted : L.Pairwise (·.a ≤ ·.a))
         omega
 
 /-- Fiber elements are `⊆`-comparable (value form). -/
-lemma bucket_val_comparable (M : Multisegment) (d : ℕ) (x y : Segment)
+private lemma bucket_val_comparable (M : Multisegment) (d : ℕ) (x y : Segment)
     (hx : x ∈ (Proof.sortedBucket M d).map (·.val)) (hy : y ∈ (Proof.sortedBucket M d).map (·.val)) :
     x ⊆ y ∨ y ⊆ x := by
   obtain ⟨⟨x', hx'⟩, hxbk, rfl⟩ := List.mem_map.mp hx
@@ -1757,7 +1757,7 @@ lemma bucket_val_comparable (M : Multisegment) (d : ℕ) (x y : Segment)
 
 /-- **Minimality at the chain head** (paper Prop. `main2`(2), case (a)): every residual
 segment beginning at `min m` ends at or after the head's boundary partner. -/
-lemma residual_min_end_base (m : Multisegment) (sₘ : Segment)
+private lemma residual_min_end_base (m : Multisegment) (sₘ : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (σ0 : Segment) (hσ0 : (Proof.leadingChain m).head? = some σ0)
     (hσ0m : σ0 ∈ m.segments) (i t : Segment) (l₁ l₂ : List Segment)
@@ -1844,7 +1844,7 @@ residual segment starting one past `σⱼ` and linkable from the derived segment
 replaces the source's outer segment `i_z` by a chain-linkable segment `m̃` at the same
 depth, invokes greedy minimality of `σⱼ₊₁`, and squeezes the source fiber between the
 two chain fibers. -/
-lemma residual_min_end_step (m : Multisegment)
+private lemma residual_min_end_step (m : Multisegment)
     (u v : List Segment) (σj σj1 : Segment)
     (hsplitC : Proof.leadingChain m = u ++ σj :: σj1 :: v)
     (hσjm : σj ∈ m.segments) (hσj1m : σj1 ∈ m.segments)
@@ -1910,7 +1910,7 @@ of the leading chain of the RSK residual `m′` is exactly the derived segment
 `Wⱼ = ⟨σⱼ.a, tⱼ.b⟩` of the `j`-th chain segment's fiber boundary `(iⱼ, tⱼ)`. Proven by
 induction on `j`: the base case is head-minimality (`residual_min_end_base`), the step
 combines greedy minimality against `Wⱼ₊₁` with `residual_min_end_step`. -/
-lemma greedyChain_residual_entries (m : Multisegment) (sₘ s_l : Segment)
+private lemma greedyChain_residual_entries (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a) :
     ∀ (j : ℕ) (σ : Segment), (Proof.leadingChain m)[j]? = some σ →
@@ -2044,7 +2044,7 @@ three quantities: raw counts, begin-group tops, and begin-group transitions. -/
 /-- Coordinate image of a segment. -/
 private def segPair (s : Segment) : ℤ × ℤ := (s.a, s.b)
 
-lemma segPair_inj : Function.Injective segPair := by
+private lemma segPair_inj : Function.Injective segPair := by
   intro s t h
   simp only [segPair, Prod.mk.injEq] at h
   exact seg_ext h.1 h.2
@@ -2054,16 +2054,16 @@ private def derivedPairs (l : List Segment) : List (ℤ × ℤ) :=
   (l.zip l.tail).map (fun p => (p.1.a, p.2.b))
 
 -- A `rfl` lemma: `simp` applies it without a trace in the proof term (used below).
-lemma derivedPairs_nil : derivedPairs [] = [] := rfl
+private lemma derivedPairs_nil : derivedPairs [] = [] := rfl
 
-lemma derivedPairs_single (x : Segment) : derivedPairs [x] = [] := rfl
+private lemma derivedPairs_single (x : Segment) : derivedPairs [x] = [] := rfl
 
-lemma derivedPairs_cons_cons (x y : Segment) (l : List Segment) :
+private lemma derivedPairs_cons_cons (x y : Segment) (l : List Segment) :
     derivedPairs (x :: y :: l) = (x.a, y.b) :: derivedPairs (y :: l) := rfl
 
 seal maximum first in
 /-- The bucket residual's coordinate pairs are the derived pairs of the bucket. -/
-lemma bucketResidual_pairs (m : Multisegment) (d : ℕ) :
+private lemma bucketResidual_pairs (m : Multisegment) (d : ℕ) :
     (bucketResidual m d).map segPair = derivedPairs ((Proof.sortedBucket m d).map (·.val)) := by
   apply List.ext_getElem
   · simp [bucketResidual, derivedPairs, fiber_eq]
@@ -2082,27 +2082,27 @@ private def transInd (L : List Segment) (w : ℤ × ℤ) : ℕ :=
       (∀ y ∈ L, x.a < y.a → z.a ≤ y.a) ∧ (∀ y ∈ L, y.a = z.a → y.b ≤ z.b) then 1 else 0
 
 
-lemma topInd_nil (w : ℤ × ℤ) : topInd [] w = 0 := by
+private lemma topInd_nil (w : ℤ × ℤ) : topInd [] w = 0 := by
   simp [topInd]
 
-lemma transInd_nil (w : ℤ × ℤ) : transInd [] w = 0 := by
+private lemma transInd_nil (w : ℤ × ℤ) : transInd [] w = 0 := by
   simp [transInd]
 
-lemma topInd_eq_zero (L : List Segment) (w : ℤ × ℤ)
+private lemma topInd_eq_zero (L : List Segment) (w : ℤ × ℤ)
     (h : ∀ x ∈ L, x.a ≠ w.1) : topInd L w = 0 := by
   unfold topInd
   rw [if_neg]
   rintro ⟨x, hx, ha, -⟩
   exact h x hx ha
 
-lemma transInd_eq_zero (L : List Segment) (w : ℤ × ℤ)
+private lemma transInd_eq_zero (L : List Segment) (w : ℤ × ℤ)
     (h : ∀ x ∈ L, x.a ≠ w.1) : transInd L w = 0 := by
   unfold transInd
   rw [if_neg]
   rintro ⟨x, hx, ha, -⟩
   exact h x hx ha
 
-lemma count_map_segPair_eq_zero (L : List Segment) (w : ℤ × ℤ)
+private lemma count_map_segPair_eq_zero (L : List Segment) (w : ℤ × ℤ)
     (h : ∀ x ∈ L, x.a ≠ w.1) : (L.map segPair).count w = 0 := by
   rw [List.count_eq_zero]
   rintro hmem
@@ -2113,7 +2113,7 @@ lemma count_map_segPair_eq_zero (L : List Segment) (w : ℤ × ℤ)
 
 /-- Head-group top: with a dominating head, the group top of the head's begin is the
 head itself. -/
-lemma topInd_cons_eq (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
+private lemma topInd_cons_eq (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
     (hdom : ∀ z ∈ rest, x.a ≤ z.a ∧ z.b ≤ x.b) (hw1 : w.1 = x.a) :
     topInd (x :: rest) w = if w.2 = x.b then 1 else 0 := by
   unfold topInd
@@ -2134,7 +2134,7 @@ lemma topInd_cons_eq (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
     omega
 
 /-- Off-head-begin top: unaffected by consing a different-begin head. -/
-lemma topInd_cons_ne (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
+private lemma topInd_cons_ne (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
     (hw1 : w.1 ≠ x.a) : topInd (x :: rest) w = topInd rest w := by
   unfold topInd
   by_cases hR : ∃ x' ∈ rest, x'.a = w.1 ∧ x'.b = w.2 ∧ ∀ y ∈ rest, y.a = w.1 → y.b ≤ x'.b
@@ -2152,7 +2152,7 @@ lemma topInd_cons_ne (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
     · exact hR ⟨x', hr, ha', hb', fun y hy hya => hmax' y (List.mem_cons_of_mem _ hy) hya⟩
 
 /-- Off-head-begin transitions: unaffected by consing a minimal-begin head. -/
-lemma transInd_cons_ne (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
+private lemma transInd_cons_ne (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
     (hdom : ∀ z ∈ rest, x.a ≤ z.a ∧ z.b ≤ x.b) (hw1 : w.1 ≠ x.a) :
     transInd (x :: rest) w = transInd rest w := by
   unfold transInd
@@ -2184,7 +2184,7 @@ lemma transInd_cons_ne (x : Segment) (rest : List Segment) (w : ℤ × ℤ)
 
 /-- Same-begin join: consing a head into its own begin-group leaves transitions
 unchanged. -/
-lemma transInd_cons_join (x y : Segment) (rest' : List Segment) (w : ℤ × ℤ)
+private lemma transInd_cons_join (x y : Segment) (rest' : List Segment) (w : ℤ × ℤ)
     (hdom : ∀ z ∈ y :: rest', x.a ≤ z.a ∧ z.b ≤ x.b) (hxy : x.a = y.a)
     (hw1 : w.1 = x.a) :
     transInd (x :: y :: rest') w = transInd (y :: rest') w := by
@@ -2219,7 +2219,7 @@ lemma transInd_cons_join (x y : Segment) (rest' : List Segment) (w : ℤ × ℤ)
         fun y' hy' hya => hmax y' (List.mem_cons_of_mem _ hy') hya⟩
 
 /-- New-group head: the head's transition targets the old head, which tops its group. -/
-lemma transInd_cons_new (x y : Segment) (rest' : List Segment) (w : ℤ × ℤ)
+private lemma transInd_cons_new (x y : Segment) (rest' : List Segment) (w : ℤ × ℤ)
     (hdom : ∀ z ∈ y :: rest', x.a ≤ z.a ∧ z.b ≤ x.b) (hxy : x.a < y.a)
     (hdom' : ∀ z ∈ rest', y.a ≤ z.a ∧ z.b ≤ y.b) (hw1 : w.1 = x.a) :
     transInd (x :: y :: rest') w = if w.2 = y.b then 1 else 0 := by
@@ -2261,7 +2261,7 @@ lemma transInd_cons_new (x y : Segment) (rest' : List Segment) (w : ℤ × ℤ)
     omega
 
 /-- `List.count` on coordinate pairs, cons form with a propositional `if`. -/
-lemma count_pairs_cons (p : ℤ × ℤ) (l : List (ℤ × ℤ)) (w : ℤ × ℤ) :
+private lemma count_pairs_cons (p : ℤ × ℤ) (l : List (ℤ × ℤ)) (w : ℤ × ℤ) :
     (p :: l).count w = l.count w + if w = p then 1 else 0 := by
   rw [List.count_cons]
   congr 1
@@ -2269,7 +2269,7 @@ lemma count_pairs_cons (p : ℤ × ℤ) (l : List (ℤ × ℤ)) (w : ℤ × ℤ)
   · rw [if_pos (beq_iff_eq.mpr h), if_pos h.symm]
   · rw [if_neg (fun hb => h (beq_iff_eq.mp hb)), if_neg (fun h' => h h'.symm)]
 
-lemma transInd_single (x : Segment) (w : ℤ × ℤ) : transInd [x] w = 0 := by
+private lemma transInd_single (x : Segment) (w : ℤ × ℤ) : transInd [x] w = 0 := by
   unfold transInd
   rw [if_neg]
   rintro ⟨x', hx', -, z, hz, hlt, -⟩
@@ -2278,7 +2278,7 @@ lemma transInd_single (x : Segment) (w : ℤ × ℤ) : transInd [x] w = 0 := by
   subst hz
   exact lt_irrefl _ hlt
 
-lemma topInd_single (x : Segment) (w : ℤ × ℤ) :
+private lemma topInd_single (x : Segment) (w : ℤ × ℤ) :
     topInd [x] w = if w = segPair x then 1 else 0 := by
   unfold topInd
   by_cases h : w = segPair x
@@ -2298,7 +2298,7 @@ lemma topInd_single (x : Segment) (w : ℤ × ℤ) :
 /-- **Derived-pair count characterization**: for a nested-sorted fiber list, the
 multiset of derived pairs is the fiber multiset minus each begin-group's top plus each
 begin-group transition target. -/
-lemma derivedPairs_count (w : ℤ × ℤ) : ∀ (L : List Segment),
+private lemma derivedPairs_count (w : ℤ × ℤ) : ∀ (L : List Segment),
     L.Pairwise (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b) →
     (derivedPairs L).count w + topInd L w =
       (L.map segPair).count w + transInd L w := by
@@ -2362,7 +2362,7 @@ lemma derivedPairs_count (w : ℤ × ℤ) : ∀ (L : List Segment),
 /-! ## Fiber and residual counts -/
 
 /-- Count of a value in a bucket: its full multiplicity if it lives at that depth. -/
-lemma count_bucket_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
+private lemma count_bucket_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
     (hx : x ∈ M.segments) (hd : depth_of_segment M x hx = d) :
     ((Proof.sortedBucket M d).map (·.val)).count x = M.segments.count x := by
   have hperm : ((Proof.sortedBucket M d).map (·.val)).Perm
@@ -2378,7 +2378,7 @@ lemma count_bucket_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
   exact List.count_attach
 
 /-- Count of a value in a bucket at the wrong depth (or absent from `M`): zero. -/
-lemma count_bucket_of_ne (M : Multisegment) (d : ℕ) (x : Segment)
+private lemma count_bucket_of_ne (M : Multisegment) (d : ℕ) (x : Segment)
     (h : ¬ ∃ hx : x ∈ M.segments, depth_of_segment M x hx = d) :
     ((Proof.sortedBucket M d).map (·.val)).count x = 0 := by
   rw [List.count_eq_zero]
@@ -2386,7 +2386,7 @@ lemma count_bucket_of_ne (M : Multisegment) (d : ℕ) (x : Segment)
   exact h (mem_bucket_depth M d x hmem)
 
 /-- `makeResidual` counts split into the erase-fold part and the starred part. -/
-lemma count_makeResidual (m : Multisegment) (Cl : List Segment) (x : Segment) :
+private lemma count_makeResidual (m : Multisegment) (Cl : List Segment) (x : Segment) :
     (Proof.residualAlong m Cl).segments.count x =
       (Cl.foldl List.erase m.segments).count x +
         (Cl.filterMap Proof.shorten).count x := by
@@ -2395,7 +2395,7 @@ lemma count_makeResidual (m : Multisegment) (Cl : List Segment) (x : Segment) :
 
 /-- Erase-fold counts: for pairwise-distinct erased values each present in the base
 list, exactly one copy of each is removed. -/
-lemma count_foldl_erase : ∀ (Cl l : List Segment),
+private lemma count_foldl_erase : ∀ (Cl l : List Segment),
     Cl.Pairwise (· ≠ ·) → (∀ c ∈ Cl, c ∈ l) → ∀ (x : Segment),
     (Cl.foldl List.erase l).count x + (if x ∈ Cl then 1 else 0) = l.count x := by
   intro Cl
@@ -2430,7 +2430,7 @@ lemma count_foldl_erase : ∀ (Cl l : List Segment),
 
 
 /-- `List.count` on segments, cons form with a propositional `if`. -/
-lemma count_seg_cons (p : Segment) (l : List Segment) (x : Segment) :
+private lemma count_seg_cons (p : Segment) (l : List Segment) (x : Segment) :
     (p :: l).count x = l.count x + if x = p then 1 else 0 := by
   rw [List.count_cons]
   congr 1
@@ -2440,7 +2440,7 @@ lemma count_seg_cons (p : Segment) (l : List Segment) (x : Segment) :
 
 /-- Counts in the starred list: for chain lists with strictly increasing begins, each
 value occurs at most once, matching the unique source. -/
-lemma count_filterMap_residual : ∀ (Cl : List Segment),
+private lemma count_filterMap_residual : ∀ (Cl : List Segment),
     Cl.Pairwise (fun s t => s.a < t.a) → ∀ (x : Segment),
     (Cl.filterMap Proof.shorten).count x =
       if ∃ σ ∈ Cl, σ.a < σ.b ∧ x.a = σ.a + 1 ∧ x.b = σ.b then 1 else 0 := by
@@ -2500,7 +2500,7 @@ lemma count_filterMap_residual : ∀ (Cl : List Segment),
 /-! ## Depth classification of `m†`-elements -/
 
 /-- **Non-special survivors keep their depth.** -/
-lemma mdag_depth_survivor (m : Multisegment) (sₘ s_l : Segment)
+private lemma mdag_depth_survivor (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (x : Segment) (hxm : x ∈ m.segments)
@@ -2531,7 +2531,7 @@ lemma mdag_depth_survivor (m : Multisegment) (sₘ s_l : Segment)
     omega
 
 /-- **Starred values sit exactly at their source's depth.** -/
-lemma mdag_depth_starred (m : Multisegment) (sₘ s_l : Segment)
+private lemma mdag_depth_starred (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (σ : Segment) (hσC : σ ∈ Proof.leadingChain m) (hσm : σ ∈ m.segments)
@@ -2547,7 +2547,7 @@ lemma mdag_depth_starred (m : Multisegment) (sₘ s_l : Segment)
       (⟨⟨σ.a + 1, σ.b⟩, hstep⟩ : Segment) rfl rfl hy' hσm)
 
 /-- No segment is special with the chain head as witness. -/
-lemma no_special_head (m : Multisegment) (sₘ : Segment)
+private lemma no_special_head (m : Multisegment) (sₘ : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (y : Segment) (hym : y ∈ m.segments) (hya : y.a = sₘ.a) (hyb : y.b < sₘ.b) :
     False := by
@@ -2556,7 +2556,7 @@ lemma no_special_head (m : Multisegment) (sₘ : Segment)
   omega
 
 /-- Specials are bounded by their witness's chain predecessor. -/
-lemma special_end_le_pred (m : Multisegment) (u v : List Segment) (σp σ' : Segment)
+private lemma special_end_le_pred (m : Multisegment) (u v : List Segment) (σp σ' : Segment)
     (hsplit : Proof.leadingChain m = u ++ σp :: σ' :: v)
     (y : Segment) (hym : y ∈ m.segments) (hya : y.a = σ'.a) (hyb : y.b < σ'.b) :
     y.b ≤ σp.b := by
@@ -2568,7 +2568,7 @@ lemma special_end_le_pred (m : Multisegment) (u v : List Segment) (σp σ' : Seg
   omega
 
 /-- Same-fiber elements one begin to the right end no later. -/
-lemma fiber_succ_end_le (m : Multisegment) (σ : Segment) (hσm : σ ∈ m.segments)
+private lemma fiber_succ_end_le (m : Multisegment) (σ : Segment) (hσm : σ ∈ m.segments)
     (y : Segment) (hym : y ∈ m.segments) (hya : y.a = σ.a + 1)
     (hdep : depth_of_segment m y hym = depth_of_segment m σ hσm) : y.b ≤ σ.b := by
   by_contra hcon
@@ -2579,7 +2579,7 @@ lemma fiber_succ_end_le (m : Multisegment) (σ : Segment) (hσm : σ ∈ m.segme
 
 /-- Beyond the boundary: every fiber element with begin past `i` sits at or after `t`,
 in both coordinates. -/
-lemma boundary_next_facts (m : Multisegment) (d : ℕ) (i t : Segment)
+private lemma boundary_next_facts (m : Multisegment) (d : ℕ) (i t : Segment)
     (l₁ l₂ : List Segment)
     (hsplit : (Proof.sortedBucket m d).map (·.val) = l₁ ++ i :: t :: l₂)
     (y : Segment) (hy : y ∈ (Proof.sortedBucket m d).map (·.val)) (hya : i.a < y.a) :
@@ -2605,12 +2605,12 @@ lemma boundary_next_facts (m : Multisegment) (d : ℕ) (i t : Segment)
 /-! ## Chain structure helpers -/
 
 /-- The leading chain's begins strictly increase. -/
-lemma greedyChain_begins_lt (m : Multisegment) :
+private lemma greedyChain_begins_lt (m : Multisegment) :
     (Proof.leadingChain m).Pairwise (fun s t => s.a < t.a) :=
   (greedyChain_pairwise_ll m).imp (fun h => h.1)
 
 /-- In a begins-increasing list, members are determined by their begin. -/
-lemma begin_unique_of_pairwise_lt : ∀ (l : List Segment),
+private lemma begin_unique_of_pairwise_lt : ∀ (l : List Segment),
     l.Pairwise (fun s t => s.a < t.a) →
     ∀ x ∈ l, ∀ y ∈ l, x.a = y.a → x = y := by
   intro l
@@ -2628,7 +2628,7 @@ lemma begin_unique_of_pairwise_lt : ∀ (l : List Segment),
       · exact ih hp' x hxr y hyr heq
 
 /-- Two distinct members of a pairwise list are related one way or the other. -/
-lemma pairwise_mem_rel {R : Segment → Segment → Prop} : ∀ (l : List Segment),
+private lemma pairwise_mem_rel {R : Segment → Segment → Prop} : ∀ (l : List Segment),
     l.Pairwise R → ∀ x ∈ l, ∀ y ∈ l, x ≠ y → R x y ∨ R y x := by
   intro l
   induction l with
@@ -2645,7 +2645,7 @@ lemma pairwise_mem_rel {R : Segment → Segment → Prop} : ∀ (l : List Segmen
       · exact ih hp' x hxr y hyr hne
 
 /-- Distinct-begin chain members have distinct depths. -/
-lemma chain_mem_depth_ne (m : Multisegment) (c σ : Segment)
+private lemma chain_mem_depth_ne (m : Multisegment) (c σ : Segment)
     (hc : c ∈ Proof.leadingChain m) (hσ : σ ∈ Proof.leadingChain m)
     (hne : c.a ≠ σ.a) (hcm : c ∈ m.segments) (hσm : σ ∈ m.segments) :
     depth_of_segment m c hcm ≠ depth_of_segment m σ hσm := by
@@ -2656,7 +2656,7 @@ lemma chain_mem_depth_ne (m : Multisegment) (c σ : Segment)
 
 /-- Full count formula for `m†`: one copy of each chain value is removed, one starred
 copy of each non-singleton chain value is added. -/
-lemma count_mdag_full (m : Multisegment) (x : Segment) :
+private lemma count_mdag_full (m : Multisegment) (x : Segment) :
     (Proof.mdag m).segments.count x
       + (if x ∈ Proof.leadingChain m then 1 else 0)
       = m.segments.count x
@@ -2671,7 +2671,7 @@ lemma count_mdag_full (m : Multisegment) (x : Segment) :
   omega
 
 /-- Bucket count when every copy of the value sits at depth `d`. -/
-lemma bucket_count_eq_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
+private lemma bucket_count_eq_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
     (h : ∀ hxm : x ∈ M.segments, depth_of_segment M x hxm = d) :
     ((Proof.sortedBucket M d).map (·.val)).count x = M.segments.count x := by
   by_cases hmem : x ∈ M.segments
@@ -2680,35 +2680,35 @@ lemma bucket_count_eq_of_depth (M : Multisegment) (d : ℕ) (x : Segment)
       List.count_eq_zero.mpr hmem]
 
 /-- Bucket count when the value never sits at depth `d`. -/
-lemma bucket_count_eq_zero_of_depth_ne (M : Multisegment) (d : ℕ) (x : Segment)
+private lemma bucket_count_eq_zero_of_depth_ne (M : Multisegment) (d : ℕ) (x : Segment)
     (h : ∀ hxm : x ∈ M.segments, depth_of_segment M x hxm ≠ d) :
     ((Proof.sortedBucket M d).map (·.val)).count x = 0 :=
   count_bucket_of_ne M d x (by rintro ⟨hxm, hd⟩; exact h hxm hd)
 
 /-- The fiber count of a value that sits at depth `d`. -/
-lemma bucket_count_of_mem (M : Multisegment) (d : ℕ) (x : Segment) (hxm : x ∈ M.segments)
+private lemma bucket_count_of_mem (M : Multisegment) (d : ℕ) (x : Segment) (hxm : x ∈ M.segments)
     (h : depth_of_segment M x hxm = d) :
     ((Proof.sortedBucket M d).map (·.val)).count x = M.segments.count x :=
   bucket_count_eq_of_depth M d x fun _ => h
 
 /-- A value at another depth is not counted in the fiber at `d`. -/
-lemma bucket_count_zero_of_mem (M : Multisegment) (d : ℕ) (x : Segment) (hxm : x ∈ M.segments)
+private lemma bucket_count_zero_of_mem (M : Multisegment) (d : ℕ) (x : Segment) (hxm : x ∈ M.segments)
     (h : depth_of_segment M x hxm ≠ d) :
     ((Proof.sortedBucket M d).map (·.val)).count x = 0 :=
   bucket_count_eq_zero_of_depth_ne M d x fun _ => h
 
 /-- A value outside `M` is not counted in any fiber. -/
-lemma bucket_count_zero_of_not_mem (M : Multisegment) (d : ℕ) (x : Segment)
+private lemma bucket_count_zero_of_not_mem (M : Multisegment) (d : ℕ) (x : Segment)
     (hxm : x ∉ M.segments) :
     ((Proof.sortedBucket M d).map (·.val)).count x = 0 :=
   bucket_count_eq_zero_of_depth_ne M d x fun h _ => absurd h hxm
 
 /-- Segments differing in a coordinate differ. -/
-lemma seg_ne_of_a {s t : Segment} (h : s.a ≠ t.a) : s ≠ t := fun e => h (congrArg Segment.a e)
-lemma seg_ne_of_b {s t : Segment} (h : s.b ≠ t.b) : s ≠ t := fun e => h (congrArg Segment.b e)
+private lemma seg_ne_of_a {s t : Segment} (h : s.a ≠ t.a) : s ≠ t := fun e => h (congrArg Segment.a e)
+private lemma seg_ne_of_b {s t : Segment} (h : s.b ≠ t.b) : s ≠ t := fun e => h (congrArg Segment.b e)
 
 /-- Coordinate form of `mdag_depth_starred`. -/
-lemma mdag_depth_starred' (m : Multisegment) (sₘ s_l : Segment)
+private lemma mdag_depth_starred' (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (c : Segment) (hcC : c ∈ Proof.leadingChain m) (hcm : c ∈ m.segments)
@@ -2726,7 +2726,7 @@ lemma mdag_depth_starred' (m : Multisegment) (sₘ s_l : Segment)
   exact mdag_depth_starred m sₘ s_l hsₘ hs_l hmin c hcC hcm hstep hx'
 
 /-- Depth respects value equality across membership proofs. -/
-lemma depth_congr (m : Multisegment) (s t : Segment) (h : s = t)
+private lemma depth_congr (m : Multisegment) (s t : Segment) (h : s = t)
     (hs : s ∈ m.segments) (ht : t ∈ m.segments) :
     depth_of_segment m s hs = depth_of_segment m t ht := by
   subst h
@@ -2735,7 +2735,7 @@ lemma depth_congr (m : Multisegment) (s t : Segment) (h : s = t)
 /-- **A fiber count the chain does not touch.** At depth `d`, the `m†` count of a value `x`
 equals the `m` count unless a chain element at depth `d` begins at `x.a` (then `x` may be that
 element or one of its specials) or at `x.a - 1` (then `x` may be its starred copy). -/
-lemma fiber_count_untouched (m : Multisegment) (sₘ s_l : Segment)
+private lemma fiber_count_untouched (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (d : ℕ) (x : Segment)
@@ -2852,9 +2852,9 @@ private def incomingPairs (m : Multisegment) (v : List Segment) (w : ℤ × ℤ)
       else 0
     else 0
 
-lemma incoming_nil (m : Multisegment) (x : Segment) : incoming m [] x = 0 := rfl
+private lemma incoming_nil (m : Multisegment) (x : Segment) : incoming m [] x = 0 := rfl
 
-lemma incoming_cons (m : Multisegment) (σ' : Segment) (v : List Segment)
+private lemma incoming_cons (m : Multisegment) (σ' : Segment) (v : List Segment)
     (hσ'm : σ' ∈ m.segments) (x : Segment) :
     incoming m (σ' :: v) x
       = if x.a = σ'.a ∧ x.b < σ'.b
@@ -2862,7 +2862,7 @@ lemma incoming_cons (m : Multisegment) (σ' : Segment) (v : List Segment)
   simp only [incoming, List.head?_cons, Option.elim]
   rw [dif_pos hσ'm]
 
-lemma incoming_eq_zero (m : Multisegment) (v : List Segment) (x : Segment)
+private lemma incoming_eq_zero (m : Multisegment) (v : List Segment) (x : Segment)
     (h : ∀ σ', v.head? = some σ' → x.a ≠ σ'.a) : incoming m v x = 0 := by
   cases v with
   | nil => rfl
@@ -2873,7 +2873,7 @@ lemma incoming_eq_zero (m : Multisegment) (v : List Segment) (x : Segment)
     · rw [dif_neg hm]
 
 /-- The chain element after `σ` begins at `σ.a + 1`. -/
-lemma succ_begin (m : Multisegment) (u v : List Segment) (σ σ' : Segment)
+private lemma succ_begin (m : Multisegment) (u v : List Segment) (σ σ' : Segment)
     (hsplit : Proof.leadingChain m = u ++ σ :: v) (hσ' : v.head? = some σ') :
     σ'.a = σ.a + 1 := by
   cases v with
@@ -2885,7 +2885,7 @@ lemma succ_begin (m : Multisegment) (u v : List Segment) (σ σ' : Segment)
     exact h
 
 /-- Nothing migrates into `σ`'s fiber at a value that does not begin at `σ.a + 1`. -/
-lemma incoming_eq_zero_of_begin (m : Multisegment) (u v : List Segment) (σ : Segment)
+private lemma incoming_eq_zero_of_begin (m : Multisegment) (u v : List Segment) (σ : Segment)
     (hsplit : Proof.leadingChain m = u ++ σ :: v) (x : Segment) (hx : x.a ≠ σ.a + 1) :
     incoming m v x = 0 :=
   incoming_eq_zero m v x fun σ' h => by rw [succ_begin m u v σ σ' hsplit h]; exact hx
@@ -2894,7 +2894,7 @@ lemma incoming_eq_zero_of_begin (m : Multisegment) (u v : List Segment) (σ : Se
 `σ`'s fiber, `m†` loses one `σ`-copy and the specials of `σ`, and gains the starred copy
 `⁻σ` together with the incoming specials of the chain element after `σ` (`incoming`; none
 when `σ` is the last chain element). -/
-lemma fiber_count_chain (m : Multisegment) (sₘ s_l : Segment)
+private lemma fiber_count_chain (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (u v : List Segment) (σ : Segment)
@@ -3354,7 +3354,7 @@ lemma fiber_count_chain (m : Multisegment) (sₘ s_l : Segment)
 /-! ## Indicator evaluation helpers -/
 
 /-- Every nonempty begin-group has a maximal end. -/
-lemma exists_group_top : ∀ (L : List Segment) (a : ℤ), (∃ y ∈ L, y.a = a) →
+private lemma exists_group_top : ∀ (L : List Segment) (a : ℤ), (∃ y ∈ L, y.a = a) →
     ∃ E, (∃ y ∈ L, y.a = a ∧ y.b = E) ∧ ∀ z ∈ L, z.a = a → z.b ≤ E := by
   intro L
   induction L with
@@ -3390,7 +3390,7 @@ lemma exists_group_top : ∀ (L : List Segment) (a : ℤ), (∃ y ∈ L, y.a = a
       · exact absurd ⟨w, hwr, hwa⟩ hgrp
 
 /-- Every nonempty above-region has a first begin-group, with its maximal end. -/
-lemma exists_next_data : ∀ (L : List Segment) (a : ℤ), (∃ y ∈ L, a < y.a) →
+private lemma exists_next_data : ∀ (L : List Segment) (a : ℤ), (∃ y ∈ L, a < y.a) →
     ∃ a' E', a < a' ∧ (∃ z ∈ L, z.a = a' ∧ z.b = E') ∧
       (∀ y ∈ L, a < y.a → a' ≤ y.a) ∧ (∀ z ∈ L, z.a = a' → z.b ≤ E') := by
   intro L
@@ -3461,7 +3461,7 @@ lemma exists_next_data : ∀ (L : List Segment) (a : ℤ), (∃ y ∈ L, a < y.a
         · exact absurd ⟨w, hwr, by omega⟩ habove
 
 /-- `topInd` through a known group top. -/
-lemma topInd_eq_group (L : List Segment) (w : ℤ × ℤ) (E : ℤ)
+private lemma topInd_eq_group (L : List Segment) (w : ℤ × ℤ) (E : ℤ)
     (hE1 : ∃ y ∈ L, y.a = w.1 ∧ y.b = E) (hE2 : ∀ z ∈ L, z.a = w.1 → z.b ≤ E) :
     topInd L w = if w.2 = E then 1 else 0 := by
   unfold topInd
@@ -3476,7 +3476,7 @@ lemma topInd_eq_group (L : List Segment) (w : ℤ × ℤ) (E : ℤ)
     omega
 
 /-- `transInd` through known next-group data. -/
-lemma transInd_eq_group (L : List Segment) (w : ℤ × ℤ)
+private lemma transInd_eq_group (L : List Segment) (w : ℤ × ℤ)
     (hsrc : ∃ x ∈ L, x.a = w.1) (a' E' : ℤ) (ha' : w.1 < a')
     (hwit : ∃ z ∈ L, z.a = a' ∧ z.b = E')
     (hmin : ∀ y ∈ L, w.1 < y.a → a' ≤ y.a)
@@ -3500,7 +3500,7 @@ lemma transInd_eq_group (L : List Segment) (w : ℤ × ℤ)
     omega
 
 /-- `transInd` vanishes when nothing lies above the source begin. -/
-lemma transInd_eq_zero_of_no_next (L : List Segment) (w : ℤ × ℤ)
+private lemma transInd_eq_zero_of_no_next (L : List Segment) (w : ℤ × ℤ)
     (h : ∀ y ∈ L, ¬ w.1 < y.a) : transInd L w = 0 := by
   unfold transInd
   rw [if_neg]
@@ -3508,7 +3508,7 @@ lemma transInd_eq_zero_of_no_next (L : List Segment) (w : ℤ × ℤ)
   exact h z hz (by omega)
 
 /-- Pair equality componentwise. -/
-lemma pair_eq_iff (w : ℤ × ℤ) (p q : ℤ) : w = (p, q) ↔ (w.1 = p ∧ w.2 = q) := by
+private lemma pair_eq_iff (w : ℤ × ℤ) (p q : ℤ) : w = (p, q) ↔ (w.1 = p ∧ w.2 = q) := by
   constructor
   · intro h; rw [h]; exact ⟨rfl, rfl⟩
   · rintro ⟨h1, h2⟩
@@ -3518,7 +3518,7 @@ lemma pair_eq_iff (w : ℤ × ℤ) (p q : ℤ) : w = (p, q) ↔ (w.1 = p ∧ w.2
 /-- **Indicator transport at a chain fiber**: the tops-and-transitions corrections
 between a fiber `Fm` of `m` and its `m†` counterpart `Fd`. `σ` is the chain value, `t`
 its boundary partner; the set-level hypotheses record how the two fibers differ. -/
-lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
+private lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
     (hσmem : σ ∈ Fm) (hta : σ.a < t.a) (htmem : t ∈ Fm)
     (hnextt : ∀ y ∈ Fm, σ.a < y.a → t.a ≤ y.a ∧ y.b ≤ t.b)
     (hA1 : ∀ y ∈ Fd, y.a = σ.a → y ∈ Fm ∧ σ.b ≤ y.b)
@@ -3740,7 +3740,7 @@ lemma indicator_transport (Fm Fd : List Segment) (σ t : Segment)
 /-! ## Residual counts as fiber sums -/
 
 /-- Count over a `flatMap` is the sum of per-piece counts. -/
-lemma count_flatMap_pairs (f : ℕ → List (ℤ × ℤ)) : ∀ (l : List ℕ) (w : ℤ × ℤ),
+private lemma count_flatMap_pairs (f : ℕ → List (ℤ × ℤ)) : ∀ (l : List ℕ) (w : ℤ × ℤ),
     (l.flatMap f).count w = (l.map (fun d => (f d).count w)).sum := by
   intro l
   induction l with
@@ -3752,7 +3752,7 @@ lemma count_flatMap_pairs (f : ℕ → List (ℤ × ℤ)) : ∀ (l : List ℕ) (
 seal maximum first in
 /-- The coordinate count of the RSK residual is the sum of derived-pair counts over
 the fibers. -/
-lemma count_residual_pairs (M : Multisegment) (hM : M.segments ≠ []) (w : ℤ × ℤ) :
+private lemma count_residual_pairs (M : Multisegment) (hM : M.segments ≠ []) (w : ℤ × ℤ) :
     ((residual M).segments.map segPair).count w =
       ((List.range (maxDepth M + 1)).map
         (fun d => (derivedPairs ((Proof.sortedBucket M d).map (·.val))).count w)).sum := by
@@ -3773,7 +3773,7 @@ lemma count_residual_pairs (M : Multisegment) (hM : M.segments ≠ []) (w : ℤ 
 /-! ## Non-chain fibers are untouched -/
 
 /-- At a non-chain depth the fiber lists coincide. -/
-lemma fiber_list_nonchain_eq (m : Multisegment) (sₘ s_l : Segment)
+private lemma fiber_list_nonchain_eq (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (d : ℕ)
@@ -3793,11 +3793,11 @@ lemma fiber_list_nonchain_eq (m : Multisegment) (sₘ s_l : Segment)
 
 /-! ## Pair-level transfer and the per-fiber derived-count identity -/
 
-lemma count_map_segPair_eq (L : List Segment) (x : Segment) :
+private lemma count_map_segPair_eq (L : List Segment) (x : Segment) :
     (L.map segPair).count (segPair x) = L.count x :=
   List.count_map_of_injective _ _ segPair_inj _
 
-lemma count_map_segPair_illformed (L : List Segment) (w : ℤ × ℤ) (h : w.2 < w.1) :
+private lemma count_map_segPair_illformed (L : List Segment) (w : ℤ × ℤ) (h : w.2 < w.1) :
     (L.map segPair).count w = 0 := by
   rw [List.count_eq_zero]
   intro hmem
@@ -3807,7 +3807,7 @@ lemma count_map_segPair_illformed (L : List Segment) (w : ℤ × ℤ) (h : w.2 <
   have h3 : x.a ≤ x.b := x.fst_le_snd
   omega
 
-lemma derivedPairs_count_illformed (L : List Segment)
+private lemma derivedPairs_count_illformed (L : List Segment)
     (hs : L.Pairwise (fun s t => s.a ≤ t.a ∧ t.b ≤ s.b)) (w : ℤ × ℤ)
     (h : w.2 < w.1) : (derivedPairs L).count w = 0 := by
   rw [List.count_eq_zero]
@@ -3823,9 +3823,9 @@ lemma derivedPairs_count_illformed (L : List Segment)
   omega
 
 -- A `rfl` lemma: `simp` applies it without a trace in the proof term (used in the telescope).
-lemma incomingPairs_nil (m : Multisegment) (w : ℤ × ℤ) : incomingPairs m [] w = 0 := rfl
+private lemma incomingPairs_nil (m : Multisegment) (w : ℤ × ℤ) : incomingPairs m [] w = 0 := rfl
 
-lemma incomingPairs_cons (m : Multisegment) (σ' : Segment) (v : List Segment)
+private lemma incomingPairs_cons (m : Multisegment) (σ' : Segment) (v : List Segment)
     (hσ'm : σ' ∈ m.segments) (w : ℤ × ℤ) :
     incomingPairs m (σ' :: v) w
       = if w.1 = σ'.a ∧ w.2 < σ'.b
@@ -3834,7 +3834,7 @@ lemma incomingPairs_cons (m : Multisegment) (σ' : Segment) (v : List Segment)
   simp only [incomingPairs, List.head?_cons, Option.elim]
   rw [dif_pos hσ'm]
 
-lemma incomingPairs_segPair (m : Multisegment) (v : List Segment) (x : Segment) :
+private lemma incomingPairs_segPair (m : Multisegment) (v : List Segment) (x : Segment) :
     incomingPairs m v (segPair x) = incoming m v x := by
   cases v with
   | nil => rfl
@@ -3847,7 +3847,7 @@ lemma incomingPairs_segPair (m : Multisegment) (v : List Segment) (x : Segment) 
       rw [h1, h2, count_map_segPair_eq]
     · rw [dif_neg hm, dif_neg hm]
 
-lemma incomingPairs_illformed (m : Multisegment) (v : List Segment) (w : ℤ × ℤ)
+private lemma incomingPairs_illformed (m : Multisegment) (v : List Segment) (w : ℤ × ℤ)
     (h : w.2 < w.1) : incomingPairs m v w = 0 := by
   cases v with
   | nil => rfl
@@ -3864,7 +3864,7 @@ lemma incomingPairs_illformed (m : Multisegment) (v : List Segment) (w : ℤ × 
 fiber, the derived pairs of `m†` are those of `m` with `W = ⟨σ.a, t.b⟩` replaced by
 `⁻W = ⟨σ.a+1, t.b⟩`, the incoming specials of the chain element after `σ` added
 (`incomingPairs`; none after the last) and the outgoing specials of `σ` removed. -/
-lemma derived_count_chain (m : Multisegment) (sₘ s_l : Segment)
+private lemma derived_count_chain (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (u v : List Segment) (σ : Segment)
@@ -4062,7 +4062,7 @@ lemma derived_count_chain (m : Multisegment) (sₘ s_l : Segment)
     · rw [if_neg h1]
 
 /-- Permutations preserve sums of naturals. -/
-lemma sum_perm_nat : ∀ {l₁ l₂ : List ℕ}, l₁.Perm l₂ → l₁.sum = l₂.sum := by
+private lemma sum_perm_nat : ∀ {l₁ l₂ : List ℕ}, l₁.Perm l₂ → l₁.sum = l₂.sum := by
   intro l₁ l₂ h
   induction h with
   | nil => rfl
@@ -4075,7 +4075,7 @@ seal maximum first in
 fibers, the derived pairs of `m†` are those of `m` with each residual-chain value `Wⱼ`
 replaced by its left-shortened copy `⁻Wⱼ`. Stated against the leading chain of the RSK
 residual, whose entries are exactly the `Wⱼ` (`greedyChain_residual_entries`). -/
-lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
+private lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (w : ℤ × ℤ) :
@@ -4251,7 +4251,7 @@ lemma residual_count_telescope (m : Multisegment) (sₘ s_l : Segment)
 /-! ## The `(m′)†` side and the commutation core -/
 
 /-- A sum of equality indicators is a count. -/
-lemma sum_ind_eq_count : ∀ (l : List Segment) (x : Segment),
+private lemma sum_ind_eq_count : ∀ (l : List Segment) (x : Segment),
     (l.map (fun c => if x = c then 1 else 0)).sum = l.count x := by
   intro l
   induction l with
@@ -4262,7 +4262,7 @@ lemma sum_ind_eq_count : ∀ (l : List Segment) (x : Segment),
     omega
 
 /-- In a duplicate-free list, counts are membership indicators. -/
-lemma count_eq_ite_of_nodup (l : List Segment) (hnd : l.Nodup) (x : Segment) :
+private lemma count_eq_ite_of_nodup (l : List Segment) (hnd : l.Nodup) (x : Segment) :
     l.count x = if x ∈ l then 1 else 0 := by
   by_cases h : x ∈ l
   · rw [if_pos h]
@@ -4271,7 +4271,7 @@ lemma count_eq_ite_of_nodup (l : List Segment) (hnd : l.Nodup) (x : Segment) :
     exact h
 
 /-- With strictly increasing begins, at most one starred indicator fires. -/
-lemma sum_starred_ind : ∀ (l : List Segment),
+private lemma sum_starred_ind : ∀ (l : List Segment),
     l.Pairwise (fun s t => s.a < t.a) → (∀ c ∈ l, c.a < c.b) → ∀ (x : Segment),
     (l.map (fun c => if x.a = c.a + 1 ∧ x.b = c.b then 1 else 0)).sum
       = if ∃ c ∈ l, c.a < c.b ∧ x.a = c.a + 1 ∧ x.b = c.b then 1 else 0 := by
@@ -4306,7 +4306,7 @@ lemma sum_starred_ind : ∀ (l : List Segment),
       · rw [if_neg hQ, if_neg (fun h => hQ (hiff.mp h))]
 
 /-- Every residual leading-chain entry is nondegenerate. -/
-lemma residual_chain_nondegenerate (m : Multisegment) (sₘ s_l : Segment)
+private lemma residual_chain_nondegenerate (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (c : Segment) (hc : c ∈ Proof.leadingChain (residual m)) :
@@ -4327,7 +4327,7 @@ lemma residual_chain_nondegenerate (m : Multisegment) (sₘ s_l : Segment)
 
 /-- **The `(m′)†` count identity**: the MW residual of `m′` removes each chain value
 and adds its left-shortened copy. -/
-lemma count_mdag_residual_pairs (m : Multisegment) (sₘ s_l : Segment)
+private lemma count_mdag_residual_pairs (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a)
     (w : ℤ × ℤ) :
@@ -4412,7 +4412,7 @@ lemma count_mdag_residual_pairs (m : Multisegment) (sₘ s_l : Segment)
       hz1, hz2]
 
 /-- Multisegments with equal segment lists are equal. -/
-lemma Multisegment.eq_of_segments_eq {A B : Multisegment}
+private lemma Multisegment.eq_of_segments_eq {A B : Multisegment}
     (h : A.segments = B.segments) : A = B := by
   cases A with | mk s hs =>
   cases B with | mk s' hs' =>
@@ -4422,7 +4422,7 @@ lemma Multisegment.eq_of_segments_eq {A B : Multisegment}
 
 /-- **The commutation core** (paper Cor. `main`, third component): applying MW then RSK
 equals applying RSK then MW, at the level of segment lists. -/
-lemma residual_commute_core (m : Multisegment) (sₘ s_l : Segment)
+private lemma residual_commute_core (m : Multisegment) (sₘ s_l : Segment)
     (hsₘ : m.segments.head? = some sₘ)
     (hs_l : (sorted (ladderRungs m)).head? = some s_l) (hmin : sₘ.a < s_l.a) :
     (residual (Proof.mdag m)).segments
@@ -4557,12 +4557,12 @@ lemma min_m_lt_min_lm_of_index (m : Multisegment) (hm : m.segments ≠ [])
   rw [List.head_eq_getElem, List.head_eq_getElem]
   exact h_min
 
-lemma rsk_residual_ne_nil_inlined (m : Multisegment) (hm : m.segments ≠ [])
+private lemma rsk_residual_ne_nil_inlined (m : Multisegment) (hm : m.segments ≠ [])
     (h_min : m.segments[0].a < (sorted (ladderRungs m))[0].a) :
     (rsk_step m hm).2.segments ≠ [] :=
   cond_rsk_residual_nonempty m hm (min_m_lt_min_lm_of_index m hm h_min)
 
-lemma mdag_ne_nil_inlined (m : Multisegment) (hm : m.segments ≠ [])
+private lemma mdag_ne_nil_inlined (m : Multisegment) (hm : m.segments ≠ [])
     (h_min : m.segments[0].a < (sorted (ladderRungs m))[0].a) :
     (mw_step m hm).2.segments ≠ [] := mdag_ne_nil m hm (min_m_lt_min_lm_of_index m hm h_min)
 
