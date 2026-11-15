@@ -184,11 +184,28 @@ def anyOf {α : Type*} {β : Sort*} [LinearOrder α] (S : Set α) [Fintype S]
     (_hf : ∀ x (hx : x ∈ S) y (hy : y ∈ S), f x hx = f y hy) : β :=
   f (first S h) (Set.mem_toFinset.mp (Finset.min'_mem _ _))
 
+/-- A binder introduces a new name: a name already in scope cannot be bound again. Without this,
+`[f | j ∈ i, j ≤ 5]` would read `j ≤ 5` as a second loop over `0, …, 5`, hiding the first `j`.
+A condition on a name in scope is written in parentheses, `(j ≤ 5)`. -/
+syntax (name := binderCheck) "binder_check% " ident term : term
+
+open Lean Elab Term in
+/-- The check, then the term is read as if the check were not there (the expected type is
+passed on unchanged, so that nothing is postponed). -/
+@[term_elab binderCheck] def elabBinderCheck : TermElab := fun stx expectedType? => do
+  let x := stx[1]
+  if ((← getLCtx).findFromUserName? x.getId).isSome then
+    throwErrorAt x "`{x.getId}` is already in scope: a binder introduces a new name; \
+      a condition on `{x.getId}` is written in parentheses"
+  elabTerm stx[2] expectedType?
+
 syntax "let " ident " ∈ " term "; " term : term
 
 open Lean Elab Term Meta in
 elab_rules : term <= expected
   | `(let $x:ident ∈ $S; $e) => do
+    if ((← getLCtx).findFromUserName? x.getId).isSome then
+      throwErrorAt x "`{x.getId}` is already in scope: `let {x.getId} ∈ …` introduces a new name"
     -- `e` is read completely first (as a function of `x`), so that the two facts behind
     -- `anyOf` are asked about a finished term
     let S ← elabTerm S none
@@ -201,12 +218,14 @@ elab_rules : term <= expected
 /-- List comprehension `[x ∈ l | p x]`: the elements of `l` satisfying `p`, in order, with
 repeats; each comes with its proof of `x ∈ l` (available to `p`). -/
 macro "[" x:ident " ∈ " l:term " | " p:term "]" : term =>
-  `(List.filter (fun ⟨$x, _⟩ => decide $p) (List.attach $l))
+  `(binder_check% $x (List.filter (fun ⟨$x, _⟩ => decide $p) (List.attach $l)))
 
 /-- List comprehension `[f | b₁, …, bₙ]`: the values of `f` for each choice of the binders,
 in order, with repeats. A binder is `x ∈ l`, `k ≤ n`, `k < n`, or a condition `p` (keeping
-only the choices for which it holds; it comes last). Inside `f` (and in later binders) the facts
-`x ∈ l`, `k ≤ n`, `k < n` and `p` are available, so that `l'[x]`-like terms need no proof. -/
+only the choices for which it holds; it comes last). A binder introduces a new name; a
+condition on a name already in scope is written in parentheses, `(j ≤ 5)`. Inside `f` (and in
+later binders) the facts `x ∈ l`, `k ≤ n`, `k < n` and `p` are available, so that `l'[x]`-like
+terms need no proof. -/
 declare_syntax_cat comprehension_binder
 syntax (name := memBinder) ident " ∈ " term : comprehension_binder
 syntax (name := leBinder) ident " ≤ " term : comprehension_binder
@@ -221,10 +240,12 @@ syntax (name := comprehension) "[" term " | " comprehension_binder,+ "]" : term
 -- A later rule is tried first, so the one-binder rules come last.)
 macro_rules
   | `([$f | $x:ident ∈ $l, $bs,*]) =>
-    `(List.flatMap (fun ⟨$x, hx⟩ => [$f | $bs,*]) (List.attach $l))
+    `(binder_check% $x (List.flatMap (fun ⟨$x, hx⟩ => [$f | $bs,*]) (List.attach $l)))
 macro_rules | `([$f | $k:ident ≤ $n, $bs,*]) => `([$f | $k:ident ∈ List.range ($n + 1), $bs,*])
 macro_rules | `([$f | $k:ident < $n, $bs,*]) => `([$f | $k:ident ∈ List.range $n, $bs,*])
-macro_rules | `([$f | $x:ident ∈ $l]) => `(List.map (fun ⟨$x, hx⟩ => $f) (List.attach $l))
+macro_rules
+  | `([$f | $x:ident ∈ $l]) =>
+    `(binder_check% $x (List.map (fun ⟨$x, hx⟩ => $f) (List.attach $l)))
 macro_rules | `([$f | $k:ident ≤ $n]) => `([$f | $k:ident ∈ List.range ($n + 1)])
 macro_rules | `([$f | $k:ident < $n]) => `([$f | $k:ident ∈ List.range $n])
 macro_rules | `([$f | $p:term]) => `(if h : $p then [$f] else [])
