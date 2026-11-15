@@ -5,6 +5,7 @@ import Mathlib.Data.List.Pairwise
 import Mathlib.Logic.Relation
 import Mathlib.Order.Interval.Basic
 import Mathlib.Algebra.Order.Group.Int
+import LeanProof.Segment_u
 import LeanProof.Basic_t
 set_option linter.style.setOption false
 set_option autoProp.rule false

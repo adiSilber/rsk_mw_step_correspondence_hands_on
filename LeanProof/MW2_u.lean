@@ -1,6 +1,3 @@
-import LeanProof.Basic_t
-import LeanProof.Basic_u
-import LeanProof.MW1_t
 import LeanProof.MW1_u
 import LeanProof.MW2_t
 

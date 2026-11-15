@@ -1,4 +1,3 @@
-import LeanProof.Fundamentals_t
 import LeanProof.Basic_t
 import LeanProof.Basic_u
 import Mathlib.Data.Set.Defs

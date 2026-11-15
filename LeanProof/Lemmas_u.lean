@@ -1,14 +1,4 @@
-import LeanProof.Basic_t
-import LeanProof.Basic_u
-import LeanProof.Ladder1_t
-import LeanProof.Ladder1_u
-import LeanProof.Ladder2_t
-import LeanProof.Ladder2_u
-import LeanProof.RSK3_t
 import LeanProof.RSK3_u
-import LeanProof.MW1_t
-import LeanProof.MW1_u
-import LeanProof.MW2_t
 import LeanProof.MW2_u
 
 set_option linter.style.setOption false

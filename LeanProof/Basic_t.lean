@@ -5,7 +5,6 @@ import Mathlib.Data.List.Pairwise
 import Mathlib.Logic.Relation
 import Mathlib.Order.Interval.Basic
 import Mathlib.Algebra.Order.Group.Int
-import LeanProof.Fundamentals_t
 import LeanProof.Segment_t
 import LeanProof.Segment_u
 

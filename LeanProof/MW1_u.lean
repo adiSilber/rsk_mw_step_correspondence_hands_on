@@ -1,4 +1,3 @@
-import LeanProof.Basic_t
 import LeanProof.Basic_u
 import LeanProof.MW1_t
 import Mathlib.Data.List.Permutation

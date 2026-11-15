@@ -1,5 +1,3 @@
-import LeanProof.Basic_t
-import LeanProof.Basic_u
 import LeanProof.Ladder1_t
 import LeanProof.Ladder1_u
 import Mathlib.Data.Finset.Max

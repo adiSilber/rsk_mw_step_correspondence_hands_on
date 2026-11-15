@@ -34,10 +34,11 @@ Quot.sound`: no `sorry`, no extra axioms.
 
 The parts are layered with a strict import discipline:
 
-- a part's `_t` file may depend only on files of **earlier** (lower-level)
-  parts — including their `_u` files;
-- a part's `_u` file may depend on the `_t` and `_u` files of its **own** part
-  and of earlier ones;
+- a part's `_t` file imports the `_t` and `_u` files of the part just **below** it
+  (`Segment_t` imports `Fundamentals_t`);
+- a part's `_u` file imports the `_u` file of the part just below it and its **own** `_t`;
+- Lean imports are transitive, so each file sees everything below it; the import
+  block names only the step;
 - a part's `_e` file may depend on the `_t` and `_u` files of its **own** part
   and of earlier ones (e.g. `Basic_e` uses `Basic_u`'s decidability
   instances, and `MW1_e` uses `MW1_u` to demonstrate the greedy scan). Nothing
@@ -102,38 +103,38 @@ RSK + MW ──► Lemmas_u   proofs only — everything `corollary_3_4` needs b
 
 Exact file-level imports (within the project):
 
-| file             | imports                                                        |
-|------------------|----------------------------------------------------------------|
-| `Fundamentals_t` | —                                                              |
-| `Segment_t`      | `Fundamentals_t`                                               |
-| `Segment_u`      | `Segment_t`                                                    |
-| `Basic_t`        | `Fundamentals_t`, `Segment_t`, `Segment_u`                     |
-| `Basic_u`        | `Basic_t`                                                      |
-| `Basic_e`        | `Basic_t`, `Basic_u`                                           |
-| `Ladder1_t`      | `Fundamentals_t`, `Basic_t`, `Basic_u`                         |
-| `Ladder1_u`      | `Basic_t`, `Basic_u`, `Ladder1_t`                              |
-| `Ladder1_e`      | `Basic_t`, `Ladder1_t`, `Ladder1_u`                            |
-| `Ladder2_t`      | `Basic_t`, `Basic_u`, `Ladder1_t`, `Ladder1_u`                 |
-| `Ladder2_u`      | the above + `Ladder2_t`                                        |
-| `Ladder2_e`      | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `Ladder2_u`               |
-| `RSK1_t`         | `Basic_t`, `Basic_u`, `Ladder1_t`, `Ladder1_u`, `Ladder2_t`, `Ladder2_u` |
-| `RSK1_u`         | the above + `RSK1_t`                                           |
-| `RSK1_e`         | `Basic_t`, `Ladder2_t`, `RSK1_t`, `RSK1_u`                     |
-| `RSK2_t`         | the imports of `RSK1_t` + `RSK1_t`, `RSK1_u`                   |
-| `RSK2_u`         | the above + `RSK2_t`                                           |
-| `RSK2_e`         | `Basic_t`, `Ladder2_t`, `RSK1_t`, `RSK2_t`, `RSK2_u`           |
-| `RSK3_t`          | the imports of `RSK2_t` + `RSK2_t`, `RSK2_u`                   |
-| `RSK3_u`          | the above + `RSK3_t`                                            |
-| `RSK3_e`          | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `RSK3_t`, `RSK3_u`          |
-| `MW1_t`          | `Basic_t`, `Basic_u`                                           |
-| `MW1_u`          | `Basic_t`, `Basic_u`, `MW1_t`                                  |
-| `MW1_e`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`                         |
-| `MW2_t`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`                         |
-| `MW2_u`          | the above + `MW2_t`                                            |
-| `MW2_e`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u`       |
-| `Lemmas_u`       | everything above it                                            |
-| `Corollary_t`    | `Lemmas_u`                                                     |
-| `Corollary_e`    | `Basic_t`, `RSK3_t`, `RSK3_u`                                  |
+| file             | imports                              |
+|------------------|--------------------------------------|
+| `Fundamentals_t` | —                                    |
+| `Segment_t`      | `Fundamentals_t`                     |
+| `Segment_u`      | `Segment_t`                          |
+| `Basic_t`        | `Segment_t`, `Segment_u`             |
+| `Basic_u`        | `Segment_u`, `Basic_t`               |
+| `Basic_e`        | `Basic_t`, `Basic_u`                 |
+| `Ladder1_t`      | `Basic_t`, `Basic_u`                 |
+| `Ladder1_u`      | `Basic_u`, `Ladder1_t`               |
+| `Ladder1_e`      | `Basic_t`, `Ladder1_t`, `Ladder1_u`  |
+| `Ladder2_t`      | `Ladder1_t`, `Ladder1_u`             |
+| `Ladder2_u`      | `Ladder1_u`, `Ladder2_t`             |
+| `Ladder2_e`      | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `Ladder2_u` |
+| `RSK1_t`         | `Ladder2_t`, `Ladder2_u`             |
+| `RSK1_u`         | `Ladder2_u`, `RSK1_t`                |
+| `RSK1_e`         | `Basic_t`, `Ladder2_t`, `RSK1_t`, `RSK1_u` |
+| `RSK2_t`         | `RSK1_t`, `RSK1_u`                   |
+| `RSK2_u`         | `RSK1_u`, `RSK2_t`                   |
+| `RSK2_e`         | `Basic_t`, `Ladder2_t`, `RSK1_t`, `RSK2_t`, `RSK2_u` |
+| `RSK3_t`         | `RSK2_t`, `RSK2_u`                   |
+| `RSK3_u`         | `RSK2_u`, `RSK3_t`                   |
+| `RSK3_e`         | `Basic_t`, `Ladder1_t`, `Ladder2_t`, `RSK3_t`, `RSK3_u` |
+| `MW1_t`          | `Basic_t`, `Basic_u`                 |
+| `MW1_u`          | `Basic_u`, `MW1_t`                   |
+| `MW1_e`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u` |
+| `MW2_t`          | `MW1_t`, `MW1_u`                     |
+| `MW2_u`          | `MW1_u`, `MW2_t`                     |
+| `MW2_e`          | `Basic_t`, `Basic_u`, `MW1_t`, `MW1_u`, `MW2_t`, `MW2_u` |
+| `Lemmas_u`       | `RSK3_u`, `MW2_u`                    |
+| `Corollary_t`    | `Lemmas_u`                           |
+| `Corollary_e`    | `Basic_t`, `RSK3_t`, `RSK3_u`        |
 
 `LeanProof/lean` is a legacy self-contained prototype; it is not imported
 by the root module.
@@ -161,13 +162,14 @@ engine and zero-build module checkpoints instead of full rebuilds.
 
 The `_t` files of the project, complete, in dependency order: everything a reader checks
 against the paper (the language layer `Fundamentals_t` is not repeated here). The `_u` files
-add only proofs, the `_e` files only examples. Copied from the files on 2026-11-01; to
+add only proofs, the `_e` files only examples. Copied from the files on 2026-11-15; to
 refresh, delete from this heading down and run
 
 ```sh
 for f in Segment Basic Ladder1 Ladder2 RSK1 RSK2 RSK3 MW1 MW2 Corollary; do
   printf '\n### `%s_t.lean`\n\n```lean\n' $f; cat LeanProof/${f}_t.lean; printf '```\n'; done >> README.md
 ```
+
 
 ### `Segment_t.lean`
 
@@ -204,7 +206,6 @@ import Mathlib.Data.List.Pairwise
 import Mathlib.Logic.Relation
 import Mathlib.Order.Interval.Basic
 import Mathlib.Algebra.Order.Group.Int
-import LeanProof.Fundamentals_t
 import LeanProof.Segment_t
 import LeanProof.Segment_u
 
@@ -246,7 +247,6 @@ def Indices (n : ℕ) (m : Multisegment) : Set (List ℕ) :=
 ### `Ladder1_t.lean`
 
 ```lean
-import LeanProof.Fundamentals_t
 import LeanProof.Basic_t
 import LeanProof.Basic_u
 import Mathlib.Data.Set.Defs
@@ -265,8 +265,6 @@ def depthSet (m : Multisegment) (s : Segment) : Set ℕ :=
 ### `Ladder2_t.lean`
 
 ```lean
-import LeanProof.Basic_t
-import LeanProof.Basic_u
 import LeanProof.Ladder1_t
 import LeanProof.Ladder1_u
 import Mathlib.Data.Finset.Max
@@ -306,10 +304,6 @@ def admissibleEnumerations (m : Multisegment) (k : ℕ) : Set (List ℕ) :=
 ### `RSK1_t.lean`
 
 ```lean
-import LeanProof.Basic_t
-import LeanProof.Basic_u
-import LeanProof.Ladder1_t
-import LeanProof.Ladder1_u
 import LeanProof.Ladder2_t
 import LeanProof.Ladder2_u
 import Mathlib.Data.List.Lex
@@ -331,12 +325,6 @@ def fiber (m : Multisegment) (k : ℕ) : List Segment :=
 ### `RSK2_t.lean`
 
 ```lean
-import LeanProof.Basic_t
-import LeanProof.Basic_u
-import LeanProof.Ladder1_t
-import LeanProof.Ladder1_u
-import LeanProof.Ladder2_t
-import LeanProof.Ladder2_u
 import LeanProof.RSK1_t
 import LeanProof.RSK1_u
 
@@ -355,14 +343,6 @@ def bucketRung (m : Multisegment) (d : ℕ) (h : fiber m d ≠ []) : Segment :=
 ### `RSK3_t.lean`
 
 ```lean
-import LeanProof.Basic_t
-import LeanProof.Basic_u
-import LeanProof.Ladder1_t
-import LeanProof.Ladder1_u
-import LeanProof.Ladder2_t
-import LeanProof.Ladder2_u
-import LeanProof.RSK1_t
-import LeanProof.RSK1_u
 import LeanProof.RSK2_t
 import LeanProof.RSK2_u
 import Mathlib.Data.List.Sort
@@ -458,8 +438,6 @@ def leadingIndices (m : Multisegment) : Set (List ℕ) :=
 ### `MW2_t.lean`
 
 ```lean
-import LeanProof.Basic_t
-import LeanProof.Basic_u
 import LeanProof.MW1_t
 import LeanProof.MW1_u
 
