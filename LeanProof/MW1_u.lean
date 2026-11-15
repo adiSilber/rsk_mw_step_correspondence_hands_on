@@ -114,6 +114,14 @@ def greedyChain (m : Multisegment) : Chain :=
       ⟨⟨[first], by simp⟩, by simp [isChain]⟩
       (by simp)
 
+/-- The leading chain `Δ_{i₁}, …, Δ_{i_k}` of the paper (§3.1): the segments of the greedy
+chain. -/
+def leadingChain (m : Multisegment) : List Segment := (greedyChain m).val.segments
+
+/-- `m†` of the paper (3.2), as the proofs compute it: the residual along the leading chain.
+`MW2_u` proves it equal to `makeResidual m`. -/
+def mdag (m : Multisegment) : Multisegment := residualAlong m (leadingChain m)
+
 end Proof
 
 /-! ## Downstream API
@@ -165,8 +173,8 @@ lemma extendChain.go_mem (ms chain : List Segment) (hne : chain ≠ []) :
 
 /-- The leading chain's segments are all members of `m`. -/
 lemma greedyChain_subset (m : Multisegment) (x : Segment)
-    (hx : x ∈ (Proof.greedyChain m).val.segments) : x ∈ m.segments := by
-  unfold Proof.greedyChain at hx
+    (hx : x ∈ Proof.leadingChain m) : x ∈ m.segments := by
+  unfold Proof.leadingChain Proof.greedyChain at hx
   split at hx
   · simp at hx
   · rename_i first rest heq
@@ -186,8 +194,8 @@ lemma extendChain.go_head (ms chain : List Segment) (hne : chain ≠ []) :
 
 /-- The leading chain starts at the minimum segment `min m`. -/
 lemma greedyChain_head (m : Multisegment) (sₘ : Segment) (h : m.segments.head? = some sₘ) :
-    (Proof.greedyChain m).val.segments.head? = some sₘ := by
-  unfold Proof.greedyChain
+    (Proof.leadingChain m).head? = some sₘ := by
+  unfold Proof.leadingChain Proof.greedyChain
   split
   · rename_i heq; rw [heq] at h; simp at h
   · rename_i first rest heq
@@ -198,9 +206,9 @@ lemma greedyChain_head (m : Multisegment) (sₘ : Segment) (h : m.segments.head?
 are `chainLink`, and `≪` is transitive, so every pair is `≪`. In particular its segments
 have pairwise-distinct depths (Lemma 3.1(4)). -/
 lemma greedyChain_pairwise_ll (m : Multisegment) :
-    (Proof.greedyChain m).val.segments.Pairwise (· ≪ ·) := by
+    (Proof.leadingChain m).Pairwise (· ≪ ·) := by
   haveI : Trans (· ≪ ·) (· ≪ ·) (· ≪ ·) := ⟨fun h1 h2 => ll_trans _ _ _ h1 h2⟩
-  have h : (Proof.greedyChain m).val.segments.IsChain (· ≪ ·) :=
+  have h : (Proof.leadingChain m).IsChain (· ≪ ·) :=
     (isChain_iff.mp (Proof.greedyChain m).property).imp (fun _ _ hc => hc.1)
   exact h.pairwise
 
@@ -298,11 +306,11 @@ realizes the maximal consecutive-begin chain length from `min m` — the reusabl
 Prop 3.3 that both directions of `chainLenPreserved` need. -/
 lemma greedyChain_length_ge (m : Multisegment) (c : List Segment)
     (hc : isChain c) (hsub : c <+ m.segments) (hhead : c.head? = m.segments.head?) :
-    c.length ≤ (Proof.greedyChain m).val.segments.length := by
+    c.length ≤ (Proof.leadingChain m).length := by
   cases c with
   | nil => simp
   | cons x c' =>
-    unfold Proof.greedyChain
+    unfold Proof.leadingChain Proof.greedyChain
     split
     · rename_i hseg; rw [hseg] at hsub; exact absurd hsub (by simp)
     · rename_i first rest hseg
@@ -331,7 +339,7 @@ whose head is `min m` is no longer than the leading chain. The sublist is recove
 nodup + sortedness, so callers need only supply membership. -/
 lemma greedyChain_length_ge' (m : Multisegment) (c : List Segment)
     (hc : isChain c) (hmem : ∀ x ∈ c, x ∈ m.segments) (hhead : c.head? = m.segments.head?) :
-    c.length ≤ (Proof.greedyChain m).val.segments.length := by
+    c.length ≤ (Proof.leadingChain m).length := by
   have hlt : c.Pairwise (· < ·) := by
     haveI : Trans (α := Segment) (· < ·) (· < ·) (· < ·) := ⟨lt_trans⟩
     exact ((isChain_iff.mp hc).imp (fun {a b} h => chainLink_imp_lt a b h)).pairwise
@@ -365,7 +373,7 @@ This is the interface the residual-chain construction plugs into. -/
 lemma greedyChain_length_ge'' (m : Multisegment) (c : List Segment) (sₘ : Segment)
     (hc : isChain c) (hmem : ∀ x ∈ c, x ∈ m.segments) (hsₘ : m.segments.head? = some sₘ)
     (hbeg : ∀ x, c.head? = some x → x.a = sₘ.a) :
-    c.length ≤ (Proof.greedyChain m).val.segments.length := by
+    c.length ≤ (Proof.leadingChain m).length := by
   cases c with
   | nil => simp
   | cons x c' =>
@@ -425,8 +433,8 @@ lemma head_begin_le (m : Multisegment) (sₘ : Segment)
 /-- `Proof.greedyChain` is the greedy scan of the tail from the singleton head chain. -/
 lemma greedyChain_eq_go (m : Multisegment) (first : Segment) (rest : List Segment)
     (hseg : m.segments = first :: rest) :
-    (Proof.greedyChain m).val.segments = extendChain.go rest [first] (by simp) := by
-  unfold Proof.greedyChain
+    Proof.leadingChain m = extendChain.go rest [first] (by simp) := by
+  unfold Proof.leadingChain Proof.greedyChain
   split
   · rename_i heq
     rw [hseg] at heq
@@ -656,7 +664,7 @@ lemma go_min_end : ∀ (ms : List Segment), ms.Pairwise (· ≤ ·) →
 
 /-- No element of `m` chain-links from the leading chain's last element. -/
 lemma greedyChain_last_no_link (m : Multisegment) (x : Segment) (hx : x ∈ m.segments)
-    (g : Segment) (hg : (Proof.greedyChain m).val.segments.getLast? = some g) :
+    (g : Segment) (hg : (Proof.leadingChain m).getLast? = some g) :
     ¬ chainLink g x := by
   intro hlink
   have hm : m.segments ≠ [] := List.ne_nil_of_mem hx
@@ -667,7 +675,7 @@ lemma greedyChain_last_no_link (m : Multisegment) (x : Segment) (hx : x ∈ m.se
   rw [hgo] at hg
   rw [hseg] at hx
   rcases List.mem_cons.mp hx with hxf | hxr
-  · have hgC : g ∈ (Proof.greedyChain m).val.segments := by
+  · have hgC : g ∈ Proof.leadingChain m := by
       rw [hgo]; exact List.mem_of_getLast? hg
     have hgm : g ∈ m.segments := greedyChain_subset m g hgC
     have h1 : first.a ≤ g.a := head_begin_le m first (by rw [hseg]; rfl) g hgm
@@ -680,7 +688,7 @@ lemma greedyChain_last_no_link (m : Multisegment) (x : Segment) (hx : x ∈ m.se
 /-- Greedy minimal-end at leading-chain pairs: the chosen successor has the smallest end
 among all valid continuations. -/
 lemma greedyChain_min_end (m : Multisegment) (u v : List Segment) (σ σ' : Segment)
-    (hsplit : (Proof.greedyChain m).val.segments = u ++ σ :: σ' :: v)
+    (hsplit : Proof.leadingChain m = u ++ σ :: σ' :: v)
     (x : Segment) (hx : x ∈ m.segments) (hlink : chainLink σ x) : σ'.b ≤ x.b := by
   have hm : m.segments ≠ [] := List.ne_nil_of_mem hx
   obtain ⟨first, rest, hseg⟩ := List.exists_cons_of_ne_nil hm
@@ -691,7 +699,7 @@ lemma greedyChain_min_end (m : Multisegment) (u v : List Segment) (σ σ' : Segm
     rw [← hgo]; exact hsplit
   rw [hseg] at hx
   rcases List.mem_cons.mp hx with hxf | hxr
-  · have hσC : σ ∈ (Proof.greedyChain m).val.segments := by rw [hsplit]; simp
+  · have hσC : σ ∈ Proof.leadingChain m := by rw [hsplit]; simp
     have hσm := greedyChain_subset m σ hσC
     have h1 : first.a ≤ σ.a := head_begin_le m first (by rw [hseg]; rfl) σ hσm
     have h2 := hlink.2
@@ -703,23 +711,23 @@ lemma greedyChain_min_end (m : Multisegment) (u v : List Segment) (σ σ' : Segm
 /-- A leading-chain element with a valid continuation in `m` has a successor in the
 chain: it is not the last element. -/
 lemma greedyChain_succ_split (m : Multisegment) (σ : Segment)
-    (hσ : σ ∈ (Proof.greedyChain m).val.segments)
+    (hσ : σ ∈ Proof.leadingChain m)
     (z : Segment) (hz : z ∈ m.segments) (hlink : chainLink σ z) :
-    ∃ u σ' v, (Proof.greedyChain m).val.segments = u ++ σ :: σ' :: v := by
+    ∃ u σ' v, Proof.leadingChain m = u ++ σ :: σ' :: v := by
   obtain ⟨l₁, l₂, hsplit⟩ := List.append_of_mem hσ
   cases l₂ with
   | nil =>
     exfalso
-    have hlast : (Proof.greedyChain m).val.segments.getLast? = some σ := by
+    have hlast : (Proof.leadingChain m).getLast? = some σ := by
       rw [hsplit, List.getLast?_concat]
     exact greedyChain_last_no_link m z hz σ hlast hlink
   | cons σ' l₂' => exact ⟨l₁, σ', l₂', hsplit⟩
 
 /-- Consecutive leading-chain elements are chain-linked. -/
 lemma greedyChain_consecutive_link (m : Multisegment) (u v : List Segment) (σ σ' : Segment)
-    (hsplit : (Proof.greedyChain m).val.segments = u ++ σ :: σ' :: v) :
+    (hsplit : Proof.leadingChain m = u ++ σ :: σ' :: v) :
     chainLink σ σ' := by
-  have hchain : isChain (Proof.greedyChain m).val.segments := (Proof.greedyChain m).property
+  have hchain : isChain (Proof.leadingChain m) := (Proof.greedyChain m).property
   rw [isChain_iff, hsplit] at hchain
   exact (List.isChain_append_cons_cons.mp hchain).2.1
 
@@ -761,9 +769,9 @@ lemma lt_length_of_mem_leadingIndices {m : Multisegment} {i : List ℕ} {j : ℕ
   exact hb j hj
 
 private lemma greedy_isLeading (m : Multisegment) (hm : m.segments ≠ []) :
-    IsLeading m (Proof.greedyChain m).val.segments := by
+    IsLeading m (Proof.leadingChain m) := by
   obtain ⟨first, rest, hseg⟩ := List.exists_cons_of_ne_nil hm
-  have hhead : (Proof.greedyChain m).val.segments.head? = some first :=
+  have hhead : (Proof.leadingChain m).head? = some first :=
     greedyChain_head m first (by rw [hseg]; rfl)
   refine ⟨ne_nil_of_head?_eq_some hhead, ?_, ?_, ?_⟩
   · intro x hx
@@ -773,17 +781,17 @@ private lemma greedy_isLeading (m : Multisegment) (hm : m.segments ≠ []) :
     intro y hy
     exact head_le_mem m first (by rw [hseg]; rfl) y hy
   · intro n hn
-    have hsplit : (Proof.greedyChain m).val.segments =
-        (Proof.greedyChain m).val.segments.take n ++ (Proof.greedyChain m).val.segments[n] ::
-          (Proof.greedyChain m).val.segments[n + 1] ::
-            (Proof.greedyChain m).val.segments.drop (n + 2) := by
-      conv_lhs => rw [← List.take_append_drop n (Proof.greedyChain m).val.segments]
+    have hsplit : Proof.leadingChain m =
+        (Proof.leadingChain m).take n ++ (Proof.leadingChain m)[n] ::
+          (Proof.leadingChain m)[n + 1] ::
+            (Proof.leadingChain m).drop (n + 2) := by
+      conv_lhs => rw [← List.take_append_drop n (Proof.leadingChain m)]
       rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_getElem_cons (by omega)]
     have hlink := greedyChain_consecutive_link m _ _ _ _ hsplit
     refine ⟨greedyChain_subset m _ (List.getElem_mem _), hlink, ?_⟩
     intro x hx hxl
     have hb := greedyChain_min_end m _ _ _ _ hsplit x hx hxl
-    have ha : ((Proof.greedyChain m).val.segments[n + 1]).a = x.a := by
+    have ha : ((Proof.leadingChain m)[n + 1]).a = x.a := by
       have := hlink.2; have := hxl.2; omega
     exact (Segment.le_def _ _).mpr (Or.inr ⟨ha, hb⟩)
   · intro x hx t ht
@@ -877,7 +885,7 @@ private lemma isLeading_segsAt_iff (m : Multisegment) (i : List ℕ)
 leading segments depends only on `m`). -/
 private lemma segsAt_eq_segments (m : Multisegment) {i : List ℕ} (hi : i ∈ leadingIndices m)
     (H : ∀ j ∈ i, j < m.segments.length) :
-    segsAt m i H = (Proof.greedyChain m).val.segments := by
+    segsAt m i H = Proof.leadingChain m := by
   have hm : m.segments ≠ [] := by
     obtain ⟨⟨k, ⟨hlen, -, -⟩, hk⟩, -⟩ := hi
     obtain ⟨j, hj⟩ := List.exists_mem_of_ne_nil i (List.ne_nil_of_length_pos (by omega))
@@ -886,9 +894,9 @@ private lemma segsAt_eq_segments (m : Multisegment) {i : List ℕ} (hi : i ∈ l
 
 /-- The positions of the greedy chain's segments. -/
 private def greedyIdx (m : Multisegment) : List ℕ :=
-  (Proof.greedyChain m).val.segments.map (fun x => List.idxOf x m.segments)
+  (Proof.leadingChain m).map (fun x => List.idxOf x m.segments)
 
-private lemma greedy_nodup (m : Multisegment) : (Proof.greedyChain m).val.segments.Nodup :=
+private lemma greedy_nodup (m : Multisegment) : (Proof.leadingChain m).Nodup :=
   (greedyChain_pairwise_ll m).imp fun h heq => by subst heq; exact lt_irrefl _ h.1
 
 private lemma greedyIdx_bound (m : Multisegment) : ∀ j ∈ greedyIdx m, j < m.segments.length := by
@@ -897,7 +905,7 @@ private lemma greedyIdx_bound (m : Multisegment) : ∀ j ∈ greedyIdx m, j < m.
   exact List.idxOf_lt_length_iff.mpr (greedyChain_subset m x hx)
 
 private lemma segsAt_greedyIdx (m : Multisegment) :
-    segsAt m (greedyIdx m) (greedyIdx_bound m) = (Proof.greedyChain m).val.segments := by
+    segsAt m (greedyIdx m) (greedyIdx_bound m) = Proof.leadingChain m := by
   apply List.ext_getElem
   · simp [segsAt, greedyIdx]
   · intro n h1 h2
@@ -976,7 +984,7 @@ private lemma map_getElem?_eq_iff (m : Multisegment) (i : List ℕ)
 instance (m : Multisegment) : Fintype (leadingIndices m) :=
   Fintype.ofFinset
     (((candidates m).filter fun i => decide (i ≠ [] ∧
-        i.map (fun j => m.segments[j]?) = (Proof.greedyChain m).val.segments.map some)).toFinset)
+        i.map (fun j => m.segments[j]?) = (Proof.leadingChain m).map some)).toFinset)
     (fun i => by
       simp only [List.mem_toFinset, List.mem_filter, decide_eq_true_eq, mem_candidates]
       constructor
@@ -1001,7 +1009,7 @@ attribute [grind →] lt_length_of_mem_leadingIndices
 /-- Every sequence of leading indices gives the segments of the greedy chain (paper: the set of
 leading segments depends only on `m`). -/
 lemma segments_of_leadingIndices (m : Multisegment) {i : List ℕ} (hi : i ∈ leadingIndices m) :
-    [m.segments[j] | j ∈ i] = (Proof.greedyChain m).val.segments :=
+    [m.segments[j] | j ∈ i] = Proof.leadingChain m :=
   segsAt_eq_segments m hi (fun _ hj => lt_length_of_mem_leadingIndices hj hi)
 
 -- `let i ∈ leadingIndices m; …` needs the set nonempty, which follows from `m.segments ≠ []`.
@@ -1024,7 +1032,7 @@ lemma getElem_zero_eq_head {m : Multisegment} (hm : m.segments ≠ []) {x : List
     (head_le_mem m _ (List.head?_eq_some_head hm) _ ha.1)
 
 lemma length_eq_greedy {m : Multisegment} {x : List ℕ} (hx : x ∈ leadingIndices m) :
-    x.length = (Proof.greedyChain m).val.segments.length := by
+    x.length = (Proof.leadingChain m).length := by
   have := congrArg List.length (segments_of_leadingIndices m hx)
   simpa using this
 
@@ -1048,16 +1056,16 @@ attribute [grind →] a_le_a_last
 lemma a_last_eq {m : Multisegment} (hm : m.segments ≠ []) {x : List ℕ}
     (hx : x ∈ leadingIndices m) :
     m.segments[x[x.length - 1]].a
-      = (m.segments.head hm).a + ↑((Proof.greedyChain m).val.segments.length - 1) := by
+      = (m.segments.head hm).a + ↑((Proof.leadingChain m).length - 1) := by
   have H : ∀ j ∈ x, j < m.segments.length := fun _ hj => lt_length_of_mem_leadingIndices hj hx
   have hseg := segsAt_eq_segments m hx H
   have hpos := length_pos_of_mem_leadingIndices hx
   have hk := length_eq_greedy hx
   rw [← getElem_segsAt m x H _ (by omega), List.getElem_of_eq hseg]
-  have h0 : (Proof.greedyChain m).val.segments[0]? = some (m.segments.head hm) := by
+  have h0 : (Proof.leadingChain m)[0]? = some (m.segments.head hm) := by
     rw [← List.head?_eq_getElem?]
     exact greedyChain_head m _ (List.head?_eq_some_head hm)
-  have ht := List.getElem?_eq_getElem (l := (Proof.greedyChain m).val.segments) (i := x.length - 1)
+  have ht := List.getElem?_eq_getElem (l := Proof.leadingChain m) (i := x.length - 1)
     (by rw [← hk]; omega)
   rw [chain_get_a _ (Proof.greedyChain m).property (x.length - 1) _ _ h0 ht, hk]
 
@@ -1070,13 +1078,13 @@ lemma residual_eq (m : Multisegment) {x : List ℕ} (hx : x ∈ leadingIndices m
     (([m.segments[j] | j < m.segments.length, j ∉ x] ++
         [segmentResidual m.segments[j] | j ∈ x, m.segments[j].a < m.segments[j].b]
         : List Segment) : Multisegment)
-      = Proof.residualAlong m (Proof.greedyChain m).val.segments := by
+      = Proof.mdag m := by
   have H : ∀ j ∈ x, j < m.segments.length := fun _ hj => lt_length_of_mem_leadingIndices hj hx
-  have hseg : segsAt m x H = (Proof.greedyChain m).val.segments := segsAt_eq_segments m hx H
+  have hseg : segsAt m x H = Proof.leadingChain m := segsAt_eq_segments m hx H
   have hnd : x.Nodup := ((isLeading_segsAt_iff m x H).mp hx).1
   -- the residuals of the leading segments
   have hB : [segmentResidual m.segments[j] | j ∈ x, m.segments[j].a < m.segments[j].b]
-      = (Proof.greedyChain m).val.segments.filterMap Proof.shorten := by
+      = (Proof.leadingChain m).filterMap Proof.shorten := by
     rw [← hseg]
     unfold segsAt
     rw [List.filterMap_map, filterMap_eq_flatMap_toList]
@@ -1087,7 +1095,7 @@ lemma residual_eq (m : Multisegment) {x : List ℕ} (hx : x ∈ leadingIndices m
     · simp [Proof.shorten, hlt]
   -- the other segments, as a multiset: `m` minus the leading segments
   have hA : [m.segments[j] | j < m.segments.length, j ∉ x]
-      ~ (Proof.greedyChain m).val.segments.foldl List.erase m.segments := by
+      ~ (Proof.leadingChain m).foldl List.erase m.segments := by
     rw [← hseg]
     apply perm_foldl_erase_of_perm_append
     have hA' := comprehension_cond (List.range m.segments.length) (fun j => j ∉ x)
@@ -1115,7 +1123,7 @@ lemma residual_eq (m : Multisegment) {x : List ℕ} (hx : x ∈ leadingIndices m
     rw [List.pmap_append, List.pmap_eq_map_attach, List.pmap_eq_map_attach] at key
     exact key
   -- both multisegments are the sorted versions of permuted lists
-  unfold Proof.residualAlong
+  unfold Proof.mdag Proof.residualAlong
   show (⟨_, _⟩ : Multisegment) = ⟨_, _⟩
   congr 1
   refine List.Perm.eq_of_pairwise (le := (· ≤ ·)) ?_ ?_ ?_ ?_
@@ -1123,7 +1131,7 @@ lemma residual_eq (m : Multisegment) {x : List ℕ} (hx : x ∈ leadingIndices m
   · exact List.pairwise_insertionSort _ _
   · exact List.pairwise_insertionSort _ _
   · have hB' : [segmentResidual m.segments[j] | j ∈ x, m.segments[j].a < m.segments[j].b]
-        ~ (Proof.greedyChain m).val.segments.filterMap Proof.shorten := by
+        ~ (Proof.leadingChain m).filterMap Proof.shorten := by
       rw [hB]
     exact (List.perm_insertionSort _ _).trans
       ((hA.append hB').trans (List.perm_insertionSort _ _).symm)

@@ -19,7 +19,7 @@ reason about.
 -/
 
 lemma makeResidual_eq (m : Multisegment) (hm : m.segments ≠ []) :
-    makeResidual m hm = Proof.residualAlong m (Proof.greedyChain m).val.segments := by
+    makeResidual m hm = Proof.mdag m := by
   unfold makeResidual
   have hi := first_mem _ (leadingIndices_nonempty m hm)
   rw [anyOf_eq hi]
@@ -35,7 +35,7 @@ lemma deltaCirc_a (m : Multisegment) (hm : m.segments ≠ []) :
 
 lemma deltaCirc_b (m : Multisegment) (hm : m.segments ≠ []) :
     (deltaCirc m hm).b
-      = (m.segments.head hm).a + ↑((Proof.greedyChain m).val.segments.length - 1) := by
+      = (m.segments.head hm).a + ↑((Proof.leadingChain m).length - 1) := by
   unfold deltaCirc
   have hi := first_mem _ (leadingIndices_nonempty m hm)
   rw [anyOf_eq hi]
@@ -46,10 +46,10 @@ lemma mw_step_fst_a (m : Multisegment) (hm : m.segments ≠ []) :
 
 lemma mw_step_fst_b (m : Multisegment) (hm : m.segments ≠ []) :
     (mw_step m hm).1.b
-      = (m.segments.head hm).a + ↑((Proof.greedyChain m).val.segments.length - 1) :=
+      = (m.segments.head hm).a + ↑((Proof.leadingChain m).length - 1) :=
   deltaCirc_b m hm
 
 /-- The MW residual of `mw_step` is the residual along the greedy chain. -/
 lemma mw_step_snd_eq (m : Multisegment) (hm : m.segments ≠ []) :
-    (mw_step m hm).2 = Proof.residualAlong m (Proof.greedyChain m).val.segments :=
+    (mw_step m hm).2 = Proof.mdag m :=
   makeResidual_eq m hm
