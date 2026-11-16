@@ -26,16 +26,16 @@ grind_pattern fiber_a_le_succ_b => (fiber m k)[i + 1]
 -- The statement mirrors a `_t` term (a comprehension whose body needs the binder's membership
 -- proof), so it is read with the fundamental rule on, exactly as in `RSK3_t`.
 set_option autoProp.rule true in
-/-- `maximum [depth_of_segment m s | s ∈ m.segments]` (`maxDepth`, in `RSK3_t`) needs that set
+/-- `maximum {depth_of_segment m s | s ∈ m.segments}` (`maxDepth`, in `RSK3_t`) needs that set
 nonempty; it is, for `m.segments ≠ []`. Keyed on the term `m.segments` together with a
 `Set.Nonempty {…}` term (a `grind` pattern cannot look inside the set-builder lambda, so the
 second key is only a shape): it fires only where such a set is being asked about, not in every
 proof that mentions `m.segments`. -/
 private lemma depth_set_nonempty (m : Multisegment) (h : m.segments ≠ []) :
-    ({x | x ∈ [depth_of_segment m s | s ∈ m.segments]} : Set ℕ).Nonempty :=
-  nonempty_mem_of_ne_nil (comprehension_ne_nil _ h)
+    {depth_of_segment m s | s ∈ m.segments}.Nonempty :=
+  ⟨_, m.segments.head h, List.head_mem h, rfl⟩
 grind_pattern depth_set_nonempty =>
-  Multisegment.segments m, Set.Nonempty {x | x ∈ [depth_of_segment m s | s ∈ m.segments]}
+  Multisegment.segments m, Set.Nonempty {depth_of_segment m s | s ∈ m.segments}
 
 namespace Proof
 /-- Proof-side: the rung as an `Option`, `none` for an empty fiber. The proofs speak of

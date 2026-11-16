@@ -22,16 +22,16 @@ lemma fiber_eq (m : Multisegment) (k : ℕ) : fiber m k = (Proof.sortedBucket m 
 /-- A nonempty fiber has a nonempty set of begin points, and of end points: `bucketRung`
 (`RSK2_t`) takes its two maxima over them. -/
 lemma fiber_begins_nonempty (m : Multisegment) (d : ℕ) (h : fiber m d ≠ []) :
-    Set.Nonempty {y | ∃ x ∈ fiber m d, x.a = y} := by
+    Set.Nonempty {(x.a) | x ∈ fiber m d} := by
   obtain ⟨s, hs⟩ := List.exists_mem_of_ne_nil _ h
   exact ⟨s.a, s, hs, rfl⟩
 
 lemma fiber_ends_nonempty (m : Multisegment) (d : ℕ) (h : fiber m d ≠ []) :
-    Set.Nonempty {y | ∃ x ∈ fiber m d, x.b = y} := by
+    Set.Nonempty {(x.b) | x ∈ fiber m d} := by
   obtain ⟨s, hs⟩ := List.exists_mem_of_ne_nil _ h
   exact ⟨s.b, s, hs, rfl⟩
 
 -- Keyed on the fiber together with the shape of the set asked about (a `grind` pattern cannot
 -- look inside the set-builder lambda), so they fire only where such a set is in question.
-grind_pattern fiber_begins_nonempty => fiber m d, Set.Nonempty {y | ∃ x ∈ fiber m d, x.a = y}
-grind_pattern fiber_ends_nonempty => fiber m d, Set.Nonempty {y | ∃ x ∈ fiber m d, x.b = y}
+grind_pattern fiber_begins_nonempty => fiber m d, Set.Nonempty {(x.a) | x ∈ fiber m d}
+grind_pattern fiber_ends_nonempty => fiber m d, Set.Nonempty {(x.b) | x ∈ fiber m d}

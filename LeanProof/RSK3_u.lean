@@ -19,7 +19,7 @@ Correctness of the definitions in `RSK3_t`: the assembled rungs form a ladder
 lemma depth_le_maxDepth (m : Multisegment) (s : Segment) (hs : s ∈ m.segments) :
     depth_of_segment m s hs ≤ maxDepth m (List.ne_nil_of_mem hs) := by
   unfold maxDepth
-  exact le_maximum _ _ (List.mem_map.mpr ⟨⟨s, hs⟩, by simp, rfl⟩)
+  exact le_maximum _ _ ⟨s, hs, rfl⟩
 
 /-- The rung dominates its bucket coordinatewise, and each coordinate is attained. -/
 lemma bucketRung_spec (m : Multisegment) (d : ℕ) (r : Segment)
@@ -37,8 +37,11 @@ lemma bucketRung_spec (m : Multisegment) (d : ℕ) (r : Segment)
       = maximum {(x.b) | x ∈ fiber m d} (fiber_ends_nonempty m d hne) := by
     simp only [bucketRung, Segment.b, id_eq]
   rw [ha, hb]
-  exact ⟨fun x hx => ⟨le_maximum _ _ ⟨x, hx, rfl⟩, le_maximum _ _ ⟨x, hx, rfl⟩⟩,
-    maximum_mem {(x.a) | x ∈ fiber m d} _, maximum_mem {(x.b) | x ∈ fiber m d} _⟩
+  refine ⟨fun x hx => ⟨le_maximum _ _ ⟨x, hx, rfl⟩, le_maximum _ _ ⟨x, hx, rfl⟩⟩, ?_, ?_⟩
+  · obtain ⟨x, hx, e⟩ := maximum_mem {(x.a) | x ∈ fiber m d} (fiber_begins_nonempty m d hne)
+    exact ⟨x, hx, e⟩
+  · obtain ⟨x, hx, e⟩ := maximum_mem {(x.b) | x ∈ fiber m d} (fiber_ends_nonempty m d hne)
+    exact ⟨x, hx, e⟩
 
 /-- Consecutive rungs are strictly `≪`: the depth-`(d+1)` rung sits below depth-`d`. -/
 private lemma rung_succ_ll (m : Multisegment) (d : ℕ) (r_d r_succ : Segment)

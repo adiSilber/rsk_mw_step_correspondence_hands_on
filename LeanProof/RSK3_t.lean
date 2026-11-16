@@ -19,7 +19,7 @@ lemmas (`ladderRungs_isLadder`, Lemma 2.2, Corollary 2.3) live in `RSK3_u`. -/
 
 /-- `d(m) = max_{i ∈ I} 𝔡(i)`, the depth of a nonzero multisegment. -/
 def maxDepth (m : Multisegment) (h : m.segments ≠ []) : ℕ :=
-  maximum [depth_of_segment m s | s ∈ m.segments]
+  maximum {depth_of_segment m s | s ∈ m.segments}
 
 /-- `𝔩(m)`: the rungs of all nonempty fibers. -/
 def ladderRungs (m : Multisegment) : Set Segment :=

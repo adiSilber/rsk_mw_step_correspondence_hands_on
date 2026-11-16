@@ -6,8 +6,13 @@ import Mathlib.Data.Finset.Empty
 import Mathlib.Data.Fintype.Sets
 import Mathlib.Data.Finset.Sort
 import Mathlib.Order.Synonym
+import Mathlib.Algebra.CharZero.Defs
+import Mathlib.Data.Int.Cast.Defs
+import Mathlib.Algebra.Ring.Int.Defs
 
-/-! Project-wide macros and notation, shared by many parts. Lowest file in the hierarchy. -/
+/-! Project-wide macros and notation, shared by many parts. Lowest file in the hierarchy.
+Conversions between types are Lean's own, and only injective ones are ever inserted
+(`injectiveConversion`); the `x ∈ s` rule below is the one place this file does it itself. -/
 
 /-- Discharges index-validity side goals of `l[i]` by `grind`. A definition whose unfolding
 is needed is tagged `grind =` in a `_u` file (e.g. `Indices`, in `Basic_u`). -/
@@ -123,8 +128,32 @@ taken. (An application is already complete after reading; a proof is left alone.
 
 end AutoProp
 
-/-- `x ∈ s` reads the container `s` first, so that `x` is converted to its element type
-(e.g. an index `n : Fin k` may be tested for membership in a `List ℕ`). -/
+open Lean Elab Term Meta in
+/-- Whether a value of type `β` is read as a value of type `α` by a conversion that loses
+nothing (an injective one): `Fin k → ℕ` and subtype → base type drop only a proof; `ℕ` and
+`ℤ` cast injectively into a type with `CharZero` (Mathlib's condition for `Nat.cast` and
+`Int.cast` to be injective: `ℤ`, `ℚ`, `ℝ` have it, `Fin 3` and `ZMod n` do not); and
+compositions of these. -/
+partial def injectiveConversion (β α : Expr) : TermElabM Bool := do
+  if ← isDefEq β α then return true
+  if β.isAppOfArity ``Fin 1 then return ← injectiveConversion (mkConst ``Nat) α
+  if β.isAppOfArity ``Subtype 2 then return ← injectiveConversion (β.getArg! 0) α
+  if β.isConstOf ``Nat || β.isConstOf ``Int then
+    -- does `α` have the class? (read as a term, so that the structure the class presupposes
+    -- is found the way Mathlib states its instances; if `α` has none, the answer is no)
+    let αs ← exprToSyntax α
+    let has (c : TSyntax `term) : TermElabM Bool := do
+      try return (← trySynthInstance (← withoutErrToSorry (elabTerm c none))) matches .some _
+      catch _ => return false
+    if β.isConstOf ``Int then
+      unless ← has (← `(AddGroupWithOne $αs)) do return false
+    return ← has (← `(CharZero $αs))
+  return false
+
+/-- `x ∈ s` reads the container `s` first and then `x` against its element type, so that
+`x` may be converted to it (an index `n : Fin k` may be tested for membership in a `List ℕ`).
+Only an injective conversion is inserted (`injectiveConversion`); any other is refused, so no
+value is ever changed silently. -/
 syntax "mem_coe% " term:max ppSpace term:max : term
 
 open Lean Elab Term Meta in
@@ -137,7 +166,14 @@ elab_rules : term <= expected?
     if !γ.hasExprMVar then
       -- the container's type is known: fix the element type first, then read `x` against it
       if let some inst ← observing? (synthInstance (mkApp2 (.const ``Membership [u, v]) α γ)) then
-        let x ← elabTermEnsuringType x (← instantiateMVars α)
+        let α ← instantiateMVars α
+        let x₀ ← elabTerm x none
+        let β ← instantiateMVars (← inferType x₀)
+        unless ← injectiveConversion β α do
+          throwErrorAt x m!"`{x₀}` has type `{β}` and the elements of the container have type \
+            `{α}`; no injective conversion between them is known (`Fin k → ℕ`, subtype → base \
+            type, `ℕ`/`ℤ` into a type with `CharZero`), so none is inserted: convert explicitly"
+        let x ← Term.ensureHasType (some α) x₀
         return mkApp5 (.const ``Membership.mem [u, v]) α γ inst s x
     -- otherwise: the ordinary reading of `Membership.mem s x`
     elabAppArgs (.const ``Membership.mem [u, v]) #[] #[.expr s, .stx x] expected?
@@ -145,17 +181,17 @@ elab_rules : term <= expected?
 
 macro_rules | `($x ∈ $s) => `(mem_coe% $s $x)
 
-/-- A list can be used where a set is expected: the set of its members. -/
-instance {α} : Coe (List α) (Set α) := ⟨fun l => {x | x ∈ l}⟩
-
 -- Facts `auto_prop` needs for the proofs omitted below: membership in `l.toFinset` and in
 -- `l.map f`.
 attribute [grind =] List.mem_toFinset List.mem_map
+attribute [grind] List.mem_attach
 
-/-- The members of a list form a finite set (computed by `l.toFinset`); so do their images. -/
-instance {α} [DecidableEq α] (l : List α) : Fintype {x | x ∈ l} := Fintype.ofFinset l.toFinset
-instance {α β} [DecidableEq β] (l : List α) (f : α → β) : Fintype {y | ∃ x ∈ l, f x = y} :=
-  Fintype.ofFinset (l.map f).toFinset
+/-- The values of `f` over a list, `{f x | x ∈ l}` (`f` may use the fact `x ∈ l`), form a finite
+set: computed by mapping over `l.attach`. -/
+instance {α β} [DecidableEq β] (l : List α) (f : (x : α) → x ∈ l → β) :
+    Fintype {y | ∃ x, ∃ h : x ∈ l, f x h = y} :=
+  Fintype.ofFinset (l.attach.map fun ⟨x, h⟩ => f x h).toFinset fun y => by
+    simp [Subtype.exists]
 
 /-- The maximum of a finite, nonempty set. -/
 def maximum {α : Type*} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
@@ -249,3 +285,10 @@ macro_rules
 macro_rules | `([$f | $k:ident ≤ $n]) => `([$f | $k:ident ∈ List.range ($n + 1)])
 macro_rules | `([$f | $k:ident < $n]) => `([$f | $k:ident ∈ List.range $n])
 macro_rules | `([$f | $p:term]) => `(if h : $p then [$f] else [])
+
+/-- Set comprehension `{f | x ∈ l}`: the values of `f` as `x` ranges over `l`; inside `f` the
+fact `x ∈ l` is available, as in the list comprehension. (Mathlib reads the same notation as
+the same set, `{y | ∃ x ∈ l, f = y}`, but there `f` cannot use the fact.) -/
+macro_rules
+  | `({ $f:term | $x:ident ∈ $l }) =>
+    `(binder_check% $x {y | ∃ $x:ident, ∃ (_ : $x ∈ $l), $f = y})

@@ -68,11 +68,12 @@ below.
 Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i]`
                bounds are found by `auto_prop` (= `grind`, taught facts in `_u` files),
                `maximum`, `first` and `sorted` of a finite set, `let x ∈ S; e` (an arbitrary
-               element, when `e` does not depend on it), list comprehensions `[x ∈ l | p]`
+               element, when `e` does not depend on it), the set comprehension `{f | x ∈ l}`
+               and list comprehensions `[x ∈ l | p]`
                and `[f | x ∈ l, (y, z) ∈ l', k ≤ n, p, …]` (a bare `p` keeps the choices
                satisfying it; a fact `f` needs and the binders do not give becomes a
                condition too),
-               lists usable as sets, `p → q` keeps `p` in scope for `q`,
+               `p → q` keeps `p` in scope for `q`,
                `x ∈ s` converts `x` to the element type of `s`, by an injective
                conversion only (`Fin → ℕ`, subtype → base, `ℕ`/`ℤ` into a `CharZero`
                type), any other is refused; below everything
@@ -165,13 +166,15 @@ engine and zero-build module checkpoints instead of full rebuilds.
 
 The `_t` files of the project, complete, in dependency order: everything a reader checks
 against the paper (the language layer `Fundamentals_t` is not repeated here). The `_u` files
-add only proofs, the `_e` files only examples. Copied from the files on 2026-11-15; to
+add only proofs, the `_e` files only examples. Copied from the files on 2026-11-16; to
 refresh, delete from this heading down and run
 
 ```sh
 for f in Segment Basic Ladder1 Ladder2 RSK1 RSK2 RSK3 MW1 MW2 Corollary; do
   printf '\n### `%s_t.lean`\n\n```lean\n' $f; cat LeanProof/${f}_t.lean; printf '```\n'; done >> README.md
 ```
+
+
 
 
 ### `Segment_t.lean`
@@ -367,7 +370,7 @@ lemmas (`ladderRungs_isLadder`, Lemma 2.2, Corollary 2.3) live in `RSK3_u`. -/
 
 /-- `d(m) = max_{i ∈ I} 𝔡(i)`, the depth of a nonzero multisegment. -/
 def maxDepth (m : Multisegment) (h : m.segments ≠ []) : ℕ :=
-  maximum [depth_of_segment m s | s ∈ m.segments]
+  maximum {depth_of_segment m s | s ∈ m.segments}
 
 /-- `𝔩(m)`: the rungs of all nonempty fibers. -/
 def ladderRungs (m : Multisegment) : Set Segment :=

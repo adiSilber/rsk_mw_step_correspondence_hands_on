@@ -1236,10 +1236,8 @@ private lemma mdag_depth_bound (m : Multisegment) (sₘ s_l : Segment)
 /-- A nonempty multisegment attains its `maxDepth`. -/
 private lemma maxDepth_attained (M : Multisegment) (hM : M.segments ≠ []) :
     ∃ x, ∃ hx : x ∈ M.segments, depth_of_segment M x hx = maxDepth M := by
-  have h0 : maxDepth M hM ∈ (↑[depth_of_segment M s | s ∈ M.segments] : Set ℕ) :=
-    maximum_mem _ _
-  obtain ⟨⟨x, hx⟩, -, heq⟩ := List.mem_map.mp h0
-  exact ⟨x, hx, heq⟩
+  have h0 : maxDepth M hM ∈ {depth_of_segment M s | s ∈ M.segments} := maximum_mem _ _
+  exact h0
 
 /-- Every depth up to `maxDepth` carries a rung. -/
 private lemma rung_exists (M : Multisegment) (hM : M.segments ≠ []) (d : ℕ)
