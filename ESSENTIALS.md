@@ -69,3 +69,11 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
     between files is impossible, and a reader of a later file sees only what it may use.
     List C of `tools/Unused.lean` reports the public `_u` declarations only their own file
     mentions.
+
+14. **A conversion never changes a value.** Lean inserts coercions on its own wherever the
+    expected type is known, and the trusted text relies on that (no `↑` is written). They
+    are safe when injective: `Fin k → ℕ`, subtype → base type, `ℕ`/`ℤ` into a type with
+    `CharZero`. `x ∈ s` is the one place Lean would miss them; `Fundamentals_t` inserts them
+    there itself and refuses any other conversion, so a number is never reduced modulo `k`
+    and a list never loses its order unnoticed. A conversion that loses information is
+    declared, never implicit (the list-to-multisegment coercion of `Basic_t`, rule 9).

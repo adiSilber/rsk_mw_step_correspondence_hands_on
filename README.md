@@ -73,7 +73,9 @@ Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i
                satisfying it; a fact `f` needs and the binders do not give becomes a
                condition too),
                lists usable as sets, `p → q` keeps `p` in scope for `q`,
-               `x ∈ s` converts `x` to the element type of `s`; below everything
+               `x ∈ s` converts `x` to the element type of `s`, by an injective
+               conversion only (`Fin → ℕ`, subtype → base, `ℕ`/`ℤ` into a `CharZero`
+               type), any other is refused; below everything
 Segment        segments (= NonemptyInterval ℤ), `Segment a b`; Segment_u: what auto_prop
                knows about them (a, b unfold; an interval is determined by its ends; a ≤ b)
 Basic          lex order on segments, lists of segments read as multisegments (coercion),
