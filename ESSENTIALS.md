@@ -22,7 +22,7 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
    (`Fundamentals_t` teaches only the facts about its own constructs).
 
 4. **The language is separate from the project.** `Fundamentals_t` is the project-independent
-   part (comprehensions, `maximum`/`first`/`sorted`, the proof-filling rules) and should be
+   part (comprehensions, `maximum`/`sorted`, the proof-filling rules) and should be
    reusable elsewhere; project notions go to `Basic` and later stages.
 
 5. **When a definition needs a fact, split the stage.** The fact is proved in a `_u` file
@@ -32,7 +32,9 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
    trusted text states the conditions (paper's (a)–(c)) and writes `let i ∈ leadingIndices m; …`,
    which Lean accepts only with a proof that the result does not depend on the choice; the
    algorithm that finds one (greedy scan) lives in `_u`. Likewise `fiber` is
-   `let i ∈ admissibleEnumerations m k; …`.
+   `let i ∈ admissibleEnumerations m k; …`. The same independence proof is what lets the
+   definition compute: the element is taken from the finite enumeration of the set, so no
+   order on the elements is needed and nothing is noncomputable.
 
 7. **Say it explicitly.** `∀ t ∈ m.segments, s ≤ t`, not `IsLeast m.segments s`: a Mathlib
    name may hide a parameter (here, which order). *Open:* `Nodup`, `Pairwise`, `IsChain`,

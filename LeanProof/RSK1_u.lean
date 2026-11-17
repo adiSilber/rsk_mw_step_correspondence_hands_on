@@ -13,9 +13,10 @@ paper-style definition to the proof machinery built on `sortedBucket`. -/
 
 lemma fiber_eq (m : Multisegment) (k : ℕ) : fiber m k = (Proof.sortedBucket m k).map (·.val) := by
   unfold fiber
-  rw [anyOf_eq (first_mem _ (admissibleEnumerations_nonempty m k))]
-  have h := pmap_eq_sortedBucket (first_mem _ (admissibleEnumerations_nonempty m k))
-    (fun _ hj => lt_length_of_mem_admissibleEnumerations (first_mem _ _) _ hj)
+  obtain ⟨i, hi⟩ := admissibleEnumerations_nonempty m k
+  rw [anyOf_eq hi]
+  have h := pmap_eq_sortedBucket hi
+    (fun _ hj => lt_length_of_mem_admissibleEnumerations hi _ hj)
   rw [List.pmap_eq_map_attach] at h
   exact h
 

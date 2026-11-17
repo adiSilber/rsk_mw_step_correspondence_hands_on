@@ -67,7 +67,7 @@ below.
 ```
 Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i]`
                bounds are found by `auto_prop` (= `grind`, taught facts in `_u` files),
-               `maximum`, `first` and `sorted` of a finite set, `let x ∈ S; e` (an arbitrary
+               `maximum` and `sorted` of a finite set, `let x ∈ S; e` (an arbitrary
                element, when `e` does not depend on it), the set comprehension `{f | x ∈ l}`
                and list comprehensions `[x ∈ l | p]`
                and `[f | x ∈ l, (y, z) ∈ l', k ≤ n, p, …]` (a bare `p` keeps the choices
@@ -173,6 +173,7 @@ refresh, delete from this heading down and run
 for f in Segment Basic Ladder1 Ladder2 RSK1 RSK2 RSK3 MW1 MW2 Corollary; do
   printf '\n### `%s_t.lean`\n\n```lean\n' $f; cat LeanProof/${f}_t.lean; printf '```\n'; done >> README.md
 ```
+
 
 
 
@@ -476,7 +477,7 @@ def mw_step (m : Multisegment) (h : m.segments ≠ []) : Segment × Multisegment
 ```lean
 import LeanProof.Lemmas_u
 
-seal maximum first in
+seal maximum anyOf in
 /-- **Corollary 3.4** (paper Cor. `main`): `(K × Id)(MW(m)) = (Id × MW)(K(m))` for
 `min m < min L(m)` — one MW step followed by one RSK step yields the same data as one
 RSK step followed by one MW step. Both sides are the triple

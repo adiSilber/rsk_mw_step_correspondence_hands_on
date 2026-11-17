@@ -18,23 +18,23 @@ reason about.
 private lemma makeResidual_eq (m : Multisegment) (hm : m.segments ≠ []) :
     makeResidual m hm = Proof.mdag m := by
   unfold makeResidual
-  have hi := first_mem _ (leadingIndices_nonempty m hm)
+  obtain ⟨i, hi⟩ := leadingIndices_nonempty m hm
   rw [anyOf_eq hi]
   exact residual_eq m hi
 
 private lemma deltaCirc_a (m : Multisegment) (hm : m.segments ≠ []) :
     (deltaCirc m hm).a = (m.segments.head hm).a := by
   unfold deltaCirc
-  have hi := first_mem _ (leadingIndices_nonempty m hm)
+  obtain ⟨i, hi⟩ := leadingIndices_nonempty m hm
   rw [anyOf_eq hi]
-  change m.segments[(first (leadingIndices m) _)[0]].a = _
+  change m.segments[i[0]].a = _
   rw [getElem_zero_eq_head hm hi]
 
 private lemma deltaCirc_b (m : Multisegment) (hm : m.segments ≠ []) :
     (deltaCirc m hm).b
       = (m.segments.head hm).a + ↑((Proof.leadingChain m).length - 1) := by
   unfold deltaCirc
-  have hi := first_mem _ (leadingIndices_nonempty m hm)
+  obtain ⟨i, hi⟩ := leadingIndices_nonempty m hm
   rw [anyOf_eq hi]
   exact a_last_eq hm hi
 

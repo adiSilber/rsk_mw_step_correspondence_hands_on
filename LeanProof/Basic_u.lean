@@ -61,18 +61,16 @@ lemma maximum_mem {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty
 lemma le_maximum {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) {x : α}
     (hx : x ∈ S) : x ≤ maximum S h := Finset.le_max' _ _ (Set.mem_toFinset.mpr hx)
 
-lemma first_mem {α} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) :
-    first S h ∈ S := Set.mem_toFinset.mp (Finset.min'_mem _ _)
-
 @[simp] lemma mem_sorted {α} [LinearOrder α] {S : Set α} [Fintype S] {x : α} :
     x ∈ sorted S ↔ x ∈ S := by
   simp [sorted]
 
 /-- `let x ∈ S; e` is `e` at any member of `S`. -/
-lemma anyOf_eq {α β} [LinearOrder α] {S : Set α} [Fintype S] {f : (x : α) → x ∈ S → β}
+lemma anyOf_eq {α β} [DecidableEq α] {S : Set α} [Fintype S] {f : (x : α) → x ∈ S → β}
     {h : S.Nonempty} {hf : ∀ x (hx : x ∈ S) y (hy : y ∈ S), f x hx = f y hy}
-    {x : α} (hx : x ∈ S) : anyOf S f h hf = f x hx :=
-  hf _ _ _ hx
+    {x : α} (hx : x ∈ S) : anyOf S f h hf = f x hx := by
+  unfold anyOf
+  exact Trunc.induction_on (Fintype.truncEquivFin S) fun _ => hf _ _ _ hx
 
 /-- Finite sets with the same sorted list are equal. -/
 lemma eq_of_sorted_eq {α} [LinearOrder α] {S T : Set α} [Fintype S] [Fintype T]

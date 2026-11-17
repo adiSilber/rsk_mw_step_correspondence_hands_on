@@ -424,7 +424,7 @@ private lemma forward_chain (m : Multisegment) (sₘ s_l : Segment)
       exact ⟨hσm, i, t, l₁, l₂, hsplit, hia, hta, w, by simp, hwa.trans hia, hwb⟩
 
 
-seal maximum first in
+seal maximum anyOf in
 /-- If the minimum of `m` begins strictly before the minimum ladder rung, the RSK
 residual is nonempty. Otherwise every bucket would be a singleton — in particular the
 bucket of the head's own depth would be `[head]`, making the head itself a ladder rung;
@@ -1902,7 +1902,7 @@ private lemma residual_min_end_step (m : Multisegment)
     (by omega) (by omega)
   omega
 
-seal maximum first in
+seal maximum anyOf in
 /-- **C′ value identification** (paper Prop. `main2`(2), full form): the `j`-th segment
 of the leading chain of the RSK residual `m′` is exactly the derived segment
 `Wⱼ = ⟨σⱼ.a, tⱼ.b⟩` of the `j`-th chain segment's fiber boundary `(iⱼ, tⱼ)`. Proven by
@@ -2059,7 +2059,7 @@ private lemma derivedPairs_single (x : Segment) : derivedPairs [x] = [] := rfl
 private lemma derivedPairs_cons_cons (x y : Segment) (l : List Segment) :
     derivedPairs (x :: y :: l) = (x.a, y.b) :: derivedPairs (y :: l) := rfl
 
-seal maximum first in
+seal maximum anyOf in
 /-- The bucket residual's coordinate pairs are the derived pairs of the bucket. -/
 private lemma bucketResidual_pairs (m : Multisegment) (d : ℕ) :
     (bucketResidual m d).map segPair = derivedPairs ((Proof.sortedBucket m d).map (·.val)) := by
@@ -3747,7 +3747,7 @@ private lemma count_flatMap_pairs (f : ℕ → List (ℤ × ℤ)) : ∀ (l : Lis
     intro w
     rw [List.flatMap_cons, List.count_append, List.map_cons, List.sum_cons, ih w]
 
-seal maximum first in
+seal maximum anyOf in
 /-- The coordinate count of the RSK residual is the sum of derived-pair counts over
 the fibers. -/
 private lemma count_residual_pairs (M : Multisegment) (hM : M.segments ≠ []) (w : ℤ × ℤ) :
@@ -4068,7 +4068,7 @@ private lemma sum_perm_nat : ∀ {l₁ l₂ : List ℕ}, l₁.Perm l₂ → l₁
   | swap x y l => simp only [List.sum_cons]; omega
   | trans _ _ ih1 ih2 => rw [ih1, ih2]
 
-seal maximum first in
+seal maximum anyOf in
 /-- **The telescoping identity** (paper eq. `deltau`, value form): summed over all
 fibers, the derived pairs of `m†` are those of `m` with each residual-chain value `Wⱼ`
 replaced by its left-shortened copy `⁻Wⱼ`. Stated against the leading chain of the RSK
@@ -4467,7 +4467,7 @@ private lemma residual_commute_core (m : Multisegment) (sₘ s_l : Segment)
 
 /-! # The three components of Corollary 3.4 -/
 
-seal maximum first in
+seal maximum anyOf in
 /-- **Δ°(m) = Δ°(m′)** (paper Prop. `lem: main2`(2)): under `min m < min L(m)`, the MW
 segment of `m` equals the MW segment of its RSK residual `(rsk_step m).2`. Assembled
 from `minPreserved` (the head begins agree) and `chainLenPreserved` (the leading-chain

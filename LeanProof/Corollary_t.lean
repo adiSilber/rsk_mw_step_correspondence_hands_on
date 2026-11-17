@@ -1,6 +1,6 @@
 import LeanProof.Lemmas_u
 
-seal maximum first in
+seal maximum anyOf in
 /-- **Corollary 3.4** (paper Cor. `main`): `(K × Id)(MW(m)) = (Id × MW)(K(m))` for
 `min m < min L(m)` — one MW step followed by one RSK step yields the same data as one
 RSK step followed by one MW step. Both sides are the triple

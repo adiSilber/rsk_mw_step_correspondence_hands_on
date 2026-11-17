@@ -4,6 +4,7 @@ import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Max
 import Mathlib.Data.Finset.Empty
 import Mathlib.Data.Fintype.Sets
+import Mathlib.Data.Fintype.EquivFin
 import Mathlib.Data.Finset.Sort
 import Mathlib.Order.Synonym
 import Mathlib.Algebra.CharZero.Defs
@@ -197,10 +198,6 @@ instance {α β} [DecidableEq β] (l : List α) (f : (x : α) → x ∈ l → β
 def maximum {α : Type*} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
   S.toFinset.max' (Set.toFinset_nonempty.mpr h)
 
-/-- The first element of a finite, nonempty set. -/
-def first {α : Type*} [LinearOrder α] (S : Set α) [Fintype S] (h : S.Nonempty) : α :=
-  S.toFinset.min' (Set.toFinset_nonempty.mpr h)
-
 /-- The elements of a finite set, in increasing order. -/
 def sorted {α : Type*} [LinearOrder α] (S : Set α) [Fintype S] : List α :=
   S.toFinset.sort (· ≤ ·)
@@ -214,11 +211,15 @@ attribute [grind .] List.pairwise_insertionSort
 
 /-- `let x ∈ S; e`: `e` for an arbitrary element `x` of `S`. It is well defined because `e`
 takes the same value at every element of `S` — a proof Lean demands (and `auto_prop` finds),
-together with `S` being nonempty. (To compute, `e` is evaluated at `first S`.) -/
-def anyOf {α : Type*} {β : Sort*} [LinearOrder α] (S : Set α) [Fintype S]
+together with `S` being nonempty. (To compute, `e` is evaluated at the element the finite
+enumeration of `S` numbers `0`; which enumeration is used may not matter, and `Trunc.lift`
+accepts the independence proof as the reason.) -/
+def anyOf {α : Type*} {β : Sort*} [DecidableEq α] (S : Set α) [Fintype S]
     (f : (x : α) → x ∈ S → β) (h : S.Nonempty)
-    (_hf : ∀ x (hx : x ∈ S) y (hy : y ∈ S), f x hx = f y hy) : β :=
-  f (first S h) (Set.mem_toFinset.mp (Finset.min'_mem _ _))
+    (hf : ∀ x (hx : x ∈ S) y (hy : y ∈ S), f x hx = f y hy) : β :=
+  (Fintype.truncEquivFin S).lift
+    (fun e => let x := e.symm ⟨0, Fintype.card_pos_iff.mpr h.to_subtype⟩; f x.1 x.2)
+    (fun _ _ => hf _ _ _ _)
 
 /-- A binder introduces a new name: a name already in scope cannot be bound again. Without this,
 `[f | j ∈ i, j ≤ 5]` would read `j ≤ 5` as a second loop over `0, …, 5`, hiding the first `j`.

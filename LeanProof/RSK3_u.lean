@@ -300,7 +300,7 @@ lemma ladderRungs_ne_nil (m : Multisegment) (h : m.segments ≠ []) :
 -- then needs no proof. (`grind →` instead fires on every `m.segments ≠ []` and times out.)
 grind_pattern ladderRungs_ne_nil => ladderRungs m
 
-seal maximum first in
+seal maximum anyOf in
 /-- Membership in `bucketResidual`, unfolded: `w = [Δᵢ.a, Δᵢ₊₁.b]` for some position `i`. -/
 private lemma mem_bucketResidual_iff {m : Multisegment} {d : ℕ} {w : Segment} :
     w ∈ bucketResidual m d ↔
@@ -325,7 +325,7 @@ lemma bucketResidual_source {m : Multisegment} {d : ℕ} {w : Segment}
   conv_lhs => rw [← List.take_append_drop j (fiber m d)]
   rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_getElem_cons (by omega)]
 
-seal maximum first in
+seal maximum anyOf in
 /-- Conversely, every split `fiber = l₁ ++ i :: t :: l₂` contributes `[i.a, t.b]`. -/
 lemma mem_bucketResidual_of_split {m : Multisegment} {d : ℕ} {i t : Segment}
     {l₁ l₂ : List Segment} (hsplit : fiber m d = l₁ ++ i :: t :: l₂) :
