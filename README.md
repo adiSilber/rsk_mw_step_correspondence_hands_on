@@ -162,6 +162,11 @@ Ships a `lean-beam` agent skill (`.claude/skills/lean-beam`) for fast,
 build-free Lean proof iteration: cheap speculative checks against the proof
 engine and zero-build module checkpoints instead of full rebuilds.
 
+Two Lean files under `tools/` are not part of the build and are run by hand after `lake build`:
+`tools/Unused.lean` lists the declarations nothing needs (ESSENTIALS rules 12 and 13), and
+`tools/Fundamentals_test.lean` fixes what the language layer accepts, computes and refuses, to be
+run after every Mathlib upgrade.
+
 ## The trusted text
 
 The `_t` files of the project, complete, in dependency order: everything a reader checks

@@ -23,7 +23,9 @@ the code. (Maintained by hand; `README.md` describes the files, this describes t
 
 4. **The language is separate from the project.** `Fundamentals_t` is the project-independent
    part (comprehensions, `maximum`/`sorted`, the proof-filling rules) and should be
-   reusable elsewhere; project notions go to `Basic` and later stages.
+   reusable elsewhere; project notions go to `Basic` and later stages. After a Mathlib
+   upgrade the layer is re-read: the same texts must still mean the same, and the misuses
+   it refuses must still be refused.
 
 5. **When a definition needs a fact, split the stage.** The fact is proved in a `_u` file
    between two `_t` files (Ladder1/2, RSK1/2/3, MW1/2); it is never proved inline.

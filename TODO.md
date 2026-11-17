@@ -32,9 +32,10 @@ Things we decided not to do yet, but would like to make better.
   piece in `Fundamentals_t`.
 - **The layer goes stale with Mathlib** (2026-10-31). `Fundamentals_t` is meant to be copied
   into other projects, but it is written against one Mathlib pin (here the `v4.28.0` tag of
-  2026-02-16), and Mathlib keeps renaming and emptying modules: in a pin from 2026-03 its
-  `import Mathlib.Order.Synonym` is already a deprecation warning (the content moved to
-  `Mathlib.Order.Lex`), and `grind` changes with every Lean release. So a copy in a project with
+  2026-02-16), and Mathlib keeps renaming and emptying modules: in a pin from 2026-03 the
+  `import Mathlib.Order.Synonym` it carried until 2026-11-17 (unused; removed) was already a
+  deprecation warning (the content moved to `Mathlib.Order.Lex`), and `grind` changes with
+  every Lean release. So a copy in a project with
   a newer pin warns or breaks, two copies drift apart, and the proofs that `auto_prop` finds
   today may not be found tomorrow. Problem to solve: how to keep one layer relevant across
   versions. Pieces of an answer: import only what the layer's own constructs need (the
