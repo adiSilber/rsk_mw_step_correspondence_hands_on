@@ -76,7 +76,10 @@ Fundamentals   project-wide rules and notation: omitted proof arguments and `l[i
                `p → q` keeps `p` in scope for `q`,
                `x ∈ s` converts `x` to the element type of `s`, by an injective
                conversion only (`Fin → ℕ`, subtype → base, `ℕ`/`ℤ` into a `CharZero`
-               type), any other is refused; below everything
+               type), any other is refused; a power `x ^ k` is taken in the type of
+               its base and converted afterwards (`n ^ s` with no such power converts
+               the base to the exponent's type); half-lines `(a, ∞)`; big O `f =O g` as
+               the argument tends to `+∞`; below everything
 Segment        segments (= NonemptyInterval ℤ), `Segment a b`; Segment_u: what auto_prop
                knows about them (a, b unfold; an interval is determined by its ends; a ≤ b)
 Basic          lex order on segments, lists of segments read as multisegments (coercion),
@@ -162,22 +165,131 @@ Ships a `lean-beam` agent skill (`.claude/skills/lean-beam`) for fast,
 build-free Lean proof iteration: cheap speculative checks against the proof
 engine and zero-build module checkpoints instead of full rebuilds.
 
-Two Lean files under `tools/` are not part of the build and are run by hand after `lake build`:
-`tools/Unused.lean` lists the declarations nothing needs (ESSENTIALS rules 12 and 13), and
+Under `tools/`, run by hand after `lake build`: `tools/UnusedRSK.lean` and `tools/UnusedHecke.lean`
+list the declarations nothing needs in each project (ESSENTIALS rules 12 and 13; the analysis is
+the module `tools/Unused.lean`, one project at a time, see the Hecke section), and
 `tools/Fundamentals_test.lean` fixes what the language layer accepts, computes and refuses, to be
 run after every Mathlib upgrade.
 
+## The Hecke L-function statement (`Hecke/`)
+
+A second statement on the same language layer: the quasi-Riemann hypothesis for the
+finite-order Hecke L-functions of `ℚ(√-3)`, paper "The Quasi-Riemann Hypothesis: A Zero-Free
+Half-Plane Re(s) > 7/8" (September 30, 2026), Theorem 1.1, first sentence. It restates the
+challenge file `HeckeSevenEighths.lean` of the OpenAI mathematics repository
+(`verification_projects/math/lean/ComparatorChallenges/`) in the rules of this repository. The
+trusted definitions are **not** the original's word for word: they follow the rules and are to be
+checked against the paper, not against the original file; there is no formal link to it. The
+final statement, `LFunction_ne_zero_of_seven_eighths_lt_re` in `Hecke/Main_t.lean`, is left as
+`sorry` exactly as in the challenge: the proof is the 21,000-line library of that repository and
+is not the subject here. It is the only `sorry` in the repository.
+
+Nothing here is computable (real and complex analysis), so the `_e` files exercise each trusted
+definition by an `example` checked by `rfl`, `simp` or `norm_num`, the expected value written in
+the statement, the closest thing to an `#eval`.
+
+How the rules play out here, where they differ from the RSK part:
+
+- **A theta pair is its data.** Mathlib's `WeakFEPair ℂ` bundles six pieces of data with seven
+  proofs; the original proves them inside its definitions (46 lines of tactics). Here `PairData`
+  is the six pieces, `PairData.Valid` the seven facts as one `Prop`-valued structure, and
+  `WeakFEPair.ofData d` packs them; the facts are proved in `Theta1_u` and omitted where the pair
+  is assembled, `auto_prop` finding them from `lattice_valid` (`grind ←`).
+- **Sums read like the paper.** The sum over the classes is `∑ a, ∑ b, ∑ e, w a b * …`, not a sum
+  over a product type with `p.1.1`, `p.1.2`, `p.2`.
+- **Hypotheses last.** `pair N w (hN : 0 < N)`, `completed N w s (hN : 0 < N)`: callers never
+  write them, as with `maxDepth m (h : m.segments ≠ [])`.
+- **A Hecke character is the paper's residue character `ϕ`**: a nonzero modulus, a character of
+  `O/𝔪` trivial on the six units, and a period `N ∈ 𝔪`; the L-function is "the lattice L-function
+  divided by six", and the docstring says why six.
+- **Deviations recorded.** (a) `Θ_ϕ` is reached as in the original, through products of two
+  rescaled Hurwitz theta pairs per class and parity, because Mathlib proves the functional
+  equation for those and nothing proves it for the paper's one-line lattice sum; the docstrings of
+  `parity` and `lattice` state what is summed. (b) `ω` is Mathlib's chosen primitive cube root of
+  unity, as in the original: `let ω ∈ {primitive cube roots of unity}; …` would need a proof that
+  the L-function does not depend on the choice, which nothing in the library gives. (c) Casts are
+  Lean's own (rule 14): a real power among complex factors, `d.ε * x ^ d.k * d.g x`, is the real
+  power converted afterwards, by the layer's reading of `^`; the integers `x`, `y` enter `O` by
+  type ascription, `(x : O)`. (d) The identification of the
+  lattice sum with the Dirichlet series over ideals is not in the challenge, and so not here.
+- **Open.** `Character1_u` declares one `instance`, that `F` is the cyclotomic extension of `ℚ`
+  by the cube roots of unity, which the instance rule as written does not allow; it is a
+  proposition, so any two proofs of it agree.
+
+```
+LeanProof.Fundamentals_t   the language layer; below everything
+├── Pair_t        PairData (the six pieces of data of a theta pair), PairData.Valid (Mathlib's
+│   │             seven facts), WeakFEPair.ofData (Mathlib's pair from data and facts),
+│   │             WeakFEPair.data
+│   ├── Pair_u      a Mathlib pair's data is valid
+│   └── Theta1_t    product, rescale, even (Mathlib's Hurwitz pair as data), scaledEven,
+│       │           rectangular, xShift, yShift, parity (one class, one parity), lattice (Θ_ϕ
+│       │           as data: the weighted sum over the classes and parities)
+│       ├── Theta1_u   every piece is valid; `lattice_valid` (what auto_prop needs in Theta2_t)
+│       └── Theta2_t   pair (Mathlib's pair; facts omitted), completed (Mathlib's Λ),
+│           │          latticeL = π^s Γ(s)⁻¹ Λ(s)
+│           └── Theta_e    checks
+└── Character1_t  F = ℚ(ζ₃) with its field structure, O = ℤ[ω] with its ring structure
+    └── Character1_u  F is the cyclotomic extension by the cube roots of unity (what
+        │             Character2_t needs)
+        └── Character2_t  omega, coordinateElement (x + yω), HeckeCharacter (the residue
+            │             character ϕ: modulus, character of O/𝔪, trivial on units, period),
+            │             elementCoeff (ϕ(z)), coefficients (ϕ on classes modulo the period)
+            ├── Character2_u  the period is positive (what auto_prop needs in Main_t)
+            └── Character_e   checks (O is a domain, for them only; the trivial character)
+                          (Theta and Character are independent)
+
+Theta2_t + Character2_t + Character2_u ──► Main_t   continuedLattice, LFunction (÷ 6), the theorem
+```
+
+| file           | imports                                                             |
+|----------------|---------------------------------------------------------------------|
+| `Pair_t`       | `LeanProof.Fundamentals_t`, `Mathlib.NumberTheory.LSeries.AbstractFuncEq` |
+| `Pair_u`       | `Pair_t`                                                            |
+| `Theta1_t`     | `Pair_t`, `Mathlib.NumberTheory.LSeries.HurwitzZetaEven`            |
+| `Theta1_u`     | `Theta1_t`, `Pair_u`                                                |
+| `Theta2_t`     | `Theta1_t`, `Theta1_u`                                              |
+| `Theta_e`      | `Theta2_t`                                                          |
+| `Character1_t` | `LeanProof.Fundamentals_t`, `Mathlib.NumberTheory.NumberField.Cyclotomic.Basic` |
+| `Character1_u` | `Character1_t`                                                      |
+| `Character2_t` | `Character1_t`, `Character1_u`, `Mathlib.NumberTheory.MulChar.Basic` |
+| `Character2_u` | `Character2_t`                                                      |
+| `Character_e`  | `Character2_t`, `Character2_u`                                      |
+| `Main_t`       | `Theta2_t`, `Character2_t`, `Character2_u`                          |
+
+The trusted text is `Pair_t`, `Theta1_t`, `Theta2_t`, `Character1_t`, `Character2_t`, `Main_t`:
+17 definitions, two structures, three instances and the theorem. What it makes explicit, which
+the original leaves to the reader: what a theta pair is made of and which facts Mathlib demands
+of it; what `parity` and `lattice` sum, in the paper's notation; that `Λ` is the paper's integral
+`∫ (Θ_ϕ(v) − ϕ(0)) v^{s-1} dv` continued, with its two poles; that the L-function is the lattice
+sum divided by six because each ideal has six generators; and that a `HeckeCharacter` is the
+paper's residue character `ϕ`.
+
+Ported on 2026-11-17 from a trial written on 2026-11-01 in the OpenAI repository under Lean 4.34
+and a newer Mathlib; two Mathlib names differed and were replaced in `Theta1_u`. The two
+libraries cannot be imported into one file: `residual` is a name of both `RSK3_t` and Mathlib's
+topology, which the Hecke imports bring in; this is why the unused-declaration tool runs per
+project.
+
 ## The trusted text
 
-The `_t` files of the project, complete, in dependency order: everything a reader checks
-against the paper (the language layer `Fundamentals_t` is not repeated here). The `_u` files
-add only proofs, the `_e` files only examples. Copied from the files on 2026-11-16; to
-refresh, delete from this heading down and run
+The `_t` files of both statements, complete, in dependency order: everything a reader checks
+against the papers (the language layer `Fundamentals_t` is not repeated here). The `_u` files
+add only proofs, the `_e` files only examples. Copied from the files on 2026-11-17; to
+refresh, delete from the first `###` heading below and run
 
 ```sh
 for f in Segment Basic Ladder1 Ladder2 RSK1 RSK2 RSK3 MW1 MW2 Corollary; do
   printf '\n### `%s_t.lean`\n\n```lean\n' $f; cat LeanProof/${f}_t.lean; printf '```\n'; done >> README.md
+for f in Pair Theta1 Theta2 Character1 Character2 Main; do
+  printf '\n### `Hecke/%s_t.lean`\n\n```lean\n' $f; cat Hecke/${f}_t.lean; printf '```\n'; done >> README.md
 ```
+
+
+
+
+
+
 
 
 
@@ -507,4 +619,298 @@ theorem corollary_3_4
   have h := min_m_lt_min_lm_of_index m hm h_min
   exact congrArg₂ Prod.mk (mw_preserves_ladder m hm h).symm
     (congrArg₂ Prod.mk (mw_residual_commute m hm h) (deltaCirc_eq_of_residual m hm h))
+```
+
+### `Hecke/Pair_t.lean`
+
+```lean
+import Mathlib.NumberTheory.LSeries.AbstractFuncEq
+import LeanProof.Fundamentals_t
+
+/-! # Functional-equation pairs (trusted definitions)
+
+Mathlib's `WeakFEPair ℂ` is the device behind the meromorphic continuation: two functions `f`,
+`g` on `(0, ∞)` with `f (1/x) = ε · x^k · g x`, each approaching a constant (`f₀`, `g₀`) faster
+than every power at `∞`; its `Λ` is the Mellin transform of `f` with the two poles removed.
+Mathlib bundles the six pieces of data with seven proofs. Here the data is a structure of its own,
+the seven facts are one proposition, and `WeakFEPair.ofData` packs data and facts into Mathlib's
+structure. The facts are proved in `_u` files and omitted where a pair is assembled (`Theta2_t`). -/
+
+noncomputable section
+open MeasureTheory
+
+/-- The data of a functional-equation pair: `WeakFEPair ℂ` without its proofs. -/
+structure PairData where
+  /-- The function whose Mellin transform is studied. -/
+  f : ℝ → ℂ
+  /-- Its partner under `x ↦ 1/x`. -/
+  g : ℝ → ℂ
+  /-- The weight: `f (1/x) = ε · x^k · g x`. -/
+  k : ℝ
+  /-- The root number. -/
+  ε : ℂ
+  /-- The constant term of `f` at `∞`. -/
+  f₀ : ℂ
+  /-- The constant term of `g` at `∞`. -/
+  g₀ : ℂ
+
+/-- The seven facts Mathlib asks of the data, as it states them: `f` and `g` locally integrable on
+`(0, ∞)`, `k > 0`, `ε ≠ 0`, the functional equation, and `f - f₀`, `g - g₀` smaller than every
+power of `x` at `∞`. -/
+structure PairData.Valid (d : PairData) : Prop where
+  hf_int : LocallyIntegrableOn d.f (0, ∞)
+  hg_int : LocallyIntegrableOn d.g (0, ∞)
+  hk : 0 < d.k
+  hε : d.ε ≠ 0
+  h_feq : ∀ x ∈ (0, ∞), d.f (1 / x) = d.ε * x ^ d.k * d.g x
+  hf_top : ∀ r : ℝ, (fun x ↦ d.f x - d.f₀) =O (fun x ↦ x ^ r)
+  hg_top : ∀ r : ℝ, (fun x ↦ d.g x - d.g₀) =O (fun x ↦ x ^ r)
+
+/-- Mathlib's pair, from data and its facts. -/
+def WeakFEPair.ofData (d : PairData) (h : d.Valid) : WeakFEPair ℂ where
+  f := d.f
+  g := d.g
+  k := d.k
+  ε := d.ε
+  f₀ := d.f₀
+  g₀ := d.g₀
+  hf_int := h.hf_int
+  hg_int := h.hg_int
+  hk := h.hk
+  hε := h.hε
+  h_feq := h.h_feq
+  hf_top := h.hf_top
+  hg_top := h.hg_top
+
+/-- The data of a Mathlib pair. -/
+def WeakFEPair.data (P : WeakFEPair ℂ) : PairData where
+  f := P.f
+  g := P.g
+  k := P.k
+  ε := P.ε
+  f₀ := P.f₀
+  g₀ := P.g₀
+
+end
+```
+
+### `Hecke/Theta1_t.lean`
+
+```lean
+import Mathlib.NumberTheory.LSeries.HurwitzZetaEven
+import Hecke.Pair_t
+
+/-! # The lattice theta function (trusted definitions, stage 1)
+
+Paper §4.4: "`6 π^{-s} Γ(s) L(s, ψ) = ∫₀^∞ (Θ_ϕ(v) − ϕ(0)) v^{s-1} dv`, `Θ_ϕ(v) = Σ_{a ∈ O} ϕ(a)
+e^{-π v q_a}`", with `ϕ` periodic modulo the conductor and `q_a` the norm of `a`. The formalization
+reaches `Θ_ϕ` through Mathlib's Hurwitz theta pairs: the sum over `a = x + yω ∈ O` with `(x, y)`
+in one class modulo `N` splits, by the parity of `(y - b)/N`, into two products of two
+one-variable theta functions with rectangular periods (`parity`), and `Θ_ϕ` is the weighted sum of
+these over the classes (`lattice`). Everything here is data; that every piece is a valid pair is
+proved in `Theta1_u`, and the Mathlib pair is assembled in `Theta2_t`. -/
+
+noncomputable section
+
+/-- The product of two pairs: functions multiply pointwise, weights add, root numbers and
+constant terms multiply. -/
+def product (P Q : PairData) : PairData where
+  f v := P.f v * Q.f v
+  g v := P.g v * Q.g v
+  k := P.k + Q.k
+  ε := P.ε * Q.ε
+  f₀ := P.f₀ * Q.f₀
+  g₀ := P.g₀ * Q.g₀
+
+/-- Rescaling by `u`: `f` at `u·v`, `g` at `v/u`; the root number picks up `u^{-k}`. -/
+def rescale (P : PairData) (u : ℝ) : PairData where
+  f v := P.f (u * v)
+  g v := P.g (u⁻¹ * v)
+  k := P.k
+  ε := P.ε * u ^ (-P.k)
+  f₀ := P.f₀
+  g₀ := P.g₀
+
+/-- Mathlib's even Hurwitz theta pair at `a ∈ ℝ/ℤ`, as data: `f v = Σ_{n ∈ ℤ} e^{-π (n + a)² v}`,
+`g v = Σ_{n ∈ ℤ} cos(2π n a) e^{-π n² v}`, weight `1/2`, root number `1`, `f₀ = [a = 0]`,
+`g₀ = 1`. -/
+def even (a : UnitAddCircle) : PairData := (HurwitzZeta.hurwitzEvenFEPair a).data
+
+/-- The even pair at `a`, rescaled by `u`: `f v = Σ_n e^{-π (n + a)² u v}`. -/
+def scaledEven (a : UnitAddCircle) (u : ℝ) : PairData := rescale (even a) u
+
+/-- The theta data of a rectangular lattice: `f v = Σ_{m, n} e^{-π (u (m + a)² + v' (n + b)²) v}`;
+weight `1/2 + 1/2 = 1`. -/
+def rectangular (a b : UnitAddCircle) (u v' : ℝ) : PairData :=
+  product (scaledEven a u) (scaledEven b v')
+
+/-- The shifts placing the class `(a, b)` modulo `N` of `ℤ + ℤω`, with `(y - b)/N` of parity `e`,
+on a rectangular lattice: `x = N(m + n) + a`, `y = b + N(2n + e)` give
+`x² - xy + y² = N² (m + xShift)² + 3 N² (n + yShift)²`. -/
+def xShift (a b N : ℝ) (e : Fin 2) : ℝ := (2 * a - b - N * e) / (2 * N)
+
+/-- See `xShift`. -/
+def yShift (b N : ℝ) (e : Fin 2) : ℝ := (b + N * e) / (2 * N)
+
+/-- The theta data of the class `(a, b)` modulo `N` with parity `e`:
+`f v = Σ e^{-π (x² - xy + y²) v}` over `x ≡ a`, `y ≡ b (mod N)`, `(y - b)/N ≡ e (mod 2)`; here
+`x² - xy + y²` is the norm `q_{x + yω}`. -/
+def parity (a b N : ℝ) (e : Fin 2) : PairData :=
+  rectangular (xShift a b N e) (yShift b N e) (N ^ 2) (3 * N ^ 2)
+
+/-- Paper §4.4, `Θ_ϕ(v) = Σ_{a ∈ O} ϕ(a) e^{-π v q_a}` for `ϕ` given on the classes modulo `N`:
+the theta data of a weight `w` on `(ℤ/N)²`, the sum of the parity data of all classes, each
+weighted by `w a b`. Weight `1`, root number `1`; `g` carries the root numbers of the parts. (The
+class `(a, b)` enters `parity` by its representatives `0 ≤ a, b < N`, as real numbers.) -/
+def lattice (N : ℕ) (w : Fin N → Fin N → ℂ) : PairData where
+  f v := ∑ a, ∑ b, ∑ e, w a b * (parity a b N e).f v
+  g v := ∑ a, ∑ b, ∑ e, w a b * (parity a b N e).ε * (parity a b N e).g v
+  k := 1
+  ε := 1
+  f₀ := ∑ a, ∑ b, ∑ e, w a b * (parity a b N e).f₀
+  g₀ := ∑ a, ∑ b, ∑ e, w a b * (parity a b N e).ε * (parity a b N e).g₀
+
+end
+```
+
+### `Hecke/Theta2_t.lean`
+
+```lean
+import Hecke.Theta1_t
+import Hecke.Theta1_u
+
+/-! # The lattice L-function (trusted definitions, stage 2)
+
+Paper §4.4: "`6 π^{-s} Γ(s) L(s, ψ) = ∫₀^∞ (Θ_ϕ(v) − ϕ(0)) v^{s-1} dv`". The theta data becomes a
+Mathlib pair (its seven facts: `Theta1_u`), Mathlib's `Λ` is this integral continued to all of
+`ℂ`, and the lattice L-function is `π^s Γ(s)⁻¹ Λ(s)`; the factor `6` comes in `Main_t`. -/
+
+noncomputable section
+
+/-- The theta pair of `w`, as Mathlib's structure. (Its seven facts are found by `auto_prop`, from
+`lattice_valid` in `Theta1_u`; they need `N > 0`.) -/
+def pair (N : ℕ) (w : Fin N → Fin N → ℂ) (hN : 0 < N) : WeakFEPair ℂ :=
+  WeakFEPair.ofData (lattice N w)
+
+/-- Mathlib's `Λ` of the pair: `∫₀^∞ (Θ(v) − Θ(∞)) v^{s-1} dv` for `Re s` large, continued to all
+of `ℂ`, with poles at most at `s = 0` (residue `-f₀`) and `s = 1` (residue `ε g₀`). -/
+def completed (N : ℕ) (w : Fin N → Fin N → ℂ) (s : ℂ) (hN : 0 < N) : ℂ := (pair N w).Λ s
+
+/-- The lattice L-function: `π^s Γ(s)⁻¹ Λ(s)`, which for `Re s > 1` is
+`Σ_{a ∈ O, a ≠ 0} ϕ(a) q_a^{-s}` with `ϕ` the weight read on classes. -/
+def latticeL (N : ℕ) (w : Fin N → Fin N → ℂ) (s : ℂ) (hN : 0 < N) : ℂ :=
+  Real.pi ^ s * (Complex.Gamma s)⁻¹ * completed N w s
+
+end
+```
+
+### `Hecke/Character1_t.lean`
+
+```lean
+import Mathlib.NumberTheory.NumberField.Cyclotomic.Basic
+import LeanProof.Fundamentals_t
+
+/-! # The field (trusted definitions, stage 1)
+
+Paper §1: "Let `F = ℚ(√-3)`, let `O` be its ring of integers". `F` is Mathlib's cyclotomic field
+`ℚ(ζ₃)`, and it carries that field's structure (as `Segment` carries the order of `ℤ ×ₗ ℤ` in the
+RSK/MW repository). Stage 2 (`Character2_t`) names `ω`, which needs two facts (`F` is a number
+field, and the extension of `ℚ` by the cube roots of unity), stated in `Character1_u`. -/
+
+noncomputable section
+
+/-- The field `F = ℚ(√-3) = ℚ(ζ₃)`. -/
+def F := CyclotomicField 3 ℚ
+
+/-- `F` is a field, and an algebra over `ℚ`: the structure of the cyclotomic field. -/
+instance : Field F := inferInstanceAs (Field (CyclotomicField 3 ℚ))
+instance : Algebra ℚ F := inferInstanceAs (Algebra ℚ (CyclotomicField 3 ℚ))
+
+/-- Its ring of integers `O = ℤ[ω]`. -/
+def O := NumberField.RingOfIntegers F
+
+/-- `O` is a commutative ring: the structure of the ring of integers. -/
+instance : CommRing O := inferInstanceAs (CommRing (NumberField.RingOfIntegers F))
+
+end
+```
+
+### `Hecke/Character2_t.lean`
+
+```lean
+import Mathlib.NumberTheory.MulChar.Basic
+import Hecke.Character1_t
+import Hecke.Character1_u
+
+/-! # Finite-order Hecke characters (trusted definitions, stage 2)
+
+Paper §1: "A finite-order Hecke character `η` modulo a nonzero integral ideal `f` is a character
+of the ray class group modulo `f`, extended by zero to ideals not coprime to `f`." Paper §4.4:
+"define the periodic residue character `ϕ(a) = ψ((a))` when `(a, f) = 1`, with value zero
+otherwise. … `ϕ` is trivial on the six units because `(u) = (1)` for a unit." The challenge takes
+`ϕ` as the primary object: a character of `O/𝔪` trivial on the units, read on the coordinates
+`x + yω` modulo a period `N ∈ 𝔪`. -/
+
+noncomputable section
+
+/-- A primitive cube root of unity, as an integer of `F`: Mathlib's chosen `ζ₃`. -/
+def omega : O := (IsCyclotomicExtension.zeta_spec 3 ℚ F).toInteger
+
+/-- The integer `x + yω`. -/
+def coordinateElement (x y : ℤ) : O := (x : O) + (y : O) * omega
+
+/-- A finite-order Hecke character, as its residue character `ϕ`: a nonzero modulus `𝔪`, a
+multiplicative character of `O/𝔪` with values in `ℂ`, trivial on the units of `O`, and a period
+`N > 0` with `N ∈ 𝔪`, so that `ϕ(x + yω)` depends on `x`, `y` modulo `N` only. -/
+structure HeckeCharacter where
+  modulus : Ideal O
+  modulus_ne_bot : modulus ≠ ⊥
+  residue : MulChar (O ⧸ modulus) ℂ
+  unit_trivial : ∀ u : Oˣ, residue (Ideal.Quotient.mk modulus (u : O)) = 1
+  period : ℕ
+  period_pos : 0 < period
+  period_mem : (period : O) ∈ modulus
+
+/-- `ϕ(z)`: the residue character at `z mod 𝔪`. -/
+def elementCoeff (χ : HeckeCharacter) (z : O) : ℂ := χ.residue (Ideal.Quotient.mk χ.modulus z)
+
+/-- `ϕ` on the classes modulo `N`: its value at `a + bω`, `0 ≤ a, b < N`. -/
+def coefficients (χ : HeckeCharacter) (a b : Fin χ.period) : ℂ :=
+  elementCoeff χ (coordinateElement a b)
+
+end
+```
+
+### `Hecke/Main_t.lean`
+
+```lean
+import Hecke.Theta2_t
+import Hecke.Character2_t
+import Hecke.Character2_u
+
+/-! # The statement (trusted)
+
+Paper Theorem 1.1: "Every finite-order Hecke L-function over `F = ℚ(√-3)` has no zero in
+`Re s > 7/8`. … A pole at `s = 1` for a principal character is allowed." Scope note
+`docs/003.md`. The L-function is the lattice L-function of `ϕ`, read on coordinates modulo the
+period, divided by six: paper §4.4, "The factor six counts the generators of each ideal." -/
+
+noncomputable section
+
+/-- The lattice L-function of `ϕ`: `Σ_{a ∈ O, a ≠ 0} ϕ(a) q_a^{-s}`, continued. (That the period
+is positive is found by `auto_prop`, from `Character2_u`.) -/
+def continuedLattice (χ : HeckeCharacter) (s : ℂ) : ℂ := latticeL χ.period (coefficients χ) s
+
+/-- The Hecke L-function `L(s, η) = Σ_{𝔞 ≠ 0} η(𝔞) (N𝔞)^{-s}`, continued: each nonzero ideal has
+six generators. (That the lattice sum is the sum over ideals is proved in the proof library,
+`OAI/NumberTheory/DirichletL/Hecke/IdealBridge.lean`, not in the challenge.) -/
+def LFunction (χ : HeckeCharacter) (s : ℂ) : ℂ := continuedLattice χ s / 6
+
+/-- **Theorem 1.1.** `L(s, χ) ≠ 0` for `Re s > 7/8`, except at `s = 1` for the trivial
+character. -/
+theorem LFunction_ne_zero_of_seven_eighths_lt_re
+    (χ : HeckeCharacter) {s : ℂ} (hs : (7 / 8 : ℝ) < s.re)
+    (hpole : ¬ (χ.residue = 1 ∧ s = 1)) : LFunction χ s ≠ 0 := by sorry
+
+end
 ```

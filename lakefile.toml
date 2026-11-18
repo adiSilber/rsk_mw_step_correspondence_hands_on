@@ -1,7 +1,7 @@
 name = "lean_proof_with_our_code"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["LeanProof"]
+defaultTargets = ["LeanProof", "Hecke", "Unused"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -17,3 +17,16 @@ rev = "v4.28.0"
 
 [[lean_lib]]
 name = "LeanProof"
+
+# The Hecke L-function statement (the quasi-Riemann hypothesis challenge), on the same
+# language layer: its files import `LeanProof.Fundamentals_t`.
+[[lean_lib]]
+name = "Hecke"
+
+# The unused-declaration analysis (ESSENTIALS rules 12 and 13), one module importing only
+# `Lean`; the driver files `tools/UnusedRSK.lean` and `tools/UnusedHecke.lean` load one project
+# each and are run by hand, not built.
+[[lean_lib]]
+name = "Unused"
+srcDir = "tools"
+roots = ["Unused"]

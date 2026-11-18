@@ -2,11 +2,9 @@ import Mathlib.Tactic.Common
 import Mathlib.Order.Defs.LinearOrder
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Max
-import Mathlib.Data.Finset.Empty
 import Mathlib.Data.Fintype.Sets
 import Mathlib.Data.Fintype.EquivFin
 import Mathlib.Data.Finset.Sort
-import Mathlib.Order.Synonym
 import Mathlib.Algebra.CharZero.Defs
 import Mathlib.Data.Int.Cast.Defs
 import Mathlib.Algebra.Ring.Int.Defs
@@ -293,3 +291,58 @@ the same set, `{y | ∃ x ∈ l, f = y}`, but there `f` cannot use the fact.) -/
 macro_rules
   | `({ $f:term | $x:ident ∈ $l }) =>
     `(binder_check% $x {y | ∃ $x:ident, ∃ (_ : $x ∈ $l), $f = y})
+
+/-- Half-lines, written as in the papers: `(a, ∞)` is the set of `x` with `a < x`. (`∞` is not a
+term, so a pair `(a, b)` is never read this way.) -/
+notation "(" a ", " "∞" ")" => Set.Ioi a
+
+/-- Big O, as the argument tends to `+∞`, the clause the papers leave understood: `f =O g` is
+Mathlib's `f =O[Filter.atTop] g`. The other limits (`x → 0`, `x → -∞`) are written out in
+Mathlib's form. (Read where it is used: the file does not import Mathlib's asymptotics.) -/
+syntax:100 term:101 " =O " term:101 : term
+macro_rules
+  | `($f =O $g) =>
+    `($(Lean.mkIdent `Asymptotics.IsBigO) $(Lean.mkIdent `Filter.atTop) $f $g)
+
+/-- A power is taken in the type of its base, and converted afterwards: `x ^ k` with `x k : ℝ`
+is the real power, also among complex factors, where Lean alone would convert `x` to `ℂ` first
+and find no power. When the base's type has no power by the exponent (`n ^ s`, `n : ℕ`,
+`s : ℂ`), the base is converted to the exponent's type, `(n : ℂ) ^ s`. A numeral base keeps
+Lean's reading and takes its type from the context (`2 ^ s`, `(-1) ^ n`). -/
+syntax (name := powOwn) "pow_own% " term:max term:max : term
+
+open Lean Elab Term Meta in
+@[term_elab powOwn] def elabPowOwn : TermElab := fun stx expectedType? => do
+  let x ← elabTerm stx[1] none
+  let y ← elabTerm stx[2] none
+  let β ← instantiateMVars (← inferType x)
+  let γ ← instantiateMVars (← inferType y)
+  let xs ← exprToSyntax x
+  let ys ← exprToSyntax y
+  -- the base's type still open (`fun x => x ^ 2 + y`): wait for the surrounding expression to
+  -- settle it, as Lean does; if waiting is impossible, read the power as Lean would
+  if β.isMVar || γ.isMVar then
+    tryPostpone
+    return ← elabTerm (← `(HPow.hPow $xs $ys)) expectedType?
+  -- is there a power of `β` by `γ`? (`HPow.{u, v, w} (α : Type u) (β : Type v) (γ : Type w)`)
+  let w ← mkFreshLevelMVar
+  let δ ← mkFreshExprMVar (mkSort (mkLevelSucc w))
+  let own ← trySynthInstance
+    (mkApp3 (.const ``HPow [← getDecLevel β, ← getDecLevel γ, w]) β γ δ)
+  let e ← if own matches .some _ then elabTerm (← `(HPow.hPow $xs $ys)) none
+    else elabTerm (← `(HPow.hPow ($xs : $(← exprToSyntax γ)) $ys)) none
+  Term.ensureHasType expectedType? e
+
+/-- A numeral, possibly negated or parenthesized. -/
+partial def numeralBase : Lean.Term → Bool
+  | `(($e)) => numeralBase e
+  | `(-$e) => numeralBase e
+  | `($_:num) => true
+  | `($_:scientific) => true
+  | _ => false
+
+macro_rules
+  | `($x ^ $y) => do
+    -- a numeral base is read by Lean's own rule (its type comes from the context)
+    if numeralBase x then Lean.Macro.throwUnsupported
+    `(pow_own% $x $y)
